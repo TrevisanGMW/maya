@@ -440,11 +440,22 @@ class ModuleBipedFingers(ModuleGeneric):
         _joints_no_end = list(set(_proxy_joint_map.keys()) - set(_end_joints))  # Remove ends
         _joints_base_only = [sublist[0] for sublist in _finger_lists if sublist]  # Only first element of each list
         _end_joints_no_thumb = list(set(_end_joints) - set(_thumb_joints))
-        # Get Misc Elements
+
+        # Get Formatted Prefix
+        _prefix = ''
+        setup_name = self.get_meta_setup_name()
+        if self.prefix:
+            _prefix = f'{self.prefix}_'
+        prefixed_setup_name = setup_name
+        if _prefix:
+            prefixed_setup_name = f'{_prefix}{setup_name}'
+
+        # Get Parent Elements
         direction_crv = find_direction_curve()
         module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
-        setup_name = self.get_meta_setup_name()
         fingers_automation_grp = get_automation_group(f'{setup_name}Automation_{NamingConstants.Suffix.GRP}')
+        ik_handles_grp = create_group(f"{prefixed_setup_name}_ikHandles_{NamingConstants.Suffix.GRP}")
+        hierarchy_utils.parent(source_objects=ik_handles_grp, target_parent=fingers_automation_grp)
 
         # Set Joint Colors ------------------------------------------------------------------------------------
         for jnt in _joints_no_end:
@@ -659,6 +670,13 @@ class ModuleBipedFingers(ModuleGeneric):
             hide_lock_default_attrs(obj_list=ctrl, translate=True, scale=True, visibility=True)
             cmds.setAttr(f'{ctrl}.rx', lock=True, keyable=False)
             cmds.setAttr(f'{ctrl}.ry', lock=True, keyable=False)
+
+        # Add Custom Attributes
+        add_separator_attr(target_object=fingers_ctrl, attr_name="fingersAutomation")
+        cmds.addAttr(fingers_ctrl, ln='autoRotation', at='bool', keyable=True)
+        cmds.setAttr(f'{fingers_ctrl}.autoRotation', 1)
+        cmds.setAttr(f'{fingers_ctrl}.sx', lock=True, keyable=False, channelBox=False)
+        cmds.setAttr(f'{fingers_ctrl}.sy', lock=True, keyable=False, channelBox=False)
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [wrist_grp]
