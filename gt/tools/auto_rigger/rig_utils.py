@@ -11,8 +11,8 @@ from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverType
 from gt.utils.uuid_utils import get_object_from_uuid_attr, generate_uuid
 from gt.utils.naming_utils import NamingConstants, get_short_name
 from gt.utils.constraint_utils import constraint_targets
-from gt.utils.hierarchy_utils import create_group
 from gt.utils.string_utils import upper_first_char
+from gt.utils.hierarchy_utils import create_group
 from gt.utils import hierarchy_utils
 from gt.utils.node_utils import Node
 import maya.cmds as cmds
