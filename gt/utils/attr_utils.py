@@ -2,8 +2,8 @@
 Attribute Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.string_utils import remove_suffix, remove_prefix, upper_first_char
 from gt.utils.feedback_utils import FeedbackMessage, log_when_true
-from gt.utils.string_utils import remove_suffix, remove_prefix
 import maya.cmds as cmds
 import logging
 
@@ -754,7 +754,7 @@ def add_separator_attr(target_object, attr_name="separator", custom_value=None):
     return f'{target_object}.{attr_name}'
 
 
-def add_attr(obj_list, attributes, attr_type="double", minimum=None, maximum=None,
+def add_attr(obj_list, attributes, attr_type="double", minimum=None, maximum=None, enum=None,
              default=None, is_keyable=True, verbose=False):
     """
     Adds attributes to the provided target list (list of objects)
@@ -766,6 +766,7 @@ def add_attr(obj_list, attributes, attr_type="double", minimum=None, maximum=Non
                          For a full list see the documentation for "cmds.addAttr".
         minimum: Minimum value for the attribute. Optional.
         maximum: Maximum value for the attribute. Optional.
+        enum (string, optional): A string with a list of potential enums. e.g. "Option1:Option2:Option3"
         default: Default value for the attribute. Optional.
         is_keyable (bool, optional): Whether the attribute should be keyable. Default is True.
         verbose (bool, optional): If active, this function will alert the user in case there were errors.
@@ -795,6 +796,8 @@ def add_attr(obj_list, attributes, attr_type="double", minimum=None, maximum=Non
                     attr_args['maxValue'] = maximum
                 if is_keyable:
                     attr_args['keyable'] = True
+                if enum:
+                    attr_args['enumName'] = enum
                 try:
                     cmds.addAttr(target, **attr_args)
                     if cmds.objExists(full_attr_name):
@@ -885,6 +888,61 @@ def selection_delete_user_defined_attrs(delete_locked=True, feedback=True):
         cmds.warning(f'An error occurred while deleting user-defined attributes. Issue: "{e}".')
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+
+def copy_attr(source_attr_path, target_list, prefix=None):
+    """
+    Copies an attribute from a source object to a target object(s).
+
+    Args:
+        source_attr_path (str): The name of the attribute to copy, including the source object's name.
+                                (e.g., "pSphere1.myAttr").
+        target_list (str, list): The name of the target object(s) to copy the attribute to.
+        prefix (str, optional): A prefix to add to the copied attribute name. Defaults to None.
+
+    Returns:
+        list: List of created attributes.
+    """
+    # Get attribute properties from the source attribute
+    if not cmds.objExists(source_attr_path):
+        logger.warning(f'Unable to copy attribute. Missing source attribute: "{source_attr_path}".')
+        return []
+    if '.' not in source_attr_path:
+        logger.warning(f'Unable to copy attribute. Invalid source attribute: "{source_attr_path}".')
+        return []
+    # Extract Source obj and attr
+    source_obj = source_attr_path.split('.')[0]
+    source_attr = '.'.join(source_attr_path.split('.')[1:])
+    # Get Attr Data
+    attr_type = cmds.attributeQuery(source_attr, node=source_obj, attributeType=True)
+    if attr_type == "typed":  # Update string to add pattern
+        attr_type = "string"
+    attr_data = {}
+    if cmds.attributeQuery(source_attr, node=source_obj, minExists=True):
+        min_val = cmds.attributeQuery(source_attr, node=source_obj, min=True)
+        attr_data["minimum"] = min_val[0]
+    if cmds.attributeQuery(source_attr, node=source_obj, maxExists=True):
+        max_val = cmds.attributeQuery(source_attr, node=source_obj, max=True)
+        attr_data["maximum"] = max_val[0]
+    attr_data["is_keyable"] = cmds.attributeQuery(source_attr, node=source_obj, keyable=True)
+
+    # If the attribute is of enum type, get enum names
+    if attr_type == 'enum':
+        enum_name = cmds.attributeQuery(source_attr, node=source_obj, listEnum=True)
+        attr_data["enum"] = enum_name[0]
+
+    # Adjust attribute name with prefix if provided
+    if prefix:
+        target_attr_name = f"{prefix}{upper_first_char(source_attr)}"
+    else:
+        target_attr_name = source_attr
+
+    # Create attribute on target object with same properties
+    current_value = cmds.getAttr(source_attr_path)
+    return add_attr(obj_list=target_list,
+                    attributes=target_attr_name,
+                    attr_type=attr_type,
+                    default=current_value, **attr_data, verbose=True)
 
 
 # -------------------------------------------- Connection -------------------------------------------

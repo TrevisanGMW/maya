@@ -1231,3 +1231,108 @@ class TestAttributeUtils(unittest.TestCase):
         result = attr_utils.list_user_defined_attr(cube, skip_nested=True, skip_parents=True)
         expected = ['custom_attr_one']
         self.assertEqual(expected, result)
+
+    def test_copy_attr(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        attr_utils.add_attr(cube_one, attr_type='double', attributes="doubleAttr")
+        attr_utils.add_attr(cube_one, attr_type='long', attributes="intAttr")
+        attr_utils.add_attr(cube_one, attr_type='enum', attributes="enumAttr", enum='Option1:Option2:Option3')
+        attr_utils.add_attr(cube_one, attr_type='bool', attributes="boolAttr")
+        attr_utils.add_attr(cube_one, attr_type='string', attributes="stringAttr")
+
+        cmds.setAttr(f'{cube_one}.doubleAttr', 2.5)
+        cmds.setAttr(f'{cube_one}.intAttr', 3)
+        cmds.setAttr(f'{cube_one}.enumAttr', 2)
+        cmds.setAttr(f'{cube_one}.boolAttr', True)
+        cmds.setAttr(f'{cube_one}.stringAttr', "mocked_content", type="string")
+
+        result = attr_utils.copy_attr(source_attr_path=f"{cube_one}.doubleAttr", target_list=cube_two)
+        expected = [f'{cube_two}.doubleAttr']
+        self.assertEqual(expected, result)
+        result = cmds.getAttr(f'{cube_two}.doubleAttr')
+        expected = 2.5
+        self.assertEqual(expected, result)
+
+        result = attr_utils.copy_attr(source_attr_path=f"{cube_one}.intAttr", target_list=cube_two)
+        expected = [f'{cube_two}.intAttr']
+        self.assertEqual(expected, result)
+        result = cmds.getAttr(f'{cube_two}.intAttr')
+        expected = 3
+        self.assertEqual(expected, result)
+
+        result = attr_utils.copy_attr(source_attr_path=f"{cube_one}.enumAttr", target_list=cube_two)
+        expected = [f'{cube_two}.enumAttr']
+        self.assertEqual(expected, result)
+        result = cmds.getAttr(f'{cube_two}.enumAttr')
+        expected = 2
+        self.assertEqual(expected, result)
+
+        result = attr_utils.copy_attr(source_attr_path=f"{cube_one}.boolAttr", target_list=cube_two)
+        expected = [f'{cube_two}.boolAttr']
+        self.assertEqual(expected, result)
+        result = cmds.getAttr(f'{cube_two}.boolAttr')
+        expected = True
+        self.assertEqual(expected, result)
+
+        result = attr_utils.copy_attr(source_attr_path=f"{cube_one}.stringAttr", target_list=cube_two)
+        expected = [f'{cube_two}.stringAttr']
+        self.assertEqual(expected, result)
+        result = cmds.getAttr(f'{cube_two}.stringAttr')
+        expected = "mocked_content"
+        self.assertEqual(expected, result)
+
+    def test_copy_attr_prefix(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        attr_utils.add_attr(cube_one, attr_type='double', attributes="doubleAttr")
+        attr_utils.add_attr(cube_one, attr_type='long', attributes="intAttr")
+        attr_utils.add_attr(cube_one, attr_type='enum', attributes="enumAttr", enum='Option1:Option2:Option3')
+        attr_utils.add_attr(cube_one, attr_type='bool', attributes="boolAttr")
+        attr_utils.add_attr(cube_one, attr_type='string', attributes="stringAttr")
+
+        cmds.setAttr(f'{cube_one}.doubleAttr', 2.5)
+        cmds.setAttr(f'{cube_one}.intAttr', 3)
+        cmds.setAttr(f'{cube_one}.enumAttr', 2)
+        cmds.setAttr(f'{cube_one}.boolAttr', True)
+        cmds.setAttr(f'{cube_one}.stringAttr', "mocked_content", type="string")
+
+        result = attr_utils.copy_attr(source_attr_path=f"{cube_one}.doubleAttr",
+                                      target_list=cube_two, prefix="prefix")
+        expected = [f'{cube_two}.prefixDoubleAttr']
+        self.assertEqual(expected, result)
+        result = cmds.getAttr(f'{cube_two}.prefixDoubleAttr')
+        expected = 2.5
+        self.assertEqual(expected, result)
+
+        result = attr_utils.copy_attr(source_attr_path=f"{cube_one}.intAttr",
+                                      target_list=cube_two, prefix="prefix")
+        expected = [f'{cube_two}.prefixIntAttr']
+        self.assertEqual(expected, result)
+        result = cmds.getAttr(f'{cube_two}.prefixIntAttr')
+        expected = 3
+        self.assertEqual(expected, result)
+
+        result = attr_utils.copy_attr(source_attr_path=f"{cube_one}.enumAttr",
+                                      target_list=cube_two, prefix="prefix")
+        expected = [f'{cube_two}.prefixEnumAttr']
+        self.assertEqual(expected, result)
+        result = cmds.getAttr(f'{cube_two}.prefixEnumAttr')
+        expected = 2
+        self.assertEqual(expected, result)
+
+        result = attr_utils.copy_attr(source_attr_path=f"{cube_one}.boolAttr",
+                                      target_list=cube_two, prefix="prefix")
+        expected = [f'{cube_two}.prefixBoolAttr']
+        self.assertEqual(expected, result)
+        result = cmds.getAttr(f'{cube_two}.prefixBoolAttr')
+        expected = True
+        self.assertEqual(expected, result)
+
+        result = attr_utils.copy_attr(source_attr_path=f"{cube_one}.stringAttr",
+                                      target_list=cube_two, prefix="prefix")
+        expected = [f'{cube_two}.prefixStringAttr']
+        self.assertEqual(expected, result)
+        result = cmds.getAttr(f'{cube_two}.prefixStringAttr')
+        expected = "mocked_content"
+        self.assertEqual(expected, result)
