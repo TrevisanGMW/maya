@@ -637,15 +637,19 @@ def get_trs_attr_as_python(obj_list, use_loop=False, decimal_place=2, strip_zero
     return output
 
 
-def get_user_attr_to_python(obj_list):
+def get_user_attr_to_python(obj_list, skip_locked=True):
     """
     Returns a string
     Args:
         obj_list (list, none): List objects to extract the transform from (if empty, it will try to use selection)
+        skip_locked (bool, optional): If True, locked attributes will be ignored, otherwise all user-defined
+                                      attributes are listed.
 
     Returns:
-        str: Python code with extracted transform values
-
+        str: Python code with extracted transform values.
+             e.g.
+             # User-Defined Attribute Data for "pSphere1":
+             cmds.setAttr("pSphere1.myAttr", 0.0)"
     """
     if isinstance(obj_list, str):
         obj_list = [obj_list]
@@ -653,18 +657,26 @@ def get_user_attr_to_python(obj_list):
     for obj in obj_list:
         output += '\n# User-Defined Attribute Data for "' + obj + '":\n'
         attributes = cmds.listAttr(obj, userDefined=True) or []
+        # Check if locked
+        if skip_locked:
+            unlocked_attrs = []
+            for attr in attributes:
+                if not cmds.getAttr(f'{obj}.{attr}', lock=True):
+                    unlocked_attrs.append(attr)
+            attributes = unlocked_attrs
+        # Create code
         if not attributes:
             output += '# No user-defined attributes found on this object.\n'
         else:
-            for attr in attributes:  # TRS
-                attr_type = cmds.getAttr(obj + '.' + attr, typ=True)
-                value = cmds.getAttr(obj + '.' + attr)
+            for attr in attributes:
+                attr_type = cmds.getAttr(f'{obj}.{attr}', typ=True)
+                value = cmds.getAttr(f'{obj}.{attr}')
                 if attr_type == 'double3':
                     pass
                 elif attr_type == 'string':
-                    output += 'cmds.setAttr("' + obj + '.' + attr + '", """' + str(value) + '""", typ="string")\n'
+                    output += f'cmds.setAttr("{obj}.{attr}", """{str(value)}""", typ="string")\n'
                 else:
-                    output += 'cmds.setAttr("' + obj + '.' + attr + '", ' + str(value) + ')\n'
+                    output += f'cmds.setAttr("{obj}.{attr}", {str(value)})\n'
     # Remove first and last new line
     _new_line = "\n"
     output = remove_prefix(output, _new_line)
