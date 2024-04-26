@@ -19,6 +19,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils import attr_utils
+
 cmds = maya_test_tools.cmds
 
 
@@ -1335,4 +1336,55 @@ class TestAttributeUtils(unittest.TestCase):
         self.assertEqual(expected, result)
         result = cmds.getAttr(f'{cube_two}.prefixStringAttr')
         expected = "mocked_content"
+        self.assertEqual(expected, result)
+
+    def test_reroute_attr(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        attr_utils.add_attr(cube_one, attr_type='double', attributes="doubleAttr")
+        attr_utils.add_attr(cube_one, attr_type='long', attributes="intAttr")
+        attr_utils.add_attr(cube_one, attr_type='enum', attributes="enumAttr", enum='Option1:Option2:Option3')
+        attr_utils.add_attr(cube_one, attr_type='bool', attributes="boolAttr")
+        attr_utils.add_attr(cube_one, attr_type='string', attributes="stringAttr")
+
+        cmds.setAttr(f'{cube_one}.doubleAttr', 2.5)
+        cmds.setAttr(f'{cube_one}.intAttr', 3)
+        cmds.setAttr(f'{cube_one}.enumAttr', 2)
+        cmds.setAttr(f'{cube_one}.boolAttr', True)
+        cmds.setAttr(f'{cube_one}.stringAttr', "mocked_content", type="string")
+
+        source_attrs = [f'{cube_one}.doubleAttr', f'{cube_one}.intAttr',
+                        f'{cube_one}.enumAttr', f'{cube_one}.boolAttr',
+                        f'{cube_one}.stringAttr']
+        result = attr_utils.reroute_attr(source_attrs=source_attrs,
+                                         target_obj=cube_two)
+        expected = [f'{cube_two}.doubleAttr', f'{cube_two}.intAttr',
+                    f'{cube_two}.enumAttr', f'{cube_two}.boolAttr',
+                    f'{cube_two}.stringAttr']
+        self.assertEqual(expected, result)
+
+        cmds.setAttr(f'{cube_two}.doubleAttr', 3.5)
+        cmds.setAttr(f'{cube_two}.intAttr', 4)
+        cmds.setAttr(f'{cube_two}.enumAttr', 1)
+        cmds.setAttr(f'{cube_two}.boolAttr', False)
+        cmds.setAttr(f'{cube_two}.stringAttr', "mocked_content_two", type="string")
+
+        result = cmds.getAttr(f'{cube_one}.doubleAttr')
+        expected = 3.5
+        self.assertEqual(expected, result)
+
+        result = cmds.getAttr(f'{cube_one}.intAttr')
+        expected = 4
+        self.assertEqual(expected, result)
+
+        result = cmds.getAttr(f'{cube_one}.enumAttr')
+        expected = 1
+        self.assertEqual(expected, result)
+
+        result = cmds.getAttr(f'{cube_one}.boolAttr')
+        expected = False
+        self.assertEqual(expected, result)
+
+        result = cmds.getAttr(f'{cube_one}.stringAttr')
+        expected = "mocked_content_two"
         self.assertEqual(expected, result)

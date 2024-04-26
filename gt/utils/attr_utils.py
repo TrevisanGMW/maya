@@ -945,6 +945,36 @@ def copy_attr(source_attr_path, target_list, prefix=None):
                     default=current_value, **attr_data, verbose=True)
 
 
+def reroute_attr(source_attrs, target_obj, prefix=None, hide_source=True):
+    """
+    Copies an attribute from a source object to a target object(s),
+    then uses the target object to control the previous initial attribute.
+    obj1.attr <- controlled by <- obj2.attr
+
+    Args:
+        source_attrs (str, list): The name of the attribute to reroute, including the source object's name.
+                                  (e.g., "pSphere1.myAttr").
+        target_obj (str, list): The name of the target object to copy the attribute to. (new attribute holder)
+        prefix (str, optional): A prefix to add to the copied attribute name. Defaults to None.
+        hide_source (bool, optional): If True, the source attribute is hidden after receiving the data from
+                                      the duplicated attribute.
+
+    Returns:
+        list: List of created attributes.
+    """
+    if isinstance(source_attrs, str):
+        source_attrs = [source_attrs]
+    created_attrs = []
+    for source_attr in source_attrs:
+        copied_attrs = copy_attr(source_attr_path=source_attr, target_list=target_obj, prefix=prefix)
+        for copied_attr in copied_attrs:
+            cmds.connectAttr(copied_attr, source_attr)
+            created_attrs.append(copied_attr)
+        if hide_source:
+            cmds.setAttr(source_attr, keyable=False, channelBox=False)
+    return created_attrs
+
+
 # -------------------------------------------- Connection -------------------------------------------
 def connect_attr(source_attr, target_attr_list, force=False,
                  verbose=False, log_level=logging.INFO, raise_exceptions=False):
@@ -988,5 +1018,16 @@ def connect_attr(source_attr, target_attr_list, force=False,
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     sel = cmds.ls(selection=True)
-    add_attr(obj_list=sel, attributes=["custom_attr_one", "custom_attr_two"])
-    delete_user_defined_attrs(sel)
+    # add_attr(obj_list=sel, attributes=["custom_attr_one", "custom_attr_two"])
+    # delete_user_defined_attrs(sel)
+    cmds.file(new=True, force=True)
+    cube_one = cmds.polyCube(ch=False)[0]
+    cube_two = cmds.polyCube(ch=False)[0]
+    add_attr(cube_one, attr_type='double', attributes="doubleAttr")
+    add_attr(cube_one, attr_type='long', attributes="intAttr")
+    add_attr(cube_one, attr_type='enum', attributes="enumAttr", enum='Option1:Option2:Option3')
+    add_attr(cube_one, attr_type='bool', attributes="boolAttr")
+    add_attr(cube_one, attr_type='string', attributes="stringAttr")
+
+    reroute_attr(source_attrs=[f'{cube_one}.doubleAttr', f'{cube_one}.intAttr', f'{cube_one}.enumAttr',
+                               f'{cube_one}.boolAttr', f'{cube_one}.stringAttr'], target_obj=cube_two)
