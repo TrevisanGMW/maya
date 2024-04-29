@@ -1195,6 +1195,7 @@ class Curves:
     pin_target_to_arrow = get_curve(file_name="pin_target_to_arrow")
     primitive_cone = get_curve(file_name="primitive_cone")
     primitive_cube = get_curve(file_name="primitive_cube")
+    primitive_diamond = get_curve(file_name="primitive_diamond")
     primitive_hexagonal_tube = get_curve(file_name="primitive_hexagonal_tube")
     primitive_pyramid = get_curve(file_name="primitive_pyramid")
     primitive_pyramid_half = get_curve(file_name="primitive_pyramid_half")
