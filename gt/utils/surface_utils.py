@@ -44,6 +44,7 @@ def is_surface(surface, accept_transform_parent=True):
 
     return cmds.objectType(surface) == SURFACE_TYPE
 
+
 def is_surface_periodic(surface_shape):
     """
     Determine if a surface is periodic.
