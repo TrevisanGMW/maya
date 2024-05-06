@@ -439,7 +439,7 @@ class TestSystemUtils(unittest.TestCase):
 
     @patch('gt.utils.system_utils.launch_maya')
     def test_load_package_menu_launching_maya(self, mock_launch_maya):
-        system_utils.load_package_menu(launch_latest_maya=True)
+        system_utils.load_package_menu(launch_maya_app=True)
         mock_launch_maya.assert_called_once()
         result_kwargs = str(mock_launch_maya.call_args)
         expected_key = 'python_script'
@@ -447,7 +447,7 @@ class TestSystemUtils(unittest.TestCase):
 
     @patch('gt.tools.package_setup.gt_tools_maya_menu.load_menu')
     def test_load_package_menu_injecting(self, mock_load_menu):
-        system_utils.load_package_menu(launch_latest_maya=False)
+        system_utils.load_package_menu(launch_maya_app=False)
         mock_load_menu.assert_called_once()
 
     def test_function_execution_time(self):

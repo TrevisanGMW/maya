@@ -376,8 +376,9 @@ def process_launch_options(sys_args):
 
         -uninstall : Uninstall package (If detected on the system)
 
-        -launch : Runs Maya with package from current location
-        -launch -dev: Run Maya from current location with developer options
+        -launch : Runs Maya with package from current location.
+        -launch -####: Run Maya using preferred version ("####" is the desired version number. e.g. -2023)
+
         -test: Run all unittests
     Args:
         sys_args (list): A "sys.argv" list. First object ("argv[0]") is expected to the script name.
@@ -409,15 +410,18 @@ def process_launch_options(sys_args):
         setup_utils.uninstall_package()
         return True
     elif sys_args[1] == "-launch":
-        if "-dev" in sys_args:
-            print("launch in dev mode...")  # WIP
+        preferred_version = None
+        if len(sys_args) > 2:
+            preferred_version_no_dash = str(sys_args[2]).replace("-", "")
+            if re.match(r'^\d{4}$', preferred_version_no_dash):  # Exactly 4 digits
+                preferred_version = preferred_version_no_dash
         try:
             import maya.cmds as cmds
             is_batch_mode = cmds.about(batch=True)
-            load_package_menu(launch_latest_maya=is_batch_mode)
-        except Exception as e:
+            load_package_menu(launch_maya_app=is_batch_mode, preferred_version=preferred_version)
+        except Exception as e:  # Failed to import cmds, not in Maya
             logger.debug(str(e))
-            load_package_menu(launch_latest_maya=True)  # Failed to import cmds, not in Maya
+            load_package_menu(launch_maya_app=True, preferred_version=preferred_version)
         return True
     elif sys_args[1] == "-test":
         utils_dir = os.path.dirname(__file__)
@@ -497,15 +501,18 @@ def initialize_utility(import_path, entry_point_function="launch_tool"):
                                    entry_point_function=entry_point_function)
 
 
-def load_package_menu(launch_latest_maya=False):
+def load_package_menu(launch_maya_app=False, preferred_version=None):
     """
     Loads the script from the current location, so it can be used without installing it.
     It can also open the latest Maya version detected on the machine and injects the package loader script onto it
     causing the package main maya menu to be loaded from start.
     Essentially a "Run Only" option for the package and maya menu.
     Args:
-        launch_latest_maya (bool, optional): If true, it will launch the latest detected version of Maya and inject
-                                            the necessary code to import the package and create its maya menu.
+        launch_maya_app (bool, optional): If true, it will launch the latest detected version of Maya and inject
+                                             the necessary code to import the package and create its maya menu.
+        preferred_version (int, optional): If provided and "launch_maya_app" is True, it will attempt to launch
+                                           the provided version. e.g. "2023" - When unavailable, the latest version
+                                           is used instead.
     """
     # utils/data/scripts/package_loader.py
     package_loader_script = os.path.join(DataDirConstants.DIR_SCRIPTS, "package_loader.py")
@@ -516,8 +523,8 @@ def load_package_menu(launch_latest_maya=False):
     search_string = 'utils.executeDeferred(load_package_menu)'
     replace_string = f'utils.executeDeferred(load_package_menu, """{str(DataDirConstants.DIR_PACKAGE)}""")'
     injection_script = file_content.replace(search_string, replace_string)
-    if launch_latest_maya:
-        launch_maya(python_script=injection_script)
+    if launch_maya_app:
+        launch_maya(python_script=injection_script, preferred_version=preferred_version)
     else:
         if DataDirConstants.DIR_PACKAGE not in sys.path:
             sys.path.append(DataDirConstants.DIR_PACKAGE)
@@ -881,6 +888,6 @@ def create_object(class_name, raise_errors=True, class_path=None, *args, **kwarg
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # out = os.environ.keys()
-    out = get_maya_preferences_dir(get_system())
+    # out = get_maya_preferences_dir(get_system())
     # out = initialize_from_package()
-    print(out)
+    # print(out)
