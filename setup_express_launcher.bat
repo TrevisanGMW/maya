@@ -2,9 +2,8 @@
 @title =  Command-line Package Installer
 setlocal enabledelayedexpansion
 
-set launch_option="%1"
-::if "%2" NEQ "" set launch_option=%1 %2
-::if "%3" NEQ "" set launch_option=%1 %2 %3
+set "launch_args=%1"
+set "preferred_version=%2"
 set "path_bat_script=%~dp0"
 set "path_package_init=!path_bat_script!\setup_drag_drop_maya.py"
 set "path_autodesk=C:\Program Files\Autodesk"
@@ -12,13 +11,12 @@ set "path_mayapy_end=\bin\mayapy.exe"
 set "installation_status="
 
 :ARGS
-if %launch_option%=="" goto MENU
-if %launch_option%=="-install -gui" goto GET_LATEST_MAYAPY
-if %launch_option%=="-install -clean" goto GET_LATEST_MAYAPY
-if %launch_option%=="-uninstall" goto GET_LATEST_MAYAPY
-if %launch_option%=="-launch" goto GET_LATEST_MAYAPY
-if %launch_option%=="-launch -dev" goto GET_LATEST_MAYAPY
-if %launch_option%=="-test" goto TEST
+if "%1"=="" (
+	goto MENU
+) else (
+	set "launch_args=%*"
+	goto LAUNCH
+)
 
 :MENU
 @echo off
@@ -51,36 +49,52 @@ color 0A
 @echo.
 @echo off
 SET /P M=Type 1, 2, 3, 4 or 5 then press ENTER:
-IF %M%==1 GOTO GUI
-IF %M%==2 GOTO INSTALL
-IF %M%==3 GOTO UNINSTALL
-IF %M%==4 GOTO LAUNCH
+IF %M%==1 GOTO SET_ARGS_GUI
+IF %M%==2 GOTO SET_ARGS_INSTALL
+IF %M%==3 GOTO SET_ARGS_UNINSTALL
+IF %M%==4 GOTO SET_ARGS_LAUNCH
 IF %M%==5 GOTO ABOUT
 GOTO EOF
 
-:GUI
-set "launch_option=-install -gui"
-GOTO GET_LATEST_MAYAPY
+:SET_ARGS_GUI
+set "launch_args=-install -gui"
+GOTO LAUNCH
 
-:INSTALL
-set "launch_option=-install -clean"
-GOTO GET_LATEST_MAYAPY
+:SET_ARGS_INSTALL
+set "launch_args=-install -clean"
+GOTO LAUNCH
 
-:UNINSTALL
-set "launch_option=-uninstall"
-GOTO GET_LATEST_MAYAPY
+:SET_ARGS_UNINSTALL
+set "launch_args=-uninstall"
+GOTO LAUNCH
+
+:SET_ARGS_LAUNCH
+set "launch_args=-launch"
+GOTO LAUNCH
 
 :LAUNCH
-set "launch_option=-launch"
-GOTO GET_LATEST_MAYAPY
+echo %preferred_version%| findstr /R "^-[0-9][0-9][0-9][0-9]$" > nul
+if errorlevel 1 (
+    goto GET_LATEST_MAYAPY
+) else (
+    goto GET_PREFERRED_MAYAPY
+)
 
-:LAUNCH_DEV
-set "launch_option=-launch -dev"
-GOTO GET_LATEST_MAYAPY
-
-:TEST
-set "launch_option=-test %2 %3"
-GOTO GET_LATEST_MAYAPY
+:GET_PREFERRED_MAYAPY
+set "preferred_version_no_dash="
+for /f "tokens=*" %%a in ('echo !preferred_version!') do (
+	set "line=%%a"
+	set "line=!line:-=!"
+	set "preferred_version_no_dash=!preferred_version_no_dash!!line!"
+)
+if exist "%path_autodesk%\Maya%preferred_version_no_dash%%path_mayapy_end%" (
+	set "path_mayapy=%path_autodesk%\Maya%preferred_version_no_dash%%path_mayapy_end%"
+	GOTO CHECK_MAYAPY_EXISTENCE
+) else (
+    echo "Unable to find preferred version: %preferred_version_no_dash%. Looking for other versions..."
+	timeout /t 2 /nobreak
+	GOTO GET_LATEST_MAYAPY
+)
 
 :GET_LATEST_MAYAPY
 set "latest_folder="
@@ -94,13 +108,12 @@ set "path_mayapy=%latest_folder%%path_mayapy_end%"
 :CHECK_MAYAPY_EXISTENCE
 if not exist "%path_mayapy%" (
 	set "installation_status=Unable to detect Maya installation"
-	GOTO END
+	GOTO TIMED_EXIT
     ) else (
-	"%path_mayapy%" %path_package_init% %launch_option%
+	"%path_mayapy%" %path_package_init% %launch_args%
     )
 endlocal
 GOTO TIMED_EXIT
-
 
 :ABOUT
 @echo off
