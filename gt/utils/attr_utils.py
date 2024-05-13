@@ -637,13 +637,15 @@ def get_trs_attr_as_python(obj_list, use_loop=False, decimal_place=2, strip_zero
     return output
 
 
-def get_user_attr_to_python(obj_list, skip_locked=True):
+def get_user_attr_to_python(obj_list, skip_locked=True, skip_connected=True):
     """
     Returns a string
     Args:
         obj_list (list, none): List objects to extract the transform from (if empty, it will try to use selection)
         skip_locked (bool, optional): If True, locked attributes will be ignored, otherwise all user-defined
                                       attributes are listed.
+        skip_connected (bool, optional): If True, attributes receiving their data from a direct connections will be
+                                        ignored as these cannot be set manually.
 
     Returns:
         str: Python code with extracted transform values.
@@ -664,6 +666,13 @@ def get_user_attr_to_python(obj_list, skip_locked=True):
                 if not cmds.getAttr(f'{obj}.{attr}', lock=True):
                     unlocked_attrs.append(attr)
             attributes = unlocked_attrs
+        if skip_connected:
+            connected_attrs = []
+            for attr in attributes:
+                connections = cmds.listConnections(f'{obj}.{attr}', source=True, destination=False)
+                if connections is None:
+                    connected_attrs.append(attr)
+            attributes = connected_attrs
         # Create code
         if not attributes:
             output += '# No user-defined attributes found on this object.\n'
@@ -1020,14 +1029,15 @@ if __name__ == "__main__":
     sel = cmds.ls(selection=True)
     # add_attr(obj_list=sel, attributes=["custom_attr_one", "custom_attr_two"])
     # delete_user_defined_attrs(sel)
-    cmds.file(new=True, force=True)
-    cube_one = cmds.polyCube(ch=False)[0]
-    cube_two = cmds.polyCube(ch=False)[0]
-    add_attr(cube_one, attr_type='double', attributes="doubleAttr")
-    add_attr(cube_one, attr_type='long', attributes="intAttr")
-    add_attr(cube_one, attr_type='enum', attributes="enumAttr", enum='Option1:Option2:Option3')
-    add_attr(cube_one, attr_type='bool', attributes="boolAttr")
-    add_attr(cube_one, attr_type='string', attributes="stringAttr")
-
-    reroute_attr(source_attrs=[f'{cube_one}.doubleAttr', f'{cube_one}.intAttr', f'{cube_one}.enumAttr',
-                               f'{cube_one}.boolAttr', f'{cube_one}.stringAttr'], target_obj=cube_two)
+    # cmds.file(new=True, force=True)
+    # cube_one = cmds.polyCube(ch=False)[0]
+    # cube_two = cmds.polyCube(ch=False)[0]
+    # add_attr(cube_one, attr_type='double', attributes="doubleAttr")
+    # add_attr(cube_one, attr_type='long', attributes="intAttr")
+    # add_attr(cube_one, attr_type='enum', attributes="enumAttr", enum='Option1:Option2:Option3')
+    # add_attr(cube_one, attr_type='bool', attributes="boolAttr")
+    # add_attr(cube_one, attr_type='string', attributes="stringAttr")
+    #
+    # reroute_attr(source_attrs=[f'{cube_one}.doubleAttr', f'{cube_one}.intAttr', f'{cube_one}.enumAttr',
+    #                            f'{cube_one}.boolAttr', f'{cube_one}.stringAttr'], target_obj=cube_two)
+    print(get_user_attr_to_python(f"left_backKnee_driverJnt_ctrl"))

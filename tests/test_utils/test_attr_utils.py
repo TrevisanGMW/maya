@@ -970,6 +970,27 @@ class TestAttributeUtils(unittest.TestCase):
         expected = f'{expected}\n\n{expected}'
         self.assertEqual(expected, result)
 
+    def test_get_user_attr_to_python_connected(self):
+        cube = maya_test_tools.create_poly_cube()
+        cmds.addAttr(cube, ln="custom_attr_one", at='bool', k=True)
+        cmds.addAttr(cube, ln="custom_attr_two", at='float', k=True)
+        cmds.addAttr(cube, ln="custom_attr_three", at='float', k=True)
+        cmds.connectAttr(f'{cube}.custom_attr_two', f'{cube}.custom_attr_three')
+        result = attr_utils.get_user_attr_to_python(cube, skip_locked=True, skip_connected=True)
+        expected = '# User-Defined Attribute Data for "pCube1":\ncmds.setAttr("pCube1.custom_attr_one", False)\n' \
+                   'cmds.setAttr("pCube1.custom_attr_two", 0.0)'
+        self.assertEqual(expected, result)
+        result = attr_utils.get_user_attr_to_python([cube, cube], skip_locked=True, skip_connected=True)
+        expected = f'{expected}\n\n{expected}'
+        self.assertEqual(expected, result)
+        result = attr_utils.get_user_attr_to_python(cube, skip_locked=True, skip_connected=False)
+        expected = '# User-Defined Attribute Data for "pCube1":\ncmds.setAttr("pCube1.custom_attr_one", False)\n' \
+                   'cmds.setAttr("pCube1.custom_attr_two", 0.0)\ncmds.setAttr("pCube1.custom_attr_three", 0.0)'
+        self.assertEqual(expected, result)
+        result = attr_utils.get_user_attr_to_python([cube, cube], skip_locked=True, skip_connected=False)
+        expected = f'{expected}\n\n{expected}'
+        self.assertEqual(expected, result)
+
     def test_set_attr_state_lock_attribute(self):
         cube = maya_test_tools.create_poly_cube()
         attr_utils.set_attr_state(attribute_path=f"{cube}.tx", locked=True)
