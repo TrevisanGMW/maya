@@ -1223,6 +1223,7 @@ class Curves:
     sphere_joint = get_curve(file_name="sphere_joint")
     sphere_joint_loc = get_curve(file_name="sphere_joint_loc")
     sphere_joint_smooth = get_curve(file_name="sphere_joint_smooth")
+    sphere_joint_pos_z_arrow = get_curve(file_name="sphere_joint_pos_z_arrow")
     sphere_two_directions = get_curve(file_name="sphere_two_directions")
     spring = get_curve(file_name="spring")
     spring_high_frequency = get_curve(file_name="spring_high_frequency")
