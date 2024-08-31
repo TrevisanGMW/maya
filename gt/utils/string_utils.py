@@ -112,6 +112,19 @@ def remove_digits(input_string):
     return ''.join([i for i in input_string if not i.isdigit()])
 
 
+def contains_digits(input_string):
+    """
+    Check if a string contains digits.
+
+    Args:
+        input_string (str): The input string to check.
+
+    Returns:
+        bool: True if the string contains digits, False otherwise.
+    """
+    return any(char.isdigit() for char in input_string)
+
+
 def remove_strings_from_string(input_string, undesired_string_list, only_prefix=False, only_suffix=False):
     """
     Removes provided strings from input
@@ -362,22 +375,24 @@ def upper_first_char(input_string):
     return input_string[0].upper() + input_string[1:]
 
 
+def camel_to_title(input_string):
+    """
+    Converts a camel case string into title case.
+    e.g. input = "camelCase", output = "Camel Case"
+
+    Args:
+        input_string (str): The camel case string to convert. e.g. "camelCase"
+
+    Returns:
+        str: The title case version of the input string. e.g. "Camel Case"
+    """
+    if not input_string:
+        return ''
+    word_list = camel_case_split(input_string)
+    sentence = ' '.join(word_list)
+    return sentence.title()
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    test_cases = [
-        # Single-digit numbers
-        0, 1, 5, 9,
-        # Two-digit numbers
-        10, 11, 12, 20, 21, 36, 47, 58, 99,
-        # Three-digit numbers
-        100, 123, 200, 512, 999,
-        # Large numbers
-        1000, 1000000, 123456789,
-        # Negative numbers
-        -5, -123, -123456789
-    ]
-
-    # Print test cases
-    for n in test_cases:
-        print(f"#: {n}, : {get_int_as_en(n)}")
+    print(camel_to_title('camelCase'))

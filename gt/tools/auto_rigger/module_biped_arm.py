@@ -2,14 +2,15 @@
 Auto Rigger Arm Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_from_uuid, get_driven_joint
+from gt.utils.rigging_utils import rescale_joint_radius, offset_control_orientation, duplicate_joint_for_automation
+from gt.utils.rigging_utils import RiggingConstants, expose_rotation_order, add_limit_lock_rotate_with_exception
+from gt.utils.rigging_utils import create_switch_setup
+from gt.tools.auto_rigger.rig_utils import find_object_with_attr, find_proxy_from_uuid, get_driven_joint
 from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, get_proxy_offset, find_control_root_curve
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, find_direction_curve
 from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group
 from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr, add_separator_attr, add_attr
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner, get_directional_color
-from gt.utils.rigging_utils import rescale_joint_radius, offset_control_orientation, expose_rotation_order
-from gt.utils.rigging_utils import duplicate_joint_for_automation, RiggingConstants
 from gt.utils.transform_utils import match_translate, match_transform, Vector3, set_equidistant_transforms
 from gt.utils.transform_utils import scale_shapes, rotate_shapes, translate_shapes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
@@ -166,7 +167,7 @@ class ModuleBipedArm(ModuleGeneric):
         When in a project, this runs after the "build_proxy" is done in all modules.
         """
         # Get Maya Elements
-        root = find_objects_with_attr(RiggerConstants.REF_ATTR_ROOT_PROXY)
+        root = find_object_with_attr(RiggerConstants.REF_ATTR_ROOT_PROXY)
         clavicle = find_proxy_from_uuid(self.clavicle.get_uuid())
         shoulder = find_proxy_from_uuid(self.shoulder.get_uuid())
         elbow = find_proxy_from_uuid(self.elbow.get_uuid())
@@ -281,10 +282,19 @@ class ModuleBipedArm(ModuleGeneric):
         shoulder_jnt = find_joint_from_uuid(self.shoulder.get_uuid())
         elbow_jnt = find_joint_from_uuid(self.elbow.get_uuid())
         wrist_jnt = find_joint_from_uuid(self.wrist.get_uuid())
-        arm_jnt_list = [clavicle_jnt, shoulder_jnt, elbow_jnt, wrist_jnt]
+        module_jnt_list = [clavicle_jnt, shoulder_jnt, elbow_jnt, wrist_jnt]
+
+        # Get Formatted Prefix
+        _prefix = ''
+        if self.prefix:
+            _prefix = f'{self.prefix}_'
+        setup_name = self.get_meta_setup_name()
+        prefixed_setup_name = setup_name
+        if _prefix:
+            prefixed_setup_name = f'{_prefix}{setup_name}'
 
         # Set Colors
-        for jnt in arm_jnt_list:
+        for jnt in module_jnt_list:
             set_color_viewport(obj_list=jnt, rgb_color=(.3, .3, 0))
 
         # Get General Scale
@@ -333,20 +343,21 @@ class ModuleBipedArm(ModuleGeneric):
         forearm_radius = (self.elbow.get_locator_scale() + self.wrist.get_locator_scale())/2
         set_attr(obj_list=forearm, attr_list="radius", value=forearm_radius)
 
-        # Is Twist Activated
-        if self.get_metadata_value(self.META_FOREARM_ACTIVE) is True:
-            print("Forearm is active")
-
-        print(f'arm_scale: {arm_scale}')
-        print("build arm rig!")
+        # # Is Twist Activated
+        # if self.get_metadata_value(self.META_FOREARM_ACTIVE) is True:
+        #     print("Forearm is active")
+        #
+        # print(f'arm_scale: {arm_scale}')
+        # print("build arm rig!")
 
         # FK Controls ----------------------------------------------------------------------------------------
+        fk_controls = []
 
         # Clavicle Control
         clavicle_scale = dist_center_to_center(clavicle_jnt, shoulder_jnt)
         clavicle_ctrl = self._assemble_ctrl_name(name=self.clavicle.get_name())
         clavicle_ctrl = create_ctrl_curve(name=clavicle_ctrl, curve_file_name="_pin_pos_y")
-        self.add_driver_uuid_attr(target=clavicle_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.clavicle)
+        self._add_driver_uuid_attr(target_driver=clavicle_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.clavicle)
         clavicle_offset = add_offset_transform(target_list=clavicle_ctrl)[0]
         match_transform(source=clavicle_jnt, target_list=clavicle_offset)
         scale_shapes(obj_transform=clavicle_ctrl, offset=clavicle_scale*.2)
@@ -363,8 +374,8 @@ class ModuleBipedArm(ModuleGeneric):
         # Shoulder FK Control
         shoulder_fk_ctrl = self._assemble_ctrl_name(name=self.shoulder.get_name())
         shoulder_fk_ctrl = create_ctrl_curve(name=shoulder_fk_ctrl, curve_file_name="_circle_pos_x")
-        self.add_driver_uuid_attr(target=shoulder_fk_ctrl, driver_type=RiggerDriverTypes.FK,
-                                  proxy_purpose=self.shoulder)
+        self._add_driver_uuid_attr(target_driver=shoulder_fk_ctrl, driver_type=RiggerDriverTypes.FK,
+                                   proxy_purpose=self.shoulder)
         shoulder_fk_offset = add_offset_transform(target_list=shoulder_fk_ctrl)[0]
         match_transform(source=shoulder_jnt, target_list=shoulder_fk_offset)
         scale_shapes(obj_transform=shoulder_fk_ctrl, offset=arm_scale * .16)
@@ -374,12 +385,14 @@ class ModuleBipedArm(ModuleGeneric):
         set_color_viewport(obj_list=shoulder_fk_ctrl, rgb_color=color)
         add_separator_attr(target_object=shoulder_fk_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(shoulder_fk_ctrl)
+        add_limit_lock_rotate_with_exception(target=shoulder_fk_ctrl)
+        fk_controls.append(shoulder_fk_ctrl)
 
         # Elbow FK Control
         elbow_fk_ctrl = self._assemble_ctrl_name(name=self.elbow.get_name())
         elbow_fk_ctrl = create_ctrl_curve(name=elbow_fk_ctrl, curve_file_name="_circle_pos_x")
-        self.add_driver_uuid_attr(target=elbow_fk_ctrl, driver_type=RiggerDriverTypes.FK,
-                                  proxy_purpose=self.elbow)
+        self._add_driver_uuid_attr(target_driver=elbow_fk_ctrl, driver_type=RiggerDriverTypes.FK,
+                                   proxy_purpose=self.elbow)
         elbow_fk_offset = add_offset_transform(target_list=elbow_fk_ctrl)[0]
         match_transform(source=elbow_jnt, target_list=elbow_fk_offset)
         scale_shapes(obj_transform=elbow_fk_ctrl, offset=arm_scale * .14)
@@ -389,12 +402,14 @@ class ModuleBipedArm(ModuleGeneric):
         set_color_viewport(obj_list=elbow_fk_ctrl, rgb_color=color)
         add_separator_attr(target_object=elbow_fk_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(elbow_fk_ctrl)
+        add_limit_lock_rotate_with_exception(target=elbow_fk_ctrl)
+        fk_controls.append(elbow_fk_ctrl)
 
         # Wrist FK Control
         wrist_fk_ctrl = self._assemble_ctrl_name(name=self.wrist.get_name())
         wrist_fk_ctrl = create_ctrl_curve(name=wrist_fk_ctrl, curve_file_name="_circle_pos_x")
-        self.add_driver_uuid_attr(target=wrist_fk_ctrl, driver_type=RiggerDriverTypes.FK,
-                                  proxy_purpose=self.wrist)
+        self._add_driver_uuid_attr(target_driver=wrist_fk_ctrl, driver_type=RiggerDriverTypes.FK,
+                                   proxy_purpose=self.wrist)
         wrist_fk_offset = add_offset_transform(target_list=wrist_fk_ctrl)[0]
         match_transform(source=wrist_jnt, target_list=wrist_fk_offset)
         scale_shapes(obj_transform=wrist_fk_ctrl, offset=arm_scale * .1)
@@ -404,13 +419,17 @@ class ModuleBipedArm(ModuleGeneric):
         set_color_viewport(obj_list=wrist_fk_ctrl, rgb_color=color)
         add_separator_attr(target_object=wrist_fk_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(wrist_fk_ctrl)
+        fk_controls.append(wrist_fk_ctrl)
 
         # IK Controls -------------------------------------------------------------------------------------
+        ik_controls = []
+
         # IK wrist Control
         wrist_ik_ctrl = self._assemble_ctrl_name(name=self.wrist.get_name(),
                                                  overwrite_suffix=NamingConstants.Control.IK_CTRL)
         wrist_ik_ctrl = create_ctrl_curve(name=wrist_ik_ctrl, curve_file_name="_cube")
-        self.add_driver_uuid_attr(target=wrist_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.wrist)
+        self._add_driver_uuid_attr(target_driver=wrist_ik_ctrl, driver_type=RiggerDriverTypes.IK,
+                                   proxy_purpose=self.wrist)
         translate_shapes(obj_transform=wrist_ik_ctrl, offset=(1, 0, 0))  # Move Pivot to Side
         wrist_ik_offset = add_offset_transform(target_list=wrist_ik_ctrl)[0]
         hierarchy_utils.parent(source_objects=wrist_ik_offset, target_parent=direction_crv)
@@ -452,12 +471,14 @@ class ModuleBipedArm(ModuleGeneric):
         cmds.addAttr(wrist_ik_ctrl, ln=RiggingConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
         cmds.connectAttr(f'{wrist_ik_ctrl}.{RiggingConstants.ATTR_SHOW_OFFSET}', f'{wrist_o_ik_ctrl}.v')
         hide_lock_default_attrs(obj_list=[wrist_ik_ctrl, wrist_o_ik_ctrl], scale=True, visibility=True)
+        ik_controls.append(wrist_ik_ctrl)
+        ik_controls.append(wrist_o_ik_ctrl)
 
         # IK Elbow Control
         elbow_ik_ctrl = self._assemble_ctrl_name(name=self.elbow.get_name(),
                                                  overwrite_suffix=NamingConstants.Control.IK_CTRL)
         elbow_ik_ctrl = create_ctrl_curve(name=elbow_ik_ctrl, curve_file_name="_locator")
-        self.add_driver_uuid_attr(target=elbow_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.elbow)
+        self._add_driver_uuid_attr(target_driver=elbow_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.elbow)
         elbow_offset = add_offset_transform(target_list=elbow_ik_ctrl)[0]
         match_translate(source=elbow_jnt, target_list=elbow_offset)
         scale_shapes(obj_transform=elbow_ik_ctrl, offset=arm_scale * .05)
@@ -468,8 +489,8 @@ class ModuleBipedArm(ModuleGeneric):
         # Find Elbow Position
         elbow_proxy = find_proxy_from_uuid(uuid_string=self.elbow.get_uuid())
         elbow_proxy_children = cmds.listRelatives(elbow_proxy, children=True, typ="transform", fullPath=True) or []
-        elbow_pv_dir = find_objects_with_attr(attr_name=ModuleBipedArm.REF_ATTR_ELBOW_PROXY_PV,
-                                              lookup_list=elbow_proxy_children)
+        elbow_pv_dir = find_object_with_attr(attr_name=ModuleBipedArm.REF_ATTR_ELBOW_PROXY_PV,
+                                             lookup_list=elbow_proxy_children)
 
         temp_transform = create_group(name=elbow_ik_ctrl + '_rotExtraction')
         cmds.delete(cmds.pointConstraint(elbow_jnt, temp_transform))
@@ -479,15 +500,16 @@ class ModuleBipedArm(ModuleGeneric):
         cmds.move(arm_scale * .6, 0, 0, temp_transform, objectSpace=True, relative=True)
         cmds.delete(cmds.pointConstraint(temp_transform, elbow_offset))
         cmds.delete(temp_transform)
+        ik_controls.append(elbow_ik_ctrl)
 
         # Switch Control
         wrist_proxy = find_proxy_from_uuid(uuid_string=self.wrist.get_uuid())
         ik_switch_ctrl = self._assemble_ctrl_name(name=self.get_meta_setup_name(),
                                                   overwrite_suffix=NamingConstants.Control.SWITCH_CTRL)
         ik_switch_ctrl = create_ctrl_curve(name=ik_switch_ctrl, curve_file_name="_fk_ik_switch")
-        self.add_driver_uuid_attr(target=ik_switch_ctrl,
-                                  driver_type=RiggerDriverTypes.SWITCH,
-                                  proxy_purpose=self.wrist)
+        self._add_driver_uuid_attr(target_driver=ik_switch_ctrl,
+                                   driver_type=RiggerDriverTypes.SWITCH,
+                                   proxy_purpose=self.wrist)
         ik_switch_offset = add_offset_transform(target_list=ik_switch_ctrl)[0]
         match_transform(source=wrist_proxy, target_list=ik_switch_offset)
         translate_shapes(obj_transform=ik_switch_ctrl, offset=(0, 0, arm_scale * -.025))  # Move it away from wrist
@@ -496,7 +518,10 @@ class ModuleBipedArm(ModuleGeneric):
         # constraint_targets(source_driver=ik_switch_ctrl, target_driven=ik_switch)
         color = get_directional_color(object_name=ik_switch_ctrl)
         set_color_viewport(obj_list=ik_switch_ctrl, rgb_color=color)
-        add_separator_attr(target_object=ik_switch_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=ik_switch_ctrl, attr_name=RiggingConstants.SEPARATOR_SWITCH)
+        create_switch_setup(source_a=fk_joints, source_b=ik_joints, target_base=module_jnt_list,
+                            attr_holder=ik_switch_ctrl, visibility_a=fk_controls, visibility_b=ik_controls,
+                            prefix=_prefix)
 
         # # Wrist Driven Data (FK & IK)
         # wrist_driven_data = self._assemble_ctrl_name(name=self.wrist.get_name(),

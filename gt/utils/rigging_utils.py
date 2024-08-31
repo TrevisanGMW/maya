@@ -3,21 +3,19 @@ Rigging Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.transform_utils import get_component_positions_as_dict, set_component_positions_from_dict, match_translate
-from gt.utils.attr_utils import connect_attr, get_attr, add_attr, delete_user_defined_attrs, set_attr_state, set_attr
-from gt.utils.attr_utils import DEFAULT_ATTRS
+from gt.utils.attr_utils import connect_attr, get_attr, add_attr, set_attr
 from gt.utils.constraint_utils import ConstraintTypes, constraint_targets
 from gt.utils.naming_utils import NamingConstants, get_short_name
 from gt.utils.iterable_utils import sanitize_maya_list
+from gt.utils.hierarchy_utils import duplicate_object
 from gt.utils.color_utils import set_color_outliner
 from gt.utils.node_utils import Node, create_node
 from gt.utils.math_utils import dist_xyz_to_xyz
 from gt.utils.string_utils import get_int_as_en
-from gt.utils.hierarchy_utils import duplicate_object
 from gt.utils import hierarchy_utils
 import maya.cmds as cmds
 import logging
 import random
-
 
 # Logging Setup
 logging.basicConfig()
@@ -38,6 +36,7 @@ class RiggingConstants:
     # Separator Attributes
     SEPARATOR_OPTIONS = "options"
     SEPARATOR_CONTROL = "controlOptions"
+    SEPARATOR_SWITCH = "switchOptions"
 
 
 def duplicate_joint_for_automation(joint, suffix=NamingConstants.Suffix.DRIVEN, parent=None, connect_rot_order=True):
@@ -90,7 +89,7 @@ def expose_rotation_order(target, attr_enum='xyz:yzx:zxy:xzy:yxz:zyx'):
     Creates an attribute to control the rotation order of the target object and connects the attribute
     to the hidden "rotationOrder" attribute.
     Args:
-        target (str): Path to the target object (usually a control)
+        target (str, Node): Path to the target object (usually a control)
         attr_enum (str, optional): The ENUM used to create the custom rotation order enum.
                                    Default is "xyz", "yzx", "zxy", "xzy", "yxz", "zyx"  (Separated using ":")
     """
@@ -363,6 +362,7 @@ def create_stretchy_ik_setup(ik_handle, attribute_holder=None, prefix=None):
 
     return stretchy_grp
 
+
 def create_switch_setup(source_a, source_b, target_base, attr_holder, visibility_a=None, visibility_b=None,
                         shape_visibility=True, attr_influence=RiggingConstants.ATTR_INFLUENCE_SWITCH,
                         constraint_type=ConstraintTypes.PARENT, maintain_offset=False, prefix=None):
@@ -377,12 +377,12 @@ def create_switch_setup(source_a, source_b, target_base, attr_holder, visibility
         source_a (list, tuple, str): The objects or attributes representing the first system.
         source_b (list, tuple, str): The objects or attributes representing the second system.
         target_base (list, tuple, str): The target objects affected by the switch setup. (usually a base skeleton)
-        attr_holder (str): The attribute holder object name/path.
-                           This is the switch control, the influence attribute is found under this object.
-                           Output attributes are also found under this object, but are hidden.
-                           These are the source attributes that are plugged on the system objects.
-                           'influenceA', 'influenceB': 0.0 to 1.0 value of the influence. (B is A inverted)
-                           'visibilityA', 'visibilityB': On or Off visibility values according to range.
+        attr_holder (str, Node): The attribute holder object name/path.
+                               This is the switch control, the influence attribute is found under this object.
+                               Output attributes are also found under this object, but are hidden.
+                               These are the source attributes that are plugged on the system objects.
+                               'influenceA', 'influenceB': 0.0 to 1.0 value of the influence. (B is A inverted)
+                               'visibilityA', 'visibilityB': On or Off visibility values according to range.
         visibility_a (list, optional): The objects affected by the visibility of the first system.
         visibility_b (list, optional): The objects affected by the visibility of the second system.
         shape_visibility (bool, optional): Whether to affect the visibility of shapes or the main objects.
@@ -394,7 +394,7 @@ def create_switch_setup(source_a, source_b, target_base, attr_holder, visibility
         prefix (str, optional): Prefix for naming created nodes.
 
     Returns:
-        tuple: A tuple with the switch output attributes. ()
+        tuple: A tuple with the switch output attributes.
     """
     # Check attr holder and convert it to Node
     if not attr_holder or not cmds.objExists(attr_holder):
@@ -499,6 +499,144 @@ def create_switch_setup(source_a, source_b, target_base, attr_holder, visibility
             f'{attr_holder}.{attr_vis_a}', f'{attr_holder}.{attr_vis_b}')
 
 
+def add_limit_lock_translate_setup(target, lock_attr='lockTranslate', dimensions=('x', 'y', 'z'),
+                                   attr_holder=None, default_value=True, limit_value=0):
+    """
+    Creates a translation lock attribute. If active, it sets the limit of the translation.
+
+    Args:
+        target (str, Node): Name/Path to the target object. Object that will receive the attribute.
+        lock_attr (str, optional) : Name of the lock attribute. Default is "lockTranslate"
+        dimensions (tuple, optional): List of affected dimensions. Default is "x", "y", and "z"
+        attr_holder (str, Node, optional): If provided, the target and attribute holder objects can be different.
+                                        The default is "None" which means the "target" is also the attribute holder.
+                                        Target: receives the limit and won't be able to move when attribute is active.
+                                        Attribute Holder (attr_holder): receives the attribute that controls limit.
+        default_value (bool, optional): Determines the initial value of lock attribute. Default is "True"
+        limit_value (float, int, optional): Limit that defines "locked" for the target object. Default: 0 for translate.
+    Returns:
+        str: Path to the created attribute.
+    """
+    # Determine Attribute Holder
+    _attr_holder = attr_holder
+    if not _attr_holder:
+        _attr_holder = target
+    # Create Attribute
+    add_attr(obj_list=_attr_holder, attributes=lock_attr, attr_type='bool', default=default_value)
+    # Create Connections
+    for dimension in dimensions:  # Default is: x, y, z
+        cmds.setAttr(f"{target}.minTrans{dimension.upper()}Limit", limit_value)
+        cmds.setAttr(f"{target}.maxTrans{dimension.upper()}Limit", limit_value)
+        cmds.connectAttr(f"{_attr_holder}.{lock_attr}", f"{target}.minTrans{dimension.upper()}LimitEnable")
+        cmds.connectAttr(f"{_attr_holder}.{lock_attr}", f"{target}.maxTrans{dimension.upper()}LimitEnable")
+    return f'{_attr_holder}.{lock_attr}'
+
+
+def add_limit_lock_rotate_setup(target, lock_attr='lockRotate', dimensions=('x', 'y', 'z'),
+                                attr_holder=None, default_value=True, limit_value=0):
+    """
+    Creates a rotation lock attribute. If active, it sets the limit of the rotation.
+
+    Args:
+        target (str, Node): Name/Path to the target object. Object that will receive the attribute.
+        lock_attr (str, optional) : Name of the lock attribute. Default is "lockRotate"
+        dimensions (tuple, optional): List of affected dimensions. Default is "x", "y", and "z"
+        attr_holder (str, Node, optional): If provided, the target and attribute holder objects can be different.
+                                        The default is "None" which means the "target" is also the attribute holder.
+                                        Target: receives the limit and won't be able to move when attribute is active.
+                                        Attribute Holder (attr_holder): receives the attribute that controls limit.
+        default_value (bool, optional): Determines the initial value of lock attribute. Default is "True"
+        limit_value (float, int, optional): Limit value that defines "locked" for the target. Default is 0 for rotate.
+    Returns:
+        str: Path to the created attribute.
+    """
+    # Determine Attribute Holder
+    _attr_holder = attr_holder
+    if not _attr_holder:
+        _attr_holder = target
+    # Create Attribute
+    add_attr(obj_list=_attr_holder, attributes=lock_attr, attr_type='bool', default=default_value)
+    # Create Connections
+    for dimension in dimensions:  # x, y, z
+        cmds.setAttr(f"{target}.minRot{dimension.upper()}Limit", limit_value)
+        cmds.setAttr(f"{target}.maxRot{dimension.upper()}Limit", limit_value)
+        cmds.connectAttr(f"{_attr_holder}.{lock_attr}", f"{target}.minRot{dimension.upper()}LimitEnable")
+        cmds.connectAttr(f"{_attr_holder}.{lock_attr}", f"{target}.maxRot{dimension.upper()}LimitEnable")
+    return f'{_attr_holder}.{lock_attr}'
+
+
+def add_limit_lock_scale_setup(target, lock_attr='lockScale', dimensions=('x', 'y', 'z'),
+                               attr_holder=None, default_value=True, limit_value=1):
+    """
+    Creates a scale lock attribute. If active, it sets the limit of the scale.
+
+    Args:
+        target (str, Node): Name/Path to the target object. Object that will receive the attribute.
+        lock_attr (str, optional) : Name of the lock attribute. Default is "locScale"
+        dimensions (tuple, optional): List of affected dimensions. Default is "x", "y", and "z"
+        attr_holder (str, Node, optional): If provided, the target and attribute holder objects can be different.
+                                        The default is "None" which means the "target" is also the attribute holder.
+                                        Target: receives the limit and won't be able to move when attribute is active.
+                                        Attribute Holder (attr_holder): receives the attribute that controls limit.
+        default_value (bool, optional): Determines the initial value of lock attribute. Default is "True"
+        limit_value (float, int, optional): Limit value that defines "locked" for the target. Default is 1 for scale.
+    Returns:
+        str: Path to the created attribute.
+    """
+    # Determine Attribute Holder
+    _attr_holder = attr_holder
+    if not _attr_holder:
+        _attr_holder = target
+    # Create Attribute
+    add_attr(obj_list=_attr_holder, attributes=lock_attr, attr_type='bool', default=default_value)
+    # Create Connections
+    for dimension in dimensions:  # x, y, z
+        cmds.setAttr(f"{target}.minScale{dimension.upper()}Limit", limit_value)
+        cmds.setAttr(f"{target}.maxScale{dimension.upper()}Limit", limit_value)
+        cmds.connectAttr(f"{_attr_holder}.{lock_attr}", f"{target}.minScale{dimension.upper()}LimitEnable")
+        cmds.connectAttr(f"{_attr_holder}.{lock_attr}", f"{target}.maxScale{dimension.upper()}LimitEnable")
+    return f'{_attr_holder}.{lock_attr}'
+
+
+def add_limit_lock_rotate_with_exception(target, lock_attr=None, exception='z',
+                                         attr_holder=None, default_value=True, limit_value=0):
+    """
+    Since it's common to lock other rotate channels, but one. This passthrough function pre-populates the arguments
+    of "add_limit_lock_rotate_setup" to lock
+
+    Args:
+        target (str, Node): Name/Path to the target object. Object that will receive the attribute.
+        lock_attr (str, optional) : Name of the lock attribute. If not provided, one will be generated based
+                                    on the exception value. For example, if the exception is "z" than the lock name
+                                    becomes "lockXY". (removing the exception from the name)
+        exception (str, tuple, optional): Exception dimension. This is the dimension to be ignored when creating
+                                          the lock setup.
+        attr_holder (str, Node, optional): If provided, the target and attribute holder objects can be different.
+                                        The default is "None" which means the "target" is also the attribute holder.
+                                        Target: receives the limit and won't be able to move when attribute is active.
+                                        Attribute Holder (attr_holder): receives the attribute that controls limit.
+        default_value (bool, optional): Determines the initial value of lock attribute. Default is "True"
+        limit_value (float, int, optional): Limit value that defines "locked" for the target. Default is 0 for rotate.
+    Returns:
+        str: Path to the created attribute.
+    """
+    # Determine Lock Attr
+    _lock_attr = lock_attr
+    if not _lock_attr:
+        _lock_attr = "lockXYZ"
+        for char in exception:
+            _lock_attr = _lock_attr.replace(char.upper(), '')
+    # Determine Dimensions
+    _dimensions = []
+    for dimension in ('x', 'y', 'z'):
+        if dimension not in tuple(exception):
+            _dimensions.append(dimension)
+    _dimensions = tuple(_dimensions)
+    return add_limit_lock_rotate_setup(target=target, lock_attr=_lock_attr, dimensions=_dimensions,
+                                       attr_holder=attr_holder, default_value=default_value, limit_value=limit_value)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    add_limit_lock_rotate_with_exception("pSphere1")
     cmds.viewFit(all=True)

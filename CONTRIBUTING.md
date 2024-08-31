@@ -50,8 +50,8 @@ We **love** detailed bug reports!
 
 ## Code Style
 
-- The code style should follow the [PEP8](https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings) patterns as often as possible.
-- Docstring format used is [Google Docs](https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings). Arguments and returns should be included whenever possible.
+- The code style should follow the [PEP8](https://peps.python.org/pep-0008/) patterns as often as possible.
+- Docstring format used is [Google Style Docstrings](https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings). Arguments and returns should be included.
 - Make sure to add new utilities and user interface functions and classes to the correct script categories. <br>For example, if it's an animation class/function, add it to "anim_utils.py" so it can be easily found.
 - Follow [best practices](https://refactoring.guru/refactoring/smells), such as avoiding bloated code, or minimizing coupling between components.
 - Use Python, other languages should only be used if an option in Python is not available.

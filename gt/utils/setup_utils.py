@@ -496,7 +496,7 @@ def install_package(clean_install=True, verbose=True, callbacks=None):
             prepend_sys_path_with_default_install_location(remove_paths=paths_to_remove)
             reload_package_loaded_modules()
             print_when_true("Loading package drop-down menu..", do_print=verbose, callbacks=callbacks)
-            load_package_menu(launch_latest_maya=False)  # Already in Maya
+            load_package_menu(launch_maya_app=False)  # Already in Maya
         print_when_true("\nInstallation completed successfully!", do_print=verbose, callbacks=callbacks)
         return True
     else:

@@ -232,6 +232,7 @@ class Icon:
     root_general = get_icon_path(r"root_general.svg")
     root_curves = get_icon_path(r"root_curves.svg")
     root_modeling = get_icon_path(r"root_modeling.svg")
+    root_animation = get_icon_path(r"root_animation.svg")
     root_rigging = get_icon_path(r"root_rigging.svg")
     root_utilities = get_icon_path(r"root_utilities.svg")
     root_miscellaneous = get_icon_path(r"root_miscellaneous.svg")

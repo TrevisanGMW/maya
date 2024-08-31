@@ -4,29 +4,31 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group, get_driven_joint, create_ctrl_curve
 from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_direction_curve, find_joint_from_uuid
-from gt.tools.auto_rigger.rig_utils import get_automation_group, get_proxy_offset
+from gt.tools.auto_rigger.rig_utils import get_automation_group, get_proxy_offset, connect_supporting_driver
 from gt.utils.attr_utils import add_separator_attr, set_attr_state, connect_attr, hide_lock_default_attrs, add_attr
 from gt.utils.rigging_utils import duplicate_joint_for_automation, create_stretchy_ik_setup, duplicate_object
 from gt.utils.rigging_utils import expose_rotation_order, offset_control_orientation, rescale_joint_radius
-from gt.utils.rigging_utils import RiggingConstants, create_switch_setup
+from gt.utils.rigging_utils import RiggingConstants, create_switch_setup, add_limit_lock_translate_setup
 from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, translate_shapes, rotate_shapes
 from gt.utils.transform_utils import match_translate, set_equidistant_transforms
 from gt.utils.surface_utils import create_surface_from_object_list, create_follicle, get_closest_uv_point
+from gt.utils.constraint_utils import equidistant_constraints, constraint_targets, ConstraintTypes
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
-from gt.utils.constraint_utils import equidistant_constraints, constraint_targets, ConstraintTypes
 from gt.utils.curve_utils import set_curve_width, create_connection_line
 from gt.utils.hierarchy_utils import add_offset_transform, create_group
 from gt.utils.math_utils import dist_center_to_center
 from gt.utils.joint_utils import set_joint_radius
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.node_utils import Node, create_node
+from gt.utils.outliner_utils import reorder_front
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 import re
+
 
 # Logging Setup
 logging.basicConfig()
@@ -35,7 +37,7 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleSpine(ModuleGeneric):
-    __version__ = '0.1.0-beta'
+    __version__ = '0.1.4-beta'
     icon = resource_library.Icon.rigger_module_spine
     allow_parenting = True
 
@@ -64,7 +66,10 @@ class ModuleSpine(ModuleGeneric):
         self.hip.set_initial_position(xyz=pos_hip)
         self.hip.set_locator_scale(scale=1.5)
         self.hip.set_meta_purpose(value="hip")
-        self.hip.add_driver_type(driver_type=[RiggerDriverTypes.OFFSET, RiggerDriverTypes.FK, RiggerDriverTypes.COG])
+        self.hip.add_driver_type(driver_type=[RiggerDriverTypes.GENERIC,  # Hip Data Offset
+                                              RiggerDriverTypes.FK,
+                                              RiggerDriverTypes.PIVOT,
+                                              RiggerDriverTypes.COG])  # COG is the IK/FK Switch
 
         # Chest (End)
         self.chest = Proxy(name="chest")
@@ -72,10 +77,10 @@ class ModuleSpine(ModuleGeneric):
         self.chest.set_initial_position(xyz=pos_chest)
         self.chest.set_locator_scale(scale=1.5)
         self.chest.set_meta_purpose(value="chest")
-        self.chest.add_driver_type(driver_type=[RiggerDriverTypes.DRIVEN,
-                                                RiggerDriverTypes.OFFSET,
+        self.chest.add_driver_type(driver_type=[RiggerDriverTypes.GENERIC,  # Manually created Generic Driver
+                                                RiggerDriverTypes.IK,
+                                                RiggerDriverTypes.PIVOT,
                                                 RiggerDriverTypes.FK])
-
         # Spines (In-between)
         self.spines = []
         self.set_spine_num(spine_num=3)
@@ -106,7 +111,8 @@ class ModuleSpine(ModuleGeneric):
                 new_spine.set_meta_purpose(value=f'spine{str(num + 1).zfill(2)}')
                 new_spine.add_line_parent(line_parent=_parent_uuid)
                 new_spine.set_parent_uuid(uuid=_parent_uuid)
-                new_spine.add_driver_type(driver_type=[RiggerDriverTypes.FK])
+                new_spine.add_driver_type(driver_type=[RiggerDriverTypes.GENERIC,
+                                                       RiggerDriverTypes.FK])
                 _parent_uuid = new_spine.get_uuid()
                 self.spines.append(new_spine)
         # New number lower than current - Remove unnecessary proxies
@@ -238,7 +244,6 @@ class ModuleSpine(ModuleGeneric):
         module_jnt_list = [hip_jnt]
         module_jnt_list.extend(middle_jnt_list)
         module_jnt_list.append(chest_jnt)
-        spine_automation_grp = get_automation_group(f'spineAutomation_{NamingConstants.Suffix.GRP}')
         # Get Formatted Prefix
         _prefix = ''
         if self.prefix:
@@ -247,6 +252,11 @@ class ModuleSpine(ModuleGeneric):
         prefixed_setup_name = setup_name
         if _prefix:
             prefixed_setup_name = f'{_prefix}{setup_name}'
+        # Get Setup Groups
+        spine_automation_grp = get_automation_group(f'spineAutomation_{NamingConstants.Suffix.GRP}')
+        spine_line_grp = f'{prefixed_setup_name}_lines_{NamingConstants.Suffix.GRP}'
+        spine_line_grp = create_group(name=spine_line_grp)
+        hierarchy_utils.parent(source_objects=spine_line_grp, target_parent=spine_automation_grp)
 
         # Set Joint Colors  -------------------------------------------------------------------------------
         set_color_viewport(obj_list=module_jnt_list, rgb_color=ColorConstants.RigJoint.GENERAL)
@@ -322,7 +332,7 @@ class ModuleSpine(ModuleGeneric):
         cog_ctrl_name = self.get_metadata_value(key=self.META_COG_NAME)
         cog_ctrl = self._assemble_ctrl_name(name=cog_ctrl_name)
         cog_ctrl = create_ctrl_curve(name=cog_ctrl, curve_file_name="_circle_pos_x")
-        self.add_driver_uuid_attr(target=cog_ctrl, driver_type=RiggerDriverTypes.COG, proxy_purpose=self.hip)
+        self._add_driver_uuid_attr(target_driver=cog_ctrl, driver_type=RiggerDriverTypes.COG, proxy_purpose=self.hip)
         cog_offset = add_offset_transform(target_list=cog_ctrl)[0]
         match_transform(source=hip_jnt, target_list=cog_offset)
         _cog_scale = spine_scale * .5
@@ -332,6 +342,7 @@ class ModuleSpine(ModuleGeneric):
         # Attributes
         set_attr_state(attribute_path=f"{cog_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=cog_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
+        hide_lock_default_attrs(obj_list=cog_ctrl, scale=True, visibility=True)
         expose_rotation_order(cog_ctrl)
         set_curve_width(obj_list=cog_ctrl, line_width=2)
 
@@ -348,9 +359,9 @@ class ModuleSpine(ModuleGeneric):
         cog_o_data = self._assemble_ctrl_name(name=cog_ctrl_name,
                                               overwrite_suffix=NamingConstants.Control.OFFSET_DATA)
         cog_o_data = create_group(name=cog_o_data)
-        # self.add_driver_uuid_attr(target=cog_o_data,
-        #                           driver_type=RiggerDriverTypes.OFFSET,
-        #                           proxy_purpose=self.hip)  # TODO @@@
+        connect_supporting_driver(source_driver=cog_ctrl,
+                                  target_support_driver=cog_o_ctrl,
+                                  support_driver_data=cog_o_data)
         hierarchy_utils.parent(source_objects=cog_o_data, target_parent=cog_ctrl)
         # Connections
         cmds.connectAttr(f'{cog_o_ctrl}.translate', f'{cog_o_data}.translate')
@@ -359,14 +370,44 @@ class ModuleSpine(ModuleGeneric):
         # Attributes
         set_attr_state(attribute_path=f"{cog_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=cog_o_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
+        hide_lock_default_attrs(obj_list=cog_o_ctrl, scale=True)
         expose_rotation_order(cog_o_ctrl)
         cmds.addAttr(cog_ctrl, ln=RiggingConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
         cmds.connectAttr(f'{cog_ctrl}.{RiggingConstants.ATTR_SHOW_OFFSET}', f'{cog_o_ctrl}.v')
 
+        # Cog Movable Pivot (Rotate Pivot Ctrl) ------------------------------------------------------------
+        cog_piv_data = self._assemble_ctrl_name(name=cog_ctrl_name,
+                                                overwrite_suffix=NamingConstants.Control.PIVOT_CTRL)
+        cog_piv_data = create_ctrl_curve(name=cog_piv_data, curve_file_name="_locator")
+
+        # Aim Lines - Setup and Connections
+        cog_piv_line_data = create_connection_line(object_a=cog_offset, object_b=cog_piv_data, line_width=3)
+        cog_piv_aim_crv = cog_piv_line_data[0]
+        hierarchy_utils.parent(source_objects=cog_piv_line_data, target_parent=spine_line_grp)
+        hierarchy_utils.parent(source_objects=spine_line_grp, target_parent=spine_automation_grp)
+        cmds.setAttr(f'{cog_piv_aim_crv}.inheritsTransform', 0)  # So it can be parented to control
+        cmds.setAttr(f'{cog_piv_aim_crv}.overrideEnabled', 1)  # Enable Modes (So it can be seen as template)
+        cmds.setAttr(f'{cog_piv_aim_crv}.overrideDisplayType', 1)  # Template
+        hierarchy_utils.parent(source_objects=cog_piv_aim_crv, target_parent=cog_piv_data)
+        match_transform(source=cog_ctrl, target_list=cog_piv_data)
+        scale_shapes(obj_transform=cog_piv_data, offset=spine_scale * 0.7)
+        set_curve_width(obj_list=cog_piv_data, line_width=3)
+        self._add_driver_uuid_attr(target_driver=cog_piv_data,
+                                   driver_type=RiggerDriverTypes.PIVOT,
+                                   proxy_purpose=self.hip)
+        hierarchy_utils.parent(source_objects=cog_piv_data, target_parent=cog_ctrl)
+        cmds.connectAttr(f'{cog_piv_data}.translate', f'{cog_ctrl}.rotatePivot')
+        hide_lock_default_attrs(obj_list=cog_piv_data, rotate=True, scale=True)
+        add_attr(obj_list=cog_ctrl, attributes=RiggingConstants.ATTR_SHOW_PIVOT, attr_type="bool")
+        connect_attr(source_attr=f'{cog_ctrl}.{RiggingConstants.ATTR_SHOW_PIVOT}',
+                     target_attr_list=[f'{cog_piv_data}.v'])
+        set_attr_state(attribute_path=f'{cog_piv_data}.v', hidden=True)
+        set_color_viewport(obj_list=cog_piv_data, rgb_color=ColorConstants.RigControl.PIVOT)
+
         # Hip Control ----------------------------------------------------------------------------------
         hip_ctrl = self._assemble_ctrl_name(name=self.hip.get_name())
         hip_ctrl = create_ctrl_curve(name=hip_ctrl, curve_file_name="_wavy_circle_pos_x")
-        self.add_driver_uuid_attr(target=hip_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
+        self._add_driver_uuid_attr(target_driver=hip_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
         hip_offset = add_offset_transform(target_list=hip_ctrl)[0]
         match_transform(source=hip_jnt, target_list=hip_offset)
         scale_shapes(obj_transform=hip_ctrl, offset=spine_scale / 6)
@@ -375,7 +416,9 @@ class ModuleSpine(ModuleGeneric):
         # Attributes
         set_attr_state(attribute_path=f"{hip_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=hip_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
+        hide_lock_default_attrs(obj_list=hip_ctrl, scale=True)
         expose_rotation_order(hip_ctrl)
+        add_limit_lock_translate_setup(target=hip_ctrl)
 
         # Hip Offset Ctrl
         hip_o_ctrl = self._assemble_ctrl_name(name=self.hip.get_name(),
@@ -390,9 +433,12 @@ class ModuleSpine(ModuleGeneric):
         hip_o_data = self._assemble_ctrl_name(name=self.hip.get_name(),
                                               overwrite_suffix=NamingConstants.Control.OFFSET_DATA)
         hip_o_data = create_group(name=hip_o_data)
-        self.add_driver_uuid_attr(target=hip_o_data,
-                                  driver_type=RiggerDriverTypes.OFFSET,
-                                  proxy_purpose=self.hip)
+        self._add_driver_uuid_attr(target_driver=hip_o_data,
+                                   driver_type=RiggerDriverTypes.GENERIC,
+                                   proxy_purpose=self.hip)
+        connect_supporting_driver(source_driver=hip_ctrl,
+                                  target_support_driver=hip_o_ctrl,
+                                  support_driver_data=hip_o_data)
         hierarchy_utils.parent(source_objects=hip_o_data, target_parent=hip_ctrl)
         # Connections
         cmds.connectAttr(f'{hip_o_ctrl}.translate', f'{hip_o_data}.translate')
@@ -400,6 +446,7 @@ class ModuleSpine(ModuleGeneric):
         # Attributes
         set_attr_state(attribute_path=f"{hip_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=hip_o_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
+        hide_lock_default_attrs(obj_list=hip_o_ctrl, scale=True)
         expose_rotation_order(hip_o_ctrl)
         cmds.addAttr(hip_ctrl, ln=RiggingConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
         cmds.connectAttr(f'{hip_ctrl}.{RiggingConstants.ATTR_SHOW_OFFSET}', f'{hip_o_ctrl}.v')
@@ -410,7 +457,9 @@ class ModuleSpine(ModuleGeneric):
         for spine_proxy, fk_jnt in zip(self.spines, mid_fk_list):
             spine_ctrl = self._assemble_ctrl_name(name=spine_proxy.get_name())
             spine_ctrl = create_ctrl_curve(name=spine_ctrl, curve_file_name="_cube")
-            self.add_driver_uuid_attr(target=spine_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=spine_proxy)
+            self._add_driver_uuid_attr(target_driver=spine_ctrl,
+                                       driver_type=RiggerDriverTypes.FK,
+                                       proxy_purpose=spine_proxy)
             spine_offset = add_offset_transform(target_list=spine_ctrl)[0]
             # Move Pivot to Base
             translate_shapes(obj_transform=spine_ctrl, offset=(1, 0, 0))
@@ -429,6 +478,7 @@ class ModuleSpine(ModuleGeneric):
             # Attributes
             set_attr_state(attribute_path=f"{spine_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
             add_separator_attr(target_object=spine_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
+            hide_lock_default_attrs(spine_ctrl, scale=True)
             expose_rotation_order(spine_ctrl)
             spine_ctrls.append(spine_ctrl)
             constraint_targets(source_driver=spine_ctrl, target_driven=fk_jnt)
@@ -437,7 +487,9 @@ class ModuleSpine(ModuleGeneric):
         # Chest FK Control --------------------------------------------------------------------------------
         chest_fk_ctrl = self._assemble_ctrl_name(name=self.chest.get_name())
         chest_fk_ctrl = create_ctrl_curve(name=chest_fk_ctrl, curve_file_name="_cube")
-        self.add_driver_uuid_attr(target=chest_fk_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.chest)
+        self._add_driver_uuid_attr(target_driver=chest_fk_ctrl,
+                                   driver_type=RiggerDriverTypes.FK,
+                                   proxy_purpose=self.chest)
         chest_fk_offset = add_offset_transform(target_list=chest_fk_ctrl)[0]
         match_transform(source=chest_jnt, target_list=chest_fk_offset)
         translate_shapes(obj_transform=chest_fk_ctrl, offset=(1, 0, 0))  # Move Pivot to Base
@@ -456,41 +508,14 @@ class ModuleSpine(ModuleGeneric):
         chest_ik_ctrl = self._assemble_ctrl_name(name=self.chest.get_name(),
                                                  overwrite_suffix=NamingConstants.Control.IK_CTRL)
         chest_ik_ctrl = duplicate_object(obj=chest_fk_ctrl, name=chest_ik_ctrl)
+        self._add_driver_uuid_attr(target_driver=chest_ik_ctrl,
+                                   driver_type=RiggerDriverTypes.IK,
+                                   proxy_purpose=self.chest)
         chest_ik_offset = add_offset_transform(target_list=chest_ik_ctrl)[0]
         hierarchy_utils.parent(source_objects=chest_ik_offset, target_parent=cog_o_data)
         add_separator_attr(target_object=chest_ik_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
+        hide_lock_default_attrs(chest_ik_ctrl, scale=True, visibility=True)
         expose_rotation_order(chest_ik_ctrl)
-
-        # Chest Rotate Pivot (Movable Pivot)
-        chest_piv_ik_data = self._assemble_ctrl_name(name=self.chest.get_name(),
-                                                     overwrite_suffix=NamingConstants.Control.PIVOT_CTRL)
-        chest_piv_ik_data = create_ctrl_curve(name=chest_piv_ik_data, curve_file_name="_locator")
-        # Aim Lines
-        spine_line_grp = f'{prefixed_setup_name}_lines_{NamingConstants.Suffix.GRP}'
-        spine_line_grp = create_group(name=spine_line_grp)
-        piv_line_data = create_connection_line(object_a=chest_ik_offset, object_b=chest_piv_ik_data, line_width=3)
-        piv_aim_crv = piv_line_data[0]
-        hierarchy_utils.parent(source_objects=piv_line_data, target_parent=spine_line_grp)
-        hierarchy_utils.parent(source_objects=spine_line_grp, target_parent=spine_automation_grp)
-        cmds.setAttr(f'{piv_aim_crv}.inheritsTransform', 0)  # So it can be parented to control
-        cmds.setAttr(f'{piv_aim_crv}.overrideEnabled', 1)  # Enable Modes (So it can be seen as template)
-        cmds.setAttr(f'{piv_aim_crv}.overrideDisplayType', 1)  # Template
-        hierarchy_utils.parent(source_objects=piv_aim_crv, target_parent=chest_piv_ik_data)
-        # Setup and Connections
-        match_transform(source=chest_ik_ctrl, target_list=chest_piv_ik_data)
-        scale_shapes(obj_transform=chest_piv_ik_data, offset=spine_scale*0.7)
-        set_curve_width(obj_list=chest_piv_ik_data, line_width=3)
-        self.add_driver_uuid_attr(target=chest_piv_ik_data,
-                                  driver_type=RiggerDriverTypes.PIVOT,
-                                  proxy_purpose=self.chest)
-        hierarchy_utils.parent(source_objects=chest_piv_ik_data, target_parent=chest_ik_ctrl)
-        cmds.connectAttr(f'{chest_piv_ik_data}.translate', f'{chest_ik_ctrl}.rotatePivot')
-        hide_lock_default_attrs(obj_list=chest_piv_ik_data, rotate=True, scale=True)
-        add_attr(obj_list=chest_ik_ctrl, attributes=RiggingConstants.ATTR_SHOW_PIVOT, attr_type="bool")
-        connect_attr(source_attr=f'{chest_ik_ctrl}.{RiggingConstants.ATTR_SHOW_PIVOT}',
-                     target_attr_list=[f'{chest_piv_ik_data}.v'])
-        set_attr_state(attribute_path=f'{chest_piv_ik_data}.v', hidden=True)
-        set_color_viewport(obj_list=chest_piv_ik_data, rgb_color=ColorConstants.RigControl.PIVOT)
 
         # Chest Ribbon (IK) Offset Ctrl --------------------------------------------------------------------
         chest_o_ik_ctrl = self._assemble_ctrl_name(name=self.chest.get_name(),
@@ -507,9 +532,9 @@ class ModuleSpine(ModuleGeneric):
         chest_o_ik_data = self._assemble_ctrl_name(name=self.chest.get_name(),
                                                    overwrite_suffix=NamingConstants.Control.OFFSET_DATA)
         chest_o_ik_data = create_group(name=chest_o_ik_data)
-        self.add_driver_uuid_attr(target=chest_o_ik_data,
-                                  driver_type=RiggerDriverTypes.OFFSET,
-                                  proxy_purpose=self.chest)
+        connect_supporting_driver(source_driver=chest_ik_ctrl,
+                                  target_support_driver=chest_o_ik_ctrl,
+                                  support_driver_data=chest_o_ik_data)
         hierarchy_utils.parent(source_objects=chest_o_ik_data, target_parent=chest_ik_ctrl)
         # Connections
         cmds.connectAttr(f'{chest_o_ik_ctrl}.translate', f'{chest_o_ik_data}.translate')
@@ -517,9 +542,38 @@ class ModuleSpine(ModuleGeneric):
         # Attributes
         set_attr_state(attribute_path=f"{chest_o_ik_ctrl}.v", hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=chest_o_ik_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
+        hide_lock_default_attrs(chest_o_ik_ctrl, scale=True)
         expose_rotation_order(chest_o_ik_ctrl)
         cmds.addAttr(chest_ik_ctrl, ln=RiggingConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
         cmds.connectAttr(f'{chest_ik_ctrl}.{RiggingConstants.ATTR_SHOW_OFFSET}', f'{chest_o_ik_ctrl}.v')
+
+        # Chest Movable Pivot (Rotate Pivot Ctrl) ------------------------------------------------------------
+        chest_piv_ik_data = self._assemble_ctrl_name(name=self.chest.get_name(),
+                                                     overwrite_suffix=NamingConstants.Control.PIVOT_CTRL)
+        chest_piv_ik_data = create_ctrl_curve(name=chest_piv_ik_data, curve_file_name="_locator")
+
+        # Aim Lines - Setup and Connections
+        piv_line_data = create_connection_line(object_a=chest_ik_offset, object_b=chest_piv_ik_data, line_width=3)
+        piv_aim_crv = piv_line_data[0]
+        hierarchy_utils.parent(source_objects=piv_line_data, target_parent=spine_line_grp)
+        cmds.setAttr(f'{piv_aim_crv}.inheritsTransform', 0)  # So it can be parented to control
+        cmds.setAttr(f'{piv_aim_crv}.overrideEnabled', 1)  # Enable Modes (So it can be seen as template)
+        cmds.setAttr(f'{piv_aim_crv}.overrideDisplayType', 1)  # Template
+        hierarchy_utils.parent(source_objects=piv_aim_crv, target_parent=chest_piv_ik_data)
+        match_transform(source=chest_ik_ctrl, target_list=chest_piv_ik_data)
+        scale_shapes(obj_transform=chest_piv_ik_data, offset=spine_scale * 0.7)
+        set_curve_width(obj_list=chest_piv_ik_data, line_width=3)
+        self._add_driver_uuid_attr(target_driver=chest_piv_ik_data,
+                                   driver_type=RiggerDriverTypes.PIVOT,
+                                   proxy_purpose=self.chest)
+        hierarchy_utils.parent(source_objects=chest_piv_ik_data, target_parent=chest_ik_ctrl)
+        cmds.connectAttr(f'{chest_piv_ik_data}.translate', f'{chest_ik_ctrl}.rotatePivot')
+        hide_lock_default_attrs(obj_list=chest_piv_ik_data, rotate=True, scale=True)
+        add_attr(obj_list=chest_ik_ctrl, attributes=RiggingConstants.ATTR_SHOW_PIVOT, attr_type="bool")
+        connect_attr(source_attr=f'{chest_ik_ctrl}.{RiggingConstants.ATTR_SHOW_PIVOT}',
+                     target_attr_list=[f'{chest_piv_ik_data}.v'])
+        set_attr_state(attribute_path=f'{chest_piv_ik_data}.v', hidden=True)
+        set_color_viewport(obj_list=chest_piv_ik_data, rgb_color=ColorConstants.RigControl.PIVOT)
 
         # IK Spine (Ribbon) -----------------------------------------------------------------------------------
         spine_ribbon_grp = f'{prefixed_setup_name}_ribbon_{NamingConstants.Suffix.GRP}'
@@ -564,8 +618,10 @@ class ModuleSpine(ModuleGeneric):
 
         # Create Switch Setup ---------------------------------------------------------------------------------
         fk_controls = [chest_fk_ctrl] + spine_ctrls
+        add_separator_attr(target_object=cog_ctrl, attr_name=RiggingConstants.SEPARATOR_SWITCH)
         create_switch_setup(source_a=fk_joints, source_b=ik_joints, target_base=module_jnt_list, attr_holder=cog_ctrl,
-                            visibility_a=fk_controls, visibility_b=[chest_ik_ctrl, chest_o_ik_ctrl], prefix=_prefix)
+                            visibility_a=fk_controls, visibility_b=[chest_ik_ctrl, chest_o_ik_ctrl, chest_piv_ik_data],
+                            prefix=_prefix)
         cmds.setAttr(f'{cog_ctrl}.{RiggingConstants.ATTR_INFLUENCE_SWITCH}', 0)  # Default is IK
 
         # Create Squash Stretch System (limitQuery) -----------------------------------------------------------
@@ -591,8 +647,12 @@ class ModuleSpine(ModuleGeneric):
                                             name=f"{_prefix}tempFollicle")
         spine_ik_ctrl = self._assemble_ctrl_name(name=f'{setup_name}_ik')
         spine_ik_ctrl = create_ctrl_curve(name=spine_ik_ctrl, curve_file_name="_cube")
+        connect_supporting_driver(source_driver=chest_ik_ctrl,
+                                  target_support_driver=spine_ik_ctrl)
         spine_ik_offset = add_offset_transform(target_list=spine_ik_ctrl)[0]
-        spine_ik_hip_chest_data = add_offset_transform(target_list=spine_ik_ctrl, transform_suffix="hipChestData")[0]
+        spine_ik_hip_chest_data = add_offset_transform(target_list=spine_ik_ctrl)[0]
+        spine_ik_hip_chest_name = self._assemble_ctrl_name(name=f'{setup_name}_ik', overwrite_suffix="hipChestData")
+        spine_ik_hip_chest_data.rename(spine_ik_hip_chest_name)
         set_equidistant_transforms(start=chest_ik_ctrl, end=cog_ctrl, target_list=spine_ik_offset)
         match_translate(source=temp_fol_trans, target_list=spine_ik_offset)
         cmds.delete(temp_fol_trans)
@@ -602,6 +662,7 @@ class ModuleSpine(ModuleGeneric):
         # Attributes
         set_attr_state(attribute_path=f"{spine_ik_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=spine_ik_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
+        hide_lock_default_attrs(spine_ik_ctrl, scale=True)
         expose_rotation_order(spine_ik_ctrl)
         hierarchy_utils.parent(source_objects=spine_ik_offset, target_parent=cog_o_data)
 
@@ -655,21 +716,24 @@ class ModuleSpine(ModuleGeneric):
         cmds.connectAttr(f'{spine_ik_ctrl}.followHipAndChest', f'{follow_constraint}.w1')  # Chest
         cmds.connectAttr(f'{spine_follow_reverse_node}.outputX', f'{follow_constraint}.w2')  # Offset (No Automation)
 
-        # Set Automation Visibility
-        cmds.setAttr(f'{spine_automation_grp}.v', 0)
-
         # Set Initial Chest Pivot to Spine Control ---------------------------------------------------------
         match_translate(source=spine_ik_ctrl, target_list=chest_piv_ik_data)
 
         # Chest Driven Group (For Parented Controls) -------------------------------------------------------
         chest_driven = self._assemble_ctrl_name(name=self.chest.get_name(),
-                                                overwrite_suffix=NamingConstants.Suffix.DRIVEN)
+                                                overwrite_suffix=NamingConstants.Suffix.DRIVER)
         chest_driven = create_group(name=chest_driven)
-        self.add_driver_uuid_attr(target=chest_driven,
-                                  driver_type=RiggerDriverTypes.DRIVEN,
-                                  proxy_purpose=self.chest)
+        self._add_driver_uuid_attr(target_driver=chest_driven,
+                                   driver_type=RiggerDriverTypes.GENERIC,
+                                   proxy_purpose=self.chest)
         constraint_targets(source_driver=chest_jnt, target_driven=chest_driven, maintain_offset=False)
         hierarchy_utils.parent(source_objects=chest_driven, target_parent=cog_o_data)
+
+        # Outliner Clean-up --------------------------------------------------------------------------------
+        reorder_front(target_list=joint_automation_grp)
+        # Set Automation Visibility
+        cmds.setAttr(f'{spine_automation_grp}.v', 0)
+        cmds.setAttr(f'{joint_automation_grp}.v', 0)
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [cog_offset]
@@ -707,6 +771,8 @@ if __name__ == "__main__":
 
     from gt.tools.auto_rigger.rig_framework import RigProject
     from gt.tools.auto_rigger.module_root import ModuleRoot
+    from gt.tools.auto_rigger.module_biped_arm import ModuleBipedArmRight
+    a_arm_rt = ModuleBipedArmRight()
     a_root = ModuleRoot()
     a_spine = ModuleSpine()
     # a_spine.set_spine_num(0)
@@ -715,8 +781,13 @@ if __name__ == "__main__":
     a_project = RigProject()
     a_project.add_to_modules(a_root)
     a_project.add_to_modules(a_spine)
-    a_project.build_proxy()
+    a_project.add_to_modules(a_arm_rt)
 
+    spine_chest_uuid = a_spine.chest.get_uuid()
+    a_arm_rt.set_parent_uuid(spine_chest_uuid)
+
+    a_project.build_proxy()
+    #
     # cmds.setAttr(f'hip.tx', 10)
     # cmds.setAttr(f'spine02.tx', 10)
 

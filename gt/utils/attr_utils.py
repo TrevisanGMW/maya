@@ -2,8 +2,8 @@
 Attribute Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.string_utils import remove_suffix, remove_prefix, upper_first_char
 from gt.utils.feedback_utils import FeedbackMessage, log_when_true
-from gt.utils.string_utils import remove_suffix, remove_prefix
 import maya.cmds as cmds
 import logging
 
@@ -637,15 +637,21 @@ def get_trs_attr_as_python(obj_list, use_loop=False, decimal_place=2, strip_zero
     return output
 
 
-def get_user_attr_to_python(obj_list):
+def get_user_attr_to_python(obj_list, skip_locked=True, skip_connected=True):
     """
     Returns a string
     Args:
         obj_list (list, none): List objects to extract the transform from (if empty, it will try to use selection)
+        skip_locked (bool, optional): If True, locked attributes will be ignored, otherwise all user-defined
+                                      attributes are listed.
+        skip_connected (bool, optional): If True, attributes receiving their data from a direct connections will be
+                                        ignored as these cannot be set manually.
 
     Returns:
-        str: Python code with extracted transform values
-
+        str: Python code with extracted transform values.
+             e.g.
+             # User-Defined Attribute Data for "pSphere1":
+             cmds.setAttr("pSphere1.myAttr", 0.0)"
     """
     if isinstance(obj_list, str):
         obj_list = [obj_list]
@@ -653,18 +659,33 @@ def get_user_attr_to_python(obj_list):
     for obj in obj_list:
         output += '\n# User-Defined Attribute Data for "' + obj + '":\n'
         attributes = cmds.listAttr(obj, userDefined=True) or []
+        # Check if locked
+        if skip_locked:
+            unlocked_attrs = []
+            for attr in attributes:
+                if not cmds.getAttr(f'{obj}.{attr}', lock=True):
+                    unlocked_attrs.append(attr)
+            attributes = unlocked_attrs
+        if skip_connected:
+            connected_attrs = []
+            for attr in attributes:
+                connections = cmds.listConnections(f'{obj}.{attr}', source=True, destination=False)
+                if connections is None:
+                    connected_attrs.append(attr)
+            attributes = connected_attrs
+        # Create code
         if not attributes:
             output += '# No user-defined attributes found on this object.\n'
         else:
-            for attr in attributes:  # TRS
-                attr_type = cmds.getAttr(obj + '.' + attr, typ=True)
-                value = cmds.getAttr(obj + '.' + attr)
+            for attr in attributes:
+                attr_type = cmds.getAttr(f'{obj}.{attr}', typ=True)
+                value = cmds.getAttr(f'{obj}.{attr}')
                 if attr_type == 'double3':
                     pass
                 elif attr_type == 'string':
-                    output += 'cmds.setAttr("' + obj + '.' + attr + '", """' + str(value) + '""", typ="string")\n'
+                    output += f'cmds.setAttr("{obj}.{attr}", """{str(value)}""", typ="string")\n'
                 else:
-                    output += 'cmds.setAttr("' + obj + '.' + attr + '", ' + str(value) + ')\n'
+                    output += f'cmds.setAttr("{obj}.{attr}", {str(value)})\n'
     # Remove first and last new line
     _new_line = "\n"
     output = remove_prefix(output, _new_line)
@@ -742,7 +763,7 @@ def add_separator_attr(target_object, attr_name="separator", custom_value=None):
     return f'{target_object}.{attr_name}'
 
 
-def add_attr(obj_list, attributes, attr_type="double", minimum=None, maximum=None,
+def add_attr(obj_list, attributes, attr_type="double", minimum=None, maximum=None, enum=None,
              default=None, is_keyable=True, verbose=False):
     """
     Adds attributes to the provided target list (list of objects)
@@ -754,6 +775,7 @@ def add_attr(obj_list, attributes, attr_type="double", minimum=None, maximum=Non
                          For a full list see the documentation for "cmds.addAttr".
         minimum: Minimum value for the attribute. Optional.
         maximum: Maximum value for the attribute. Optional.
+        enum (string, optional): A string with a list of potential enums. e.g. "Option1:Option2:Option3"
         default: Default value for the attribute. Optional.
         is_keyable (bool, optional): Whether the attribute should be keyable. Default is True.
         verbose (bool, optional): If active, this function will alert the user in case there were errors.
@@ -773,20 +795,24 @@ def add_attr(obj_list, attributes, attr_type="double", minimum=None, maximum=Non
                 attr_args = {'longName': attr_name}
                 if attr_type != "string":
                     attr_args['attributeType'] = attr_type
+                    if default is not None:  # Only works with non-string types
+                        attr_args['defaultValue'] = default
                 else:
                     attr_args['dataType'] = "string"
                 if minimum is not None:
                     attr_args['minValue'] = minimum
                 if maximum is not None:
                     attr_args['maxValue'] = maximum
-                if default is not None:
-                    attr_args['defaultValue'] = default
                 if is_keyable:
                     attr_args['keyable'] = True
+                if enum:
+                    attr_args['enumName'] = enum
                 try:
                     cmds.addAttr(target, **attr_args)
                     if cmds.objExists(full_attr_name):
                         added_attrs.append(full_attr_name)
+                        if attr_type == "string" and default is not None:  # Set String Default Value
+                            cmds.setAttr(full_attr_name, str(default), typ='string')
                 except Exception as e:
                     issues[full_attr_name] = e
     if issues and verbose:
@@ -873,6 +899,91 @@ def selection_delete_user_defined_attrs(delete_locked=True, feedback=True):
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
 
+def copy_attr(source_attr_path, target_list, prefix=None):
+    """
+    Copies an attribute from a source object to a target object(s).
+
+    Args:
+        source_attr_path (str): The name of the attribute to copy, including the source object's name.
+                                (e.g., "pSphere1.myAttr").
+        target_list (str, list): The name of the target object(s) to copy the attribute to.
+        prefix (str, optional): A prefix to add to the copied attribute name. Defaults to None.
+
+    Returns:
+        list: List of created attributes.
+    """
+    # Get attribute properties from the source attribute
+    if not cmds.objExists(source_attr_path):
+        logger.warning(f'Unable to copy attribute. Missing source attribute: "{source_attr_path}".')
+        return []
+    if '.' not in source_attr_path:
+        logger.warning(f'Unable to copy attribute. Invalid source attribute: "{source_attr_path}".')
+        return []
+    # Extract Source obj and attr
+    source_obj = source_attr_path.split('.')[0]
+    source_attr = '.'.join(source_attr_path.split('.')[1:])
+    # Get Attr Data
+    attr_type = cmds.attributeQuery(source_attr, node=source_obj, attributeType=True)
+    if attr_type == "typed":  # Update string to add pattern
+        attr_type = "string"
+    attr_data = {}
+    if cmds.attributeQuery(source_attr, node=source_obj, minExists=True):
+        min_val = cmds.attributeQuery(source_attr, node=source_obj, min=True)
+        attr_data["minimum"] = min_val[0]
+    if cmds.attributeQuery(source_attr, node=source_obj, maxExists=True):
+        max_val = cmds.attributeQuery(source_attr, node=source_obj, max=True)
+        attr_data["maximum"] = max_val[0]
+    attr_data["is_keyable"] = cmds.attributeQuery(source_attr, node=source_obj, keyable=True)
+
+    # If the attribute is of enum type, get enum names
+    if attr_type == 'enum':
+        enum_name = cmds.attributeQuery(source_attr, node=source_obj, listEnum=True)
+        attr_data["enum"] = enum_name[0]
+
+    # Adjust attribute name with prefix if provided
+    if prefix:
+        target_attr_name = f"{prefix}{upper_first_char(source_attr)}"
+    else:
+        target_attr_name = source_attr
+
+    # Create attribute on target object with same properties
+    current_value = cmds.getAttr(source_attr_path)
+    return add_attr(obj_list=target_list,
+                    attributes=target_attr_name,
+                    attr_type=attr_type,
+                    default=current_value, **attr_data, verbose=True)
+
+
+def reroute_attr(source_attrs, target_obj, prefix=None, hide_source=True):
+    """
+    Copies an attribute from a source object to a target object(s),
+    then uses the target object to control the previous initial attribute.
+    obj1.attr <- controlled by <- obj2.attr
+
+    Args:
+        source_attrs (str, list): The name of the attribute to reroute, including the source object's name.
+                                  (e.g., "pSphere1.myAttr").
+        target_obj (str, list): The name of the target object to copy the attribute to. (new attribute holder)
+        prefix (str, optional): A prefix to add to the copied attribute name. Defaults to None.
+        hide_source (bool, optional): If True, the source attribute is hidden after receiving the data from
+                                      the duplicated attribute.
+
+    Returns:
+        list: List of created attributes.
+    """
+    if isinstance(source_attrs, str):
+        source_attrs = [source_attrs]
+    created_attrs = []
+    for source_attr in source_attrs:
+        copied_attrs = copy_attr(source_attr_path=source_attr, target_list=target_obj, prefix=prefix)
+        for copied_attr in copied_attrs:
+            cmds.connectAttr(copied_attr, source_attr)
+            created_attrs.append(copied_attr)
+        if hide_source:
+            cmds.setAttr(source_attr, keyable=False, channelBox=False)
+    return created_attrs
+
+
 # -------------------------------------------- Connection -------------------------------------------
 def connect_attr(source_attr, target_attr_list, force=False,
                  verbose=False, log_level=logging.INFO, raise_exceptions=False):
@@ -916,5 +1027,17 @@ def connect_attr(source_attr, target_attr_list, force=False,
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     sel = cmds.ls(selection=True)
-    add_attr(obj_list=sel, attributes=["custom_attr_one", "custom_attr_two"])
-    delete_user_defined_attrs(sel)
+    # add_attr(obj_list=sel, attributes=["custom_attr_one", "custom_attr_two"])
+    # delete_user_defined_attrs(sel)
+    # cmds.file(new=True, force=True)
+    # cube_one = cmds.polyCube(ch=False)[0]
+    # cube_two = cmds.polyCube(ch=False)[0]
+    # add_attr(cube_one, attr_type='double', attributes="doubleAttr")
+    # add_attr(cube_one, attr_type='long', attributes="intAttr")
+    # add_attr(cube_one, attr_type='enum', attributes="enumAttr", enum='Option1:Option2:Option3')
+    # add_attr(cube_one, attr_type='bool', attributes="boolAttr")
+    # add_attr(cube_one, attr_type='string', attributes="stringAttr")
+    #
+    # reroute_attr(source_attrs=[f'{cube_one}.doubleAttr', f'{cube_one}.intAttr', f'{cube_one}.enumAttr',
+    #                            f'{cube_one}.boolAttr', f'{cube_one}.stringAttr'], target_obj=cube_two)
+    print(get_user_attr_to_python(f"left_backKnee_driverJnt_ctrl"))
