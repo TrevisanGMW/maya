@@ -109,7 +109,7 @@ class PackageUpdaterView(metaclass=ui_qt_utils.MayaWindowMeta):
             self.latest_release_content,
             self.changelog_label,
         ]:
-            label.setAlignment(QtCore.Qt.AlignCenter)
+            label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
             label.setFixedHeight(label.sizeHint().height() * 1.5)
             label.setFont(ui_qt_utils.get_font(ui_res_lib.Font.roboto))
 

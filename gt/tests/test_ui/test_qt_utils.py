@@ -89,13 +89,13 @@ class TestQtUtilities(unittest.TestCase):
         ui_element2.close.assert_called_once()
         ui_element2.deleteLater.assert_called_once()
 
-    @patch.object(QtGui.QCursor, "pos", return_value=ui_qt.QtCore.QPoint(100, 200))
+    @patch.object(ui_qt.QtGui.QCursor, "pos", return_value=ui_qt.QtCore.QPoint(100, 200))
     def test_get_cursor_position_no_offset(self, mock_cursor):
         expected = ui_qt.QtCore.QPoint(100, 200)
         result = qt_utils.get_cursor_position()
         self.assertEqual(expected, result)
 
-    @patch.object(QtGui.QCursor, "pos", return_value=ui_qt.QtCore.QPoint(100, 200))
+    @patch.object(ui_qt.QtGui.QCursor, "pos", return_value=ui_qt.QtCore.QPoint(100, 200))
     def test_get_cursor_position_with_offset(self, mock_cursor):
         offset_x = 10
         offset_y = 20

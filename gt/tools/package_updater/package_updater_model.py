@@ -325,7 +325,6 @@ class PackageUpdaterModel:
             logger.info("Package does not need to be updated.")
             return
 
-        zip_file_url = None
         try:
             content = loads(self.response_content)
             if isinstance(content, list):

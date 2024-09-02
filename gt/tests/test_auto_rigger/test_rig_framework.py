@@ -806,9 +806,7 @@ class TestRigFramework(unittest.TestCase):
             "modules": [],
             "preferences": {
                 "build_control_rig": True,
-                "control_rig_pose_name": f"{core_naming.NamingConstants.Poses.TPOSE}",
                 "delete_proxy_after_build": True,
-                "apply_control_rig_pose": True,
                 "project_dir": None,
             },
         }

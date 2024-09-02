@@ -1,6 +1,7 @@
 """
 Slider Controls - Work in Progress File
 """
+
 from gt.core.color import set_color_viewport, set_color_outliner
 from gt.core.curve import combine_curves_list, create_text
 from gt.core.data.controls.control_data import ControlData
@@ -15,14 +16,14 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-LEFT_CTRL_COLOR = (0, .3, 1)  # Soft Blue
+LEFT_CTRL_COLOR = (0, 0.3, 1)  # Soft Blue
 RIGHT_CTRL_COLOR = (1, 0, 0)  # Red
 CENTER_CTRL_COLOR = (1, 1, 0)  # Yellow
 
 
-def create_slider_squared_one_dimension(name="slider_one_dimension",
-                                        initial_position='middle',
-                                        lock_unused_channels=True):
+def create_slider_squared_one_dimension(
+    name="slider_one_dimension", initial_position="middle", lock_unused_channels=True
+):
     """
     Creates a one dimensional slider control
 
@@ -38,63 +39,69 @@ def create_slider_squared_one_dimension(name="slider_one_dimension",
 
     # Validate Name
     if not name:
-        cmds.warning('Control name cannot be empty')
+        cmds.warning("Control name cannot be empty")
         return
 
     # Create Elements
-    ctrl = cmds.curve(name=name,
-                      p=[[-1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, -1.0, 0.0]],
-                      d=1)
-    ctrl_bg = cmds.curve(name=name + '_bg_' + NamingConstants.Suffix.CRV,
-                         p=[[-1.0, -6.0, 0.0], [-1.0, 6.0, 0.0], [1.0, 6.0, 0.0], [1.0, -6.0, 0.0], [-1.0, -6.0, 0.0]],
-                         d=1)
+    ctrl = cmds.curve(
+        name=name, p=[[-1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, -1.0, 0.0]], d=1
+    )
+    ctrl_bg = cmds.curve(
+        name=name + "_bg_" + NamingConstants.Suffix.CRV,
+        p=[[-1.0, -6.0, 0.0], [-1.0, 6.0, 0.0], [1.0, 6.0, 0.0], [1.0, -6.0, 0.0], [-1.0, -6.0, 0.0]],
+        d=1,
+    )
     ctrl_grp = cmds.group(name=ctrl + NamingConstants.Suffix.GRP.capitalize(), world=True, empty=True)
     cmds.parent(ctrl, ctrl_grp)
     cmds.parent(ctrl_bg, ctrl_grp)
 
     # Handle Shape
-    shape = ''
+    shape = ""
     for shape in cmds.listRelatives(ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(name))
+        shape = cmds.rename(shape, "{0}Shape".format(name))
 
     # Determine initial position
-    if initial_position.lower() == 'top':
-        cmds.setAttr(ctrl + '.ty', 5)
+    if initial_position.lower() == "top":
+        cmds.setAttr(ctrl + ".ty", 5)
         cmds.makeIdentity(ctrl, apply=True, translate=True)
-        cmds.setAttr(ctrl + '.maxTransYLimit', 0)
-        cmds.setAttr(ctrl + '.minTransYLimit', -10)
-    elif initial_position.lower() == 'bottom':
-        cmds.setAttr(ctrl + '.ty', -5)
+        cmds.setAttr(ctrl + ".maxTransYLimit", 0)
+        cmds.setAttr(ctrl + ".minTransYLimit", -10)
+    elif initial_position.lower() == "bottom":
+        cmds.setAttr(ctrl + ".ty", -5)
         cmds.makeIdentity(ctrl, apply=True, translate=True)
-        cmds.setAttr(ctrl + '.maxTransYLimit', 10)
-        cmds.setAttr(ctrl + '.minTransYLimit', 0)
+        cmds.setAttr(ctrl + ".maxTransYLimit", 10)
+        cmds.setAttr(ctrl + ".minTransYLimit", 0)
     else:
-        cmds.setAttr(ctrl + '.maxTransYLimit', 5)
-        cmds.setAttr(ctrl + '.minTransYLimit', -5)
+        cmds.setAttr(ctrl + ".maxTransYLimit", 5)
+        cmds.setAttr(ctrl + ".minTransYLimit", -5)
 
     # Determine Look
-    cmds.setAttr(shape + '.lineWidth', default_ctrl_line_width)
-    cmds.setAttr(ctrl_bg + '.overrideEnabled', 1)
-    cmds.setAttr(ctrl_bg + '.overrideDisplayType', 2)
-    cmds.setAttr(ctrl + '.maxTransYLimitEnable', 1)
-    cmds.setAttr(ctrl + '.maxTransYLimitEnable', 1)
-    cmds.setAttr(ctrl + '.minTransYLimitEnable', 1)
+    cmds.setAttr(shape + ".lineWidth", default_ctrl_line_width)
+    cmds.setAttr(ctrl_bg + ".overrideEnabled", 1)
+    cmds.setAttr(ctrl_bg + ".overrideDisplayType", 2)
+    cmds.setAttr(ctrl + ".maxTransYLimitEnable", 1)
+    cmds.setAttr(ctrl + ".maxTransYLimitEnable", 1)
+    cmds.setAttr(ctrl + ".minTransYLimitEnable", 1)
 
     if lock_unused_channels:
-        axis = ['x', 'y', 'z']
-        attrs = ['t', 'r', 's']
+        axis = ["x", "y", "z"]
+        attrs = ["t", "r", "s"]
         for ax in axis:
             for attr in attrs:
-                if (attr + ax) != 'ty':
-                    cmds.setAttr(ctrl + '.' + attr + ax, lock=True, k=False, channelBox=False)
-        cmds.setAttr(ctrl + '.v', lock=True, k=False, channelBox=False)
+                if (attr + ax) != "ty":
+                    cmds.setAttr(ctrl + "." + attr + ax, lock=True, k=False, channelBox=False)
+        cmds.setAttr(ctrl + ".v", lock=True, k=False, channelBox=False)
 
     return ControlData(name=ctrl, offset=ctrl_grp)
 
 
-def create_slider_squared_two_dimensions(name="slider_two_dimensions",
-                                         initial_position_y='middle', initial_position_x='middle',
-                                         lock_unused_channels=True, ignore_range=None):
+def create_slider_squared_two_dimensions(
+    name="slider_two_dimensions",
+    initial_position_y="middle",
+    initial_position_x="middle",
+    lock_unused_channels=True,
+    ignore_range=None,
+):
     """
     Creates a one dimensional slider control
 
@@ -113,90 +120,92 @@ def create_slider_squared_two_dimensions(name="slider_two_dimensions",
 
     # Validate Name
     if not name:
-        cmds.warning('Control name cannot be empty')
+        cmds.warning("Control name cannot be empty")
         return
 
     # Create Elements
-    ctrl = cmds.curve(name=name,
-                      p=[[-1.0, -1.0, 0.0], [-1.0, 1.0, 0], [1.0, 1.0, 0], [1.0, -1.0, 0], [-1.0, -1.0, 0]],
-                      d=1)
-    ctrl_bg = cmds.curve(name=name + '_bg_' + NamingConstants.Suffix.CRV,
-                         p=[[-6.0, -6.0, 0.0], [-6.0, 6.0, 0.0], [6.0, 6.0, 0.0], [6.0, -6.0, 0.0], [-6.0, -6.0, 0.0]],
-                         d=1)
+    ctrl = cmds.curve(
+        name=name, p=[[-1.0, -1.0, 0.0], [-1.0, 1.0, 0], [1.0, 1.0, 0], [1.0, -1.0, 0], [-1.0, -1.0, 0]], d=1
+    )
+    ctrl_bg = cmds.curve(
+        name=name + "_bg_" + NamingConstants.Suffix.CRV,
+        p=[[-6.0, -6.0, 0.0], [-6.0, 6.0, 0.0], [6.0, 6.0, 0.0], [6.0, -6.0, 0.0], [-6.0, -6.0, 0.0]],
+        d=1,
+    )
     ctrl_grp = cmds.group(name=ctrl + NamingConstants.Suffix.GRP.capitalize(), world=True, empty=True)
     cmds.parent(ctrl, ctrl_grp)
     cmds.parent(ctrl_bg, ctrl_grp)
 
     # Handle Shape
-    shape = ''
+    shape = ""
     for shape in cmds.listRelatives(ctrl, s=True, f=True) or []:
-        shape = cmds.rename(shape, '{0}Shape'.format(name))
+        shape = cmds.rename(shape, "{0}Shape".format(name))
 
     # Determine initial Y position
-    if initial_position_y.lower() == 'top':
-        cmds.setAttr(ctrl + '.ty', 5)
+    if initial_position_y.lower() == "top":
+        cmds.setAttr(ctrl + ".ty", 5)
         cmds.makeIdentity(ctrl, apply=True, translate=True)
-        cmds.setAttr(ctrl + '.maxTransYLimit', 0)
-        cmds.setAttr(ctrl + '.minTransYLimit', -10)
-    elif initial_position_y.lower() == 'bottom':
-        cmds.setAttr(ctrl + '.ty', -5)
+        cmds.setAttr(ctrl + ".maxTransYLimit", 0)
+        cmds.setAttr(ctrl + ".minTransYLimit", -10)
+    elif initial_position_y.lower() == "bottom":
+        cmds.setAttr(ctrl + ".ty", -5)
         cmds.makeIdentity(ctrl, apply=True, translate=True)
-        cmds.setAttr(ctrl + '.maxTransYLimit', 10)
-        cmds.setAttr(ctrl + '.minTransYLimit', 0)
+        cmds.setAttr(ctrl + ".maxTransYLimit", 10)
+        cmds.setAttr(ctrl + ".minTransYLimit", 0)
     else:
-        cmds.setAttr(ctrl + '.maxTransYLimit', 5)
-        cmds.setAttr(ctrl + '.minTransYLimit', -5)
+        cmds.setAttr(ctrl + ".maxTransYLimit", 5)
+        cmds.setAttr(ctrl + ".minTransYLimit", -5)
 
     # Determine initial X position
-    if initial_position_x.lower() == 'right':
-        cmds.setAttr(ctrl + '.tx', 5)
+    if initial_position_x.lower() == "right":
+        cmds.setAttr(ctrl + ".tx", 5)
         cmds.makeIdentity(ctrl, apply=True, translate=True)
-        cmds.setAttr(ctrl + '.maxTransXLimit', 0)
-        cmds.setAttr(ctrl + '.minTransXLimit', -10)
-    elif initial_position_x.lower() == 'left':
-        cmds.setAttr(ctrl + '.tx', -5)
+        cmds.setAttr(ctrl + ".maxTransXLimit", 0)
+        cmds.setAttr(ctrl + ".minTransXLimit", -10)
+    elif initial_position_x.lower() == "left":
+        cmds.setAttr(ctrl + ".tx", -5)
         cmds.makeIdentity(ctrl, apply=True, translate=True)
-        cmds.setAttr(ctrl + '.maxTransXLimit', 10)
-        cmds.setAttr(ctrl + '.minTransXLimit', 0)
+        cmds.setAttr(ctrl + ".maxTransXLimit", 10)
+        cmds.setAttr(ctrl + ".minTransXLimit", 0)
     else:
-        cmds.setAttr(ctrl + '.maxTransXLimit', 5)
-        cmds.setAttr(ctrl + '.minTransXLimit', -5)
+        cmds.setAttr(ctrl + ".maxTransXLimit", 5)
+        cmds.setAttr(ctrl + ".minTransXLimit", -5)
 
     # Determine Look
-    cmds.setAttr(shape + '.lineWidth', default_ctrl_line_width)
-    cmds.setAttr(ctrl_bg + '.overrideEnabled', 1)
-    cmds.setAttr(ctrl_bg + '.overrideDisplayType', 2)
-    cmds.setAttr(ctrl + '.maxTransYLimitEnable', 1)
-    cmds.setAttr(ctrl + '.maxTransYLimitEnable', 1)
-    cmds.setAttr(ctrl + '.minTransYLimitEnable', 1)
-    cmds.setAttr(ctrl + '.maxTransXLimitEnable', 1)
-    cmds.setAttr(ctrl + '.maxTransXLimitEnable', 1)
-    cmds.setAttr(ctrl + '.minTransXLimitEnable', 1)
+    cmds.setAttr(shape + ".lineWidth", default_ctrl_line_width)
+    cmds.setAttr(ctrl_bg + ".overrideEnabled", 1)
+    cmds.setAttr(ctrl_bg + ".overrideDisplayType", 2)
+    cmds.setAttr(ctrl + ".maxTransYLimitEnable", 1)
+    cmds.setAttr(ctrl + ".maxTransYLimitEnable", 1)
+    cmds.setAttr(ctrl + ".minTransYLimitEnable", 1)
+    cmds.setAttr(ctrl + ".maxTransXLimitEnable", 1)
+    cmds.setAttr(ctrl + ".maxTransXLimitEnable", 1)
+    cmds.setAttr(ctrl + ".minTransXLimitEnable", 1)
 
     if lock_unused_channels:
-        axis = ['x', 'y', 'z']
-        attrs = ['t', 'r', 's']
+        axis = ["x", "y", "z"]
+        attrs = ["t", "r", "s"]
         for ax in axis:
             for attr in attrs:
-                if (attr + ax) != 'ty' and (attr + ax) != 'tx':
-                    cmds.setAttr(ctrl + '.' + attr + ax, lock=True, k=False, channelBox=False)
-        cmds.setAttr(ctrl + '.v', lock=True, k=False, channelBox=False)
+                if (attr + ax) != "ty" and (attr + ax) != "tx":
+                    cmds.setAttr(ctrl + "." + attr + ax, lock=True, k=False, channelBox=False)
+        cmds.setAttr(ctrl + ".v", lock=True, k=False, channelBox=False)
 
     if ignore_range:
-        if ignore_range == 'right':
-            cmds.move(-5, ctrl_bg + '.cv[2:3]', moveX=True, relative=True)
-            cmds.setAttr(ctrl + '.maxTransXLimit', 0)
-        elif ignore_range == 'left':
-            cmds.move(5, ctrl_bg + '.cv[0:1]', moveX=True, relative=True)
-            cmds.move(5, ctrl_bg + '.cv[4]', moveX=True, relative=True)
-            cmds.setAttr(ctrl + '.minTransXLimit', 0)
-        elif ignore_range == 'bottom':
-            cmds.move(5, ctrl_bg + '.cv[0]', moveY=True, relative=True)
-            cmds.move(5, ctrl_bg + '.cv[3:4]', moveY=True, relative=True)
-            cmds.setAttr(ctrl + '.minTransYLimit', 0)
-        elif ignore_range == 'top':
-            cmds.move(-5, ctrl_bg + '.cv[1:2]', moveY=True, relative=True)
-            cmds.setAttr(ctrl + '.maxTransYLimit', 0)
+        if ignore_range == "right":
+            cmds.move(-5, ctrl_bg + ".cv[2:3]", moveX=True, relative=True)
+            cmds.setAttr(ctrl + ".maxTransXLimit", 0)
+        elif ignore_range == "left":
+            cmds.move(5, ctrl_bg + ".cv[0:1]", moveX=True, relative=True)
+            cmds.move(5, ctrl_bg + ".cv[4]", moveX=True, relative=True)
+            cmds.setAttr(ctrl + ".minTransXLimit", 0)
+        elif ignore_range == "bottom":
+            cmds.move(5, ctrl_bg + ".cv[0]", moveY=True, relative=True)
+            cmds.move(5, ctrl_bg + ".cv[3:4]", moveY=True, relative=True)
+            cmds.setAttr(ctrl + ".minTransYLimit", 0)
+        elif ignore_range == "top":
+            cmds.move(-5, ctrl_bg + ".cv[1:2]", moveY=True, relative=True)
+            cmds.setAttr(ctrl + ".maxTransYLimit", 0)
 
     return ControlData(name=ctrl, offset=ctrl_grp)
 
@@ -223,12 +232,13 @@ def create_sliders_squared_mouth(name="mouth"):
     lower = NamingConstants.Position.LOWER
     outer_lo = NamingConstants.Position.OUTER_LO
     outer_up = NamingConstants.Position.OUTER_UP
-    offset = NamingConstants.Description.OFFSET
+    offset = NamingConstants.Suffix.OFFSET
 
-    gui_grp = f'{name}_gui_{grp}'
+    gui_grp = f"{name}_gui_{grp}"
     if cmds.objExists(gui_grp):
-        logger.warning(f'Unable to create control. '
-                       f'This control enforces a one-instance-only restriction for its elements.')
+        logger.warning(
+            f"Unable to create control. " f"This control enforces a one-instance-only restriction for its elements."
+        )
         return
 
     # Containers
@@ -236,84 +246,93 @@ def create_sliders_squared_mouth(name="mouth"):
     background = []
 
     # Top Label
-    mouth_crv = create_text('MOUTH')
+    mouth_crv = create_text("MOUTH")
     move_to_origin(mouth_crv)
     rescale(mouth_crv, 1.75)
-    cmds.setAttr(mouth_crv + '.ty', 10.5)
-    cmds.setAttr(mouth_crv + '.overrideDisplayType', 2)
+    cmds.setAttr(mouth_crv + ".ty", 10.5)
+    cmds.setAttr(mouth_crv + ".overrideDisplayType", 2)
     background.append(mouth_crv)
 
     # 1D Controls
-    mid_upper_lip_ctrl = create_slider_squared_one_dimension(f'{mid}_{upper}Lip_{offset}_{ctrl}')
-    mid_lower_lip_ctrl = create_slider_squared_one_dimension(f'{mid}_{lower}Lip_{offset}_{ctrl}')
-    left_upper_outer_lip_ctrl = create_slider_squared_one_dimension(f'{left}_{outer_up}Lip_{offset}_{ctrl}')
-    left_lower_outer_lip_ctrl = create_slider_squared_one_dimension(f'{left}_{outer_lo}Lip_{offset}_{ctrl}')
-    left_upper_corner_lip_ctrl = create_slider_squared_one_dimension(f'{left}_{upper}CornerLip_{offset}_{ctrl}')
-    left_lower_corner_lip_ctrl = create_slider_squared_one_dimension(f'{left}_{lower}CornerLip_{offset}_{ctrl}')
-    right_upper_outer_lip_ctrl = create_slider_squared_one_dimension(f'{right}_{outer_up}Lip_{offset}_{ctrl}')
-    right_lower_outer_lip_ctrl = create_slider_squared_one_dimension(f'{right}_{outer_lo}Lip_{offset}_{ctrl}')
-    right_upper_corner_lip_ctrl = create_slider_squared_one_dimension(f'{right}_{upper}CornerLip_{offset}_{ctrl}')
-    right_lower_corner_lip_ctrl = create_slider_squared_one_dimension(f'{right}_{lower}CornerLip_{offset}_{ctrl}')
-    main_mouth_offset_ctrl = create_slider_squared_one_dimension(f'mainMouth_{offset}_{ctrl}')
-    in_out_tongue_ctrl = create_slider_squared_one_dimension(f'inOutTongue_{offset}_{ctrl}', initial_position='top')
+    mid_upper_lip_ctrl = create_slider_squared_one_dimension(f"{mid}_{upper}Lip_{offset}_{ctrl}")
+    mid_lower_lip_ctrl = create_slider_squared_one_dimension(f"{mid}_{lower}Lip_{offset}_{ctrl}")
+    left_upper_outer_lip_ctrl = create_slider_squared_one_dimension(f"{left}_{outer_up}Lip_{offset}_{ctrl}")
+    left_lower_outer_lip_ctrl = create_slider_squared_one_dimension(f"{left}_{outer_lo}Lip_{offset}_{ctrl}")
+    left_upper_corner_lip_ctrl = create_slider_squared_one_dimension(f"{left}_{upper}CornerLip_{offset}_{ctrl}")
+    left_lower_corner_lip_ctrl = create_slider_squared_one_dimension(f"{left}_{lower}CornerLip_{offset}_{ctrl}")
+    right_upper_outer_lip_ctrl = create_slider_squared_one_dimension(f"{right}_{outer_up}Lip_{offset}_{ctrl}")
+    right_lower_outer_lip_ctrl = create_slider_squared_one_dimension(f"{right}_{outer_lo}Lip_{offset}_{ctrl}")
+    right_upper_corner_lip_ctrl = create_slider_squared_one_dimension(f"{right}_{upper}CornerLip_{offset}_{ctrl}")
+    right_lower_corner_lip_ctrl = create_slider_squared_one_dimension(f"{right}_{lower}CornerLip_{offset}_{ctrl}")
+    main_mouth_offset_ctrl = create_slider_squared_one_dimension(f"mainMouth_{offset}_{ctrl}")
+    in_out_tongue_ctrl = create_slider_squared_one_dimension(f"inOutTongue_{offset}_{ctrl}", initial_position="top")
 
     # TY
-    cmds.setAttr(mid_upper_lip_ctrl.offset + '.ty', 6)
-    cmds.setAttr(mid_lower_lip_ctrl.offset + '.ty', -5)
-    cmds.setAttr(left_upper_outer_lip_ctrl.offset + '.ty', 5)
-    cmds.setAttr(left_lower_outer_lip_ctrl.offset + '.ty', -4)
-    cmds.setAttr(left_upper_corner_lip_ctrl.offset + '.ty', 4)
-    cmds.setAttr(left_lower_corner_lip_ctrl.offset + '.ty', -3)
-    cmds.setAttr(right_upper_outer_lip_ctrl.offset + '.ty', 5)
-    cmds.setAttr(right_lower_outer_lip_ctrl.offset + '.ty', -4)
-    cmds.setAttr(right_upper_corner_lip_ctrl.offset + '.ty', 4)
-    cmds.setAttr(right_lower_corner_lip_ctrl.offset + '.ty', -3)
-    cmds.setAttr(main_mouth_offset_ctrl.offset + '.tx', 13)
-    cmds.setAttr(main_mouth_offset_ctrl.offset + '.ty', -13.8)
-    cmds.setAttr(in_out_tongue_ctrl.offset + '.ty', -9.5)
+    cmds.setAttr(mid_upper_lip_ctrl.offset + ".ty", 6)
+    cmds.setAttr(mid_lower_lip_ctrl.offset + ".ty", -5)
+    cmds.setAttr(left_upper_outer_lip_ctrl.offset + ".ty", 5)
+    cmds.setAttr(left_lower_outer_lip_ctrl.offset + ".ty", -4)
+    cmds.setAttr(left_upper_corner_lip_ctrl.offset + ".ty", 4)
+    cmds.setAttr(left_lower_corner_lip_ctrl.offset + ".ty", -3)
+    cmds.setAttr(right_upper_outer_lip_ctrl.offset + ".ty", 5)
+    cmds.setAttr(right_lower_outer_lip_ctrl.offset + ".ty", -4)
+    cmds.setAttr(right_upper_corner_lip_ctrl.offset + ".ty", 4)
+    cmds.setAttr(right_lower_corner_lip_ctrl.offset + ".ty", -3)
+    cmds.setAttr(main_mouth_offset_ctrl.offset + ".tx", 13)
+    cmds.setAttr(main_mouth_offset_ctrl.offset + ".ty", -13.8)
+    cmds.setAttr(in_out_tongue_ctrl.offset + ".ty", -9.5)
 
     # TX
-    cmds.setAttr(left_upper_outer_lip_ctrl.offset + '.tx', 2)
-    cmds.setAttr(left_lower_outer_lip_ctrl.offset + '.tx', 2)
-    cmds.setAttr(left_upper_corner_lip_ctrl.offset + '.tx', 4)
-    cmds.setAttr(left_lower_corner_lip_ctrl.offset + '.tx', 4)
-    cmds.setAttr(right_upper_outer_lip_ctrl.offset + '.tx', -2)
-    cmds.setAttr(right_lower_outer_lip_ctrl.offset + '.tx', -2)
-    cmds.setAttr(right_upper_corner_lip_ctrl.offset + '.tx', -4)
-    cmds.setAttr(right_lower_corner_lip_ctrl.offset + '.tx', -4)
-    cmds.setAttr(in_out_tongue_ctrl.offset + '.tx', -13)
+    cmds.setAttr(left_upper_outer_lip_ctrl.offset + ".tx", 2)
+    cmds.setAttr(left_lower_outer_lip_ctrl.offset + ".tx", 2)
+    cmds.setAttr(left_upper_corner_lip_ctrl.offset + ".tx", 4)
+    cmds.setAttr(left_lower_corner_lip_ctrl.offset + ".tx", 4)
+    cmds.setAttr(right_upper_outer_lip_ctrl.offset + ".tx", -2)
+    cmds.setAttr(right_lower_outer_lip_ctrl.offset + ".tx", -2)
+    cmds.setAttr(right_upper_corner_lip_ctrl.offset + ".tx", -4)
+    cmds.setAttr(right_lower_corner_lip_ctrl.offset + ".tx", -4)
+    cmds.setAttr(in_out_tongue_ctrl.offset + ".tx", -13)
 
     # Misc
-    cmds.setAttr(main_mouth_offset_ctrl.offset + '.sx', 0.8)
-    cmds.setAttr(main_mouth_offset_ctrl.offset + '.sy', 0.8)
-    cmds.setAttr(main_mouth_offset_ctrl.offset + '.sz', 0.8)
-    cmds.setAttr(in_out_tongue_ctrl.offset + '.rz', 90)
+    cmds.setAttr(main_mouth_offset_ctrl.offset + ".sx", 0.8)
+    cmds.setAttr(main_mouth_offset_ctrl.offset + ".sy", 0.8)
+    cmds.setAttr(main_mouth_offset_ctrl.offset + ".sz", 0.8)
+    cmds.setAttr(in_out_tongue_ctrl.offset + ".rz", 90)
 
-    half_size_ctrls = [left_upper_outer_lip_ctrl, left_lower_outer_lip_ctrl, left_upper_corner_lip_ctrl,
-                       left_lower_corner_lip_ctrl, right_upper_outer_lip_ctrl, right_lower_outer_lip_ctrl,
-                       right_upper_corner_lip_ctrl, right_lower_corner_lip_ctrl, mid_upper_lip_ctrl,
-                       mid_lower_lip_ctrl, in_out_tongue_ctrl]
+    half_size_ctrls = [
+        left_upper_outer_lip_ctrl,
+        left_lower_outer_lip_ctrl,
+        left_upper_corner_lip_ctrl,
+        left_lower_corner_lip_ctrl,
+        right_upper_outer_lip_ctrl,
+        right_lower_outer_lip_ctrl,
+        right_upper_corner_lip_ctrl,
+        right_lower_corner_lip_ctrl,
+        mid_upper_lip_ctrl,
+        mid_lower_lip_ctrl,
+        in_out_tongue_ctrl,
+    ]
 
     for ctrl in half_size_ctrls:
-        cmds.setAttr(ctrl.offset + '.sx', 0.5)
-        cmds.setAttr(ctrl.offset + '.sy', 0.5)
-        cmds.setAttr(ctrl.offset + '.sz', 0.5)
+        cmds.setAttr(ctrl.offset + ".sx", 0.5)
+        cmds.setAttr(ctrl.offset + ".sy", 0.5)
+        cmds.setAttr(ctrl.offset + ".sz", 0.5)
 
     # 2D Controls
-    left_corner_lip_ctrl = create_slider_squared_two_dimensions(f'{left}_cornerLip_{offset}_{ctrl}')
-    right_corner_lip_ctrl = create_slider_squared_two_dimensions(f'{right}_cornerLip_{offset}_{ctrl}')
-    jaw_ctrl = create_slider_squared_two_dimensions(f'jaw_{offset}_{ctrl}')
-    tongue_ctrl = create_slider_squared_two_dimensions(f'tongue_{offset}_{ctrl}')
+    left_corner_lip_ctrl = create_slider_squared_two_dimensions(f"{left}_cornerLip_{offset}_{ctrl}")
+    right_corner_lip_ctrl = create_slider_squared_two_dimensions(f"{right}_cornerLip_{offset}_{ctrl}")
+    jaw_ctrl = create_slider_squared_two_dimensions(f"jaw_{offset}_{ctrl}")
+    tongue_ctrl = create_slider_squared_two_dimensions(f"tongue_{offset}_{ctrl}")
 
     # Inverted Right Controls
-    cmds.setAttr(right_corner_lip_ctrl.offset + '.ry', 180)
+    cmds.setAttr(right_corner_lip_ctrl.offset + ".ry", 180)
 
-    cmds.setAttr(left_corner_lip_ctrl.offset + '.tx', 12)
-    cmds.setAttr(right_corner_lip_ctrl.offset + '.tx', -12)
-    cmds.setAttr(jaw_ctrl.offset + '.ty', -15)
+    cmds.setAttr(left_corner_lip_ctrl.offset + ".tx", 12)
+    cmds.setAttr(right_corner_lip_ctrl.offset + ".tx", -12)
+    cmds.setAttr(jaw_ctrl.offset + ".ty", -15)
     rescale(tongue_ctrl.offset, 0.5, freeze=False)
-    cmds.setAttr(tongue_ctrl.offset + '.ty', -15)
-    cmds.setAttr(tongue_ctrl.offset + '.tx', -13)
+    cmds.setAttr(tongue_ctrl.offset + ".ty", -15)
+    cmds.setAttr(tongue_ctrl.offset + ".tx", -13)
 
     # Determine Grp Order
     controls.append(left_corner_lip_ctrl)
@@ -334,73 +353,130 @@ def create_sliders_squared_mouth(name="mouth"):
     controls.append(in_out_tongue_ctrl)
 
     # Jaw Label
-    jaw_crv = create_text('JAW')
+    jaw_crv = create_text("JAW")
     move_to_origin(jaw_crv)
-    cmds.setAttr(jaw_crv + '.ty', -20.5)
-    cmds.setAttr(jaw_crv + '.overrideDisplayType', 2)
+    cmds.setAttr(jaw_crv + ".ty", -20.5)
+    cmds.setAttr(jaw_crv + ".overrideDisplayType", 2)
     background.append(jaw_crv)
 
     # Tongue Label
-    tongue_crv = create_text('TONGUE')
+    tongue_crv = create_text("TONGUE")
     move_to_origin(tongue_crv)
-    cmds.setAttr(tongue_crv + '.ty', -20.5)
-    cmds.setAttr(tongue_crv + '.tx', -15)
-    cmds.setAttr(tongue_crv + '.overrideDisplayType', 2)
+    cmds.setAttr(tongue_crv + ".ty", -20.5)
+    cmds.setAttr(tongue_crv + ".tx", -15)
+    cmds.setAttr(tongue_crv + ".overrideDisplayType", 2)
     background.append(tongue_crv)
 
     # Tongue Label
-    tongue_crv = create_text('UP/DOWN')
+    tongue_crv = create_text("UP/DOWN")
     move_to_origin(tongue_crv)
-    cmds.setAttr(tongue_crv + '.ty', -20.5)
-    cmds.setAttr(tongue_crv + '.tx', 10.75)
-    cmds.setAttr(tongue_crv + '.overrideDisplayType', 2)
+    cmds.setAttr(tongue_crv + ".ty", -20.5)
+    cmds.setAttr(tongue_crv + ".tx", 10.75)
+    cmds.setAttr(tongue_crv + ".overrideDisplayType", 2)
     background.append(tongue_crv)
 
     # L and R Indicators
-    l_crv = cmds.curve(p=[[12.357, -0.616, 0], [11.643, -0.616, 0], [11.643, 0.616, 0], [11.807, 0.616, 0],
-                          [11.807, -0.47, 0], [12.357, -0.47, 0], [12.357, -0.616, 0], [11.643, -0.616, 0],
-                          [11.643, 0.616, 0]], d=1,
-                       name=f'{left}_indicator_mouth_{crv}')
-    r_crv_a = cmds.curve(p=[[-11.523, -0.616, 0], [-11.63, -0.616, 0], [-11.736, -0.616, 0], [-11.931, -0.371, 0],
-                            [-12.126, -0.126, 0], [-12.22, -0.126, 0], [-12.313, -0.126, 0], [-12.313, -0.371, 0],
-                            [-12.313, -0.616, 0], [-12.395, -0.616, 0], [-12.477, -0.616, 0], [-12.477, 0, 0],
-                            [-12.477, 0.616, 0], [-12.318, 0.616, 0], [-12.159, 0.616, 0], [-12.053, 0.616, 0],
-                            [-11.91, 0.592, 0], [-11.846, 0.55, 0], [-11.781, 0.509, 0], [-11.706, 0.378, 0],
-                            [-11.706, 0.282, 0], [-11.706, 0.146, 0], [-11.843, -0.036, 0], [-11.962, -0.08, 0],
-                            [-11.742, -0.348, 0], [-11.523, -0.616, 0]], d=1,
-                         name=f'{right}_indicator_a_mouth_{crv}')
-    r_crv_b = cmds.curve(p=[[-11.877, 0.269, 0], [-11.877, 0.323, 0], [-11.915, 0.406, 0], [-11.955, 0.433, 0],
-                            [-11.99, 0.456, 0], [-12.082, 0.475, 0], [-12.151, 0.475, 0], [-12.232, 0.475, 0],
-                            [-12.313, 0.475, 0], [-12.313, 0.243, 0], [-12.313, 0.01, 0], [-12.241, 0.01, 0],
-                            [-12.169, 0.01, 0], [-12.099, 0.01, 0], [-11.986, 0.035, 0], [-11.947, 0.074, 0],
-                            [-11.911, 0.109, 0], [-11.877, 0.205, 0], [-11.877, 0.269, 0]], d=1,
-                         name=f'{right}_indicator_b_mouth_{crv}')
+    l_crv = cmds.curve(
+        p=[
+            [12.357, -0.616, 0],
+            [11.643, -0.616, 0],
+            [11.643, 0.616, 0],
+            [11.807, 0.616, 0],
+            [11.807, -0.47, 0],
+            [12.357, -0.47, 0],
+            [12.357, -0.616, 0],
+            [11.643, -0.616, 0],
+            [11.643, 0.616, 0],
+        ],
+        d=1,
+        name=f"{left}_indicator_mouth_{crv}",
+    )
+    r_crv_a = cmds.curve(
+        p=[
+            [-11.523, -0.616, 0],
+            [-11.63, -0.616, 0],
+            [-11.736, -0.616, 0],
+            [-11.931, -0.371, 0],
+            [-12.126, -0.126, 0],
+            [-12.22, -0.126, 0],
+            [-12.313, -0.126, 0],
+            [-12.313, -0.371, 0],
+            [-12.313, -0.616, 0],
+            [-12.395, -0.616, 0],
+            [-12.477, -0.616, 0],
+            [-12.477, 0, 0],
+            [-12.477, 0.616, 0],
+            [-12.318, 0.616, 0],
+            [-12.159, 0.616, 0],
+            [-12.053, 0.616, 0],
+            [-11.91, 0.592, 0],
+            [-11.846, 0.55, 0],
+            [-11.781, 0.509, 0],
+            [-11.706, 0.378, 0],
+            [-11.706, 0.282, 0],
+            [-11.706, 0.146, 0],
+            [-11.843, -0.036, 0],
+            [-11.962, -0.08, 0],
+            [-11.742, -0.348, 0],
+            [-11.523, -0.616, 0],
+        ],
+        d=1,
+        name=f"{right}_indicator_a_mouth_{crv}",
+    )
+    r_crv_b = cmds.curve(
+        p=[
+            [-11.877, 0.269, 0],
+            [-11.877, 0.323, 0],
+            [-11.915, 0.406, 0],
+            [-11.955, 0.433, 0],
+            [-11.99, 0.456, 0],
+            [-12.082, 0.475, 0],
+            [-12.151, 0.475, 0],
+            [-12.232, 0.475, 0],
+            [-12.313, 0.475, 0],
+            [-12.313, 0.243, 0],
+            [-12.313, 0.01, 0],
+            [-12.241, 0.01, 0],
+            [-12.169, 0.01, 0],
+            [-12.099, 0.01, 0],
+            [-11.986, 0.035, 0],
+            [-11.947, 0.074, 0],
+            [-11.911, 0.109, 0],
+            [-11.877, 0.205, 0],
+            [-11.877, 0.269, 0],
+        ],
+        d=1,
+        name=f"{right}_indicator_b_mouth_{crv}",
+    )
 
     r_crv = combine_curves_list([r_crv_a, r_crv_b])
-    cmds.setAttr(l_crv + '.overrideDisplayType', 2)
-    cmds.setAttr(r_crv + '.overrideDisplayType', 2)
-    cmds.setAttr(l_crv + '.ty', 9)
-    cmds.setAttr(r_crv + '.ty', 9)
+    cmds.setAttr(l_crv + ".overrideDisplayType", 2)
+    cmds.setAttr(r_crv + ".overrideDisplayType", 2)
+    cmds.setAttr(l_crv + ".ty", 9)
+    cmds.setAttr(r_crv + ".ty", 9)
     background.append(l_crv)
     background.append(r_crv)
 
     # Parent Groups
     gui_grp = cmds.group(name=gui_grp, world=True, empty=True)
-    bg_grp = cmds.group(name=f'{name}_background_{grp}', world=True, empty=True)
+    bg_grp = cmds.group(name=f"{name}_background_{grp}", world=True, empty=True)
 
     # General Background
-    mouth_bg_crv = cmds.curve(name=f'{name}_bg_{crv}', p=[[-20.0, 13.0, 0.0], [-20.0, -23.0, 0.0], [20.0, -23.0, 0.0],
-                                                      [20.0, 13.0, 0.0], [-20.0, 13.0, 0.0]], d=1)
+    mouth_bg_crv = cmds.curve(
+        name=f"{name}_bg_{crv}",
+        p=[[-20.0, 13.0, 0.0], [-20.0, -23.0, 0.0], [20.0, -23.0, 0.0], [20.0, 13.0, 0.0], [-20.0, 13.0, 0.0]],
+        d=1,
+    )
 
-    cmds.setAttr(mouth_bg_crv + '.overrideDisplayType', 1)
+    cmds.setAttr(mouth_bg_crv + ".overrideDisplayType", 1)
     background.append(mouth_bg_crv)
 
     for obj in controls:
         cmds.parent(obj.offset, gui_grp)
-        if f'{left}_' in obj.offset:
+        if f"{left}_" in obj.offset:
             set_color_viewport(obj.offset, LEFT_CTRL_COLOR)
             set_color_outliner(obj.offset, (0.21, 0.59, 1))  # Soft Blue
-        elif f'{right}_' in obj.offset:
+        elif f"{right}_" in obj.offset:
             set_color_viewport(obj.offset, RIGHT_CTRL_COLOR)
             set_color_outliner(obj.offset, RIGHT_CTRL_COLOR)
         else:
@@ -409,7 +485,7 @@ def create_sliders_squared_mouth(name="mouth"):
 
     for obj in background:
         cmds.parent(obj, bg_grp)
-        cmds.setAttr(obj + '.overrideEnabled', 1)
+        cmds.setAttr(obj + ".overrideEnabled", 1)
 
     # Background Group
     cmds.parent(bg_grp, gui_grp)
@@ -436,34 +512,34 @@ def create_sliders_squared_eyebrows(name="eyebrow"):
     background = []
 
     # Top Label
-    eyebrows_crv = create_text('EYEBROWS')
+    eyebrows_crv = create_text("EYEBROWS")
     move_to_origin(eyebrows_crv)
     rescale(eyebrows_crv, 1.75)
-    cmds.setAttr(eyebrows_crv + '.ty', 7.3)
-    cmds.setAttr(eyebrows_crv + '.overrideDisplayType', 2)
+    cmds.setAttr(eyebrows_crv + ".ty", 7.3)
+    cmds.setAttr(eyebrows_crv + ".overrideDisplayType", 2)
     background.append(eyebrows_crv)
 
     # 1D Controls
     suffix_ctrl = NamingConstants.Suffix.CTRL
-    left_mid_brow_ctrl = create_slider_squared_one_dimension(f'left_midBrow_offset_{suffix_ctrl}')
-    left_outer_brow_ctrl = create_slider_squared_one_dimension(f'left_outerBrow_offset_{suffix_ctrl}')
-    right_mid_brow_ctrl = create_slider_squared_one_dimension(f'right_midBrow_offset_{suffix_ctrl}')
-    right_outer_brow_ctrl = create_slider_squared_one_dimension(f'right_outerBrow_offset_{suffix_ctrl}')
+    left_mid_brow_ctrl = create_slider_squared_one_dimension(f"left_midBrow_offset_{suffix_ctrl}")
+    left_outer_brow_ctrl = create_slider_squared_one_dimension(f"left_outerBrow_offset_{suffix_ctrl}")
+    right_mid_brow_ctrl = create_slider_squared_one_dimension(f"right_midBrow_offset_{suffix_ctrl}")
+    right_outer_brow_ctrl = create_slider_squared_one_dimension(f"right_outerBrow_offset_{suffix_ctrl}")
 
     # TY
-    cmds.setAttr(left_mid_brow_ctrl.offset + '.tx', 11)
-    cmds.setAttr(left_outer_brow_ctrl.offset + '.tx', 15)
-    cmds.setAttr(right_mid_brow_ctrl.offset + '.tx', -11)
-    cmds.setAttr(right_outer_brow_ctrl.offset + '.tx', -15)
+    cmds.setAttr(left_mid_brow_ctrl.offset + ".tx", 11)
+    cmds.setAttr(left_outer_brow_ctrl.offset + ".tx", 15)
+    cmds.setAttr(right_mid_brow_ctrl.offset + ".tx", -11)
+    cmds.setAttr(right_outer_brow_ctrl.offset + ".tx", -15)
 
-    left_inner_brow_ctrl = create_slider_squared_two_dimensions('left_innerBrow_offset_ctrl', ignore_range='right')
-    right_inner_brow_ctrl = create_slider_squared_two_dimensions('right_innerBrow_offset_ctrl', ignore_range='right')
+    left_inner_brow_ctrl = create_slider_squared_two_dimensions("left_innerBrow_offset_ctrl", ignore_range="right")
+    right_inner_brow_ctrl = create_slider_squared_two_dimensions("right_innerBrow_offset_ctrl", ignore_range="right")
 
     # Invert Right Side
-    cmds.setAttr(right_inner_brow_ctrl.offset + '.ry', 180)
+    cmds.setAttr(right_inner_brow_ctrl.offset + ".ry", 180)
 
-    cmds.setAttr(left_inner_brow_ctrl.offset + '.tx', 7)
-    cmds.setAttr(right_inner_brow_ctrl.offset + '.tx', -7)
+    cmds.setAttr(left_inner_brow_ctrl.offset + ".tx", 7)
+    cmds.setAttr(right_inner_brow_ctrl.offset + ".tx", -7)
 
     # Determine Grp Order
     controls.append(left_inner_brow_ctrl)
@@ -474,52 +550,109 @@ def create_sliders_squared_eyebrows(name="eyebrow"):
     controls.append(right_outer_brow_ctrl)
 
     # L and R Indicators
-    l_crv = cmds.curve(p=[[12.357, -0.616, 0], [11.643, -0.616, 0], [11.643, 0.616, 0], [11.807, 0.616, 0],
-                          [11.807, -0.47, 0], [12.357, -0.47, 0], [12.357, -0.616, 0], [11.643, -0.616, 0],
-                          [11.643, 0.616, 0]], d=1,
-                       name='left_indicator_eyebrow_crv')
-    r_crv_a = cmds.curve(p=[[-11.523, -0.616, 0], [-11.63, -0.616, 0], [-11.736, -0.616, 0], [-11.931, -0.371, 0],
-                            [-12.126, -0.126, 0], [-12.22, -0.126, 0], [-12.313, -0.126, 0], [-12.313, -0.371, 0],
-                            [-12.313, -0.616, 0], [-12.395, -0.616, 0], [-12.477, -0.616, 0], [-12.477, 0, 0],
-                            [-12.477, 0.616, 0], [-12.318, 0.616, 0], [-12.159, 0.616, 0], [-12.053, 0.616, 0],
-                            [-11.91, 0.592, 0], [-11.846, 0.55, 0], [-11.781, 0.509, 0], [-11.706, 0.378, 0],
-                            [-11.706, 0.282, 0], [-11.706, 0.146, 0], [-11.843, -0.036, 0], [-11.962, -0.08, 0],
-                            [-11.742, -0.348, 0], [-11.523, -0.616, 0]], d=1,
-                         name='right_indicator_a_eyebrow_crv')
-    r_crv_b = cmds.curve(p=[[-11.877, 0.269, 0], [-11.877, 0.323, 0], [-11.915, 0.406, 0], [-11.955, 0.433, 0],
-                            [-11.99, 0.456, 0], [-12.082, 0.475, 0], [-12.151, 0.475, 0], [-12.232, 0.475, 0],
-                            [-12.313, 0.475, 0], [-12.313, 0.243, 0], [-12.313, 0.01, 0], [-12.241, 0.01, 0],
-                            [-12.169, 0.01, 0], [-12.099, 0.01, 0], [-11.986, 0.035, 0], [-11.947, 0.074, 0],
-                            [-11.911, 0.109, 0], [-11.877, 0.205, 0], [-11.877, 0.269, 0]], d=1,
-                         name='right_indicator_b_eyebrow_crv')
+    l_crv = cmds.curve(
+        p=[
+            [12.357, -0.616, 0],
+            [11.643, -0.616, 0],
+            [11.643, 0.616, 0],
+            [11.807, 0.616, 0],
+            [11.807, -0.47, 0],
+            [12.357, -0.47, 0],
+            [12.357, -0.616, 0],
+            [11.643, -0.616, 0],
+            [11.643, 0.616, 0],
+        ],
+        d=1,
+        name="left_indicator_eyebrow_crv",
+    )
+    r_crv_a = cmds.curve(
+        p=[
+            [-11.523, -0.616, 0],
+            [-11.63, -0.616, 0],
+            [-11.736, -0.616, 0],
+            [-11.931, -0.371, 0],
+            [-12.126, -0.126, 0],
+            [-12.22, -0.126, 0],
+            [-12.313, -0.126, 0],
+            [-12.313, -0.371, 0],
+            [-12.313, -0.616, 0],
+            [-12.395, -0.616, 0],
+            [-12.477, -0.616, 0],
+            [-12.477, 0, 0],
+            [-12.477, 0.616, 0],
+            [-12.318, 0.616, 0],
+            [-12.159, 0.616, 0],
+            [-12.053, 0.616, 0],
+            [-11.91, 0.592, 0],
+            [-11.846, 0.55, 0],
+            [-11.781, 0.509, 0],
+            [-11.706, 0.378, 0],
+            [-11.706, 0.282, 0],
+            [-11.706, 0.146, 0],
+            [-11.843, -0.036, 0],
+            [-11.962, -0.08, 0],
+            [-11.742, -0.348, 0],
+            [-11.523, -0.616, 0],
+        ],
+        d=1,
+        name="right_indicator_a_eyebrow_crv",
+    )
+    r_crv_b = cmds.curve(
+        p=[
+            [-11.877, 0.269, 0],
+            [-11.877, 0.323, 0],
+            [-11.915, 0.406, 0],
+            [-11.955, 0.433, 0],
+            [-11.99, 0.456, 0],
+            [-12.082, 0.475, 0],
+            [-12.151, 0.475, 0],
+            [-12.232, 0.475, 0],
+            [-12.313, 0.475, 0],
+            [-12.313, 0.243, 0],
+            [-12.313, 0.01, 0],
+            [-12.241, 0.01, 0],
+            [-12.169, 0.01, 0],
+            [-12.099, 0.01, 0],
+            [-11.986, 0.035, 0],
+            [-11.947, 0.074, 0],
+            [-11.911, 0.109, 0],
+            [-11.877, 0.205, 0],
+            [-11.877, 0.269, 0],
+        ],
+        d=1,
+        name="right_indicator_b_eyebrow_crv",
+    )
 
     r_crv = combine_curves_list([r_crv_a, r_crv_b])
-    cmds.setAttr(l_crv + '.overrideDisplayType', 2)
-    cmds.setAttr(r_crv + '.overrideDisplayType', 2)
-    cmds.setAttr(l_crv + '.ty', 7.3)
-    cmds.setAttr(r_crv + '.ty', 7.3)
-    cmds.setAttr(l_crv + '.tx', 3)
-    cmds.setAttr(r_crv + '.tx', -3)
+    cmds.setAttr(l_crv + ".overrideDisplayType", 2)
+    cmds.setAttr(r_crv + ".overrideDisplayType", 2)
+    cmds.setAttr(l_crv + ".ty", 7.3)
+    cmds.setAttr(r_crv + ".ty", 7.3)
+    cmds.setAttr(l_crv + ".tx", 3)
+    cmds.setAttr(r_crv + ".tx", -3)
     background.append(l_crv)
     background.append(r_crv)
 
     # Parent Groups
-    gui_grp = cmds.group(name=f'{name}_gui_grp', world=True, empty=True)
-    bg_grp = cmds.group(name=f'{name}_background_grp', world=True, empty=True)
+    gui_grp = cmds.group(name=f"{name}_gui_grp", world=True, empty=True)
+    bg_grp = cmds.group(name=f"{name}_background_grp", world=True, empty=True)
 
     # General Background
-    eyebrow_bg_crv = cmds.curve(name=f'{name}_bg_crv', p=[[-20.0, 10.0, 0.0], [-20.0, -8.0, 0.0], [20.0, -8.0, 0.0],
-                                                          [20.0, 10.0, 0.0], [-20.0, 10.0, 0.0]], d=1)
+    eyebrow_bg_crv = cmds.curve(
+        name=f"{name}_bg_crv",
+        p=[[-20.0, 10.0, 0.0], [-20.0, -8.0, 0.0], [20.0, -8.0, 0.0], [20.0, 10.0, 0.0], [-20.0, 10.0, 0.0]],
+        d=1,
+    )
 
-    cmds.setAttr(eyebrow_bg_crv + '.overrideDisplayType', 1)
+    cmds.setAttr(eyebrow_bg_crv + ".overrideDisplayType", 1)
     background.append(eyebrow_bg_crv)
 
     for obj in controls:
         cmds.parent(obj.offset, gui_grp)
-        if 'left_' in obj.offset:
+        if "left_" in obj.offset:
             set_color_viewport(obj.offset, LEFT_CTRL_COLOR)
             set_color_outliner(obj.offset, (0.21, 0.59, 1))  # Soft Blue
-        elif 'right_' in obj.offset:
+        elif "right_" in obj.offset:
             set_color_viewport(obj.offset, RIGHT_CTRL_COLOR)
             set_color_outliner(obj.offset, RIGHT_CTRL_COLOR)
         else:
@@ -528,7 +661,7 @@ def create_sliders_squared_eyebrows(name="eyebrow"):
 
     for obj in background:
         cmds.parent(obj, bg_grp)
-        cmds.setAttr(obj + '.overrideEnabled', 1)
+        cmds.setAttr(obj + ".overrideEnabled", 1)
 
     # Background Group
     cmds.parent(bg_grp, gui_grp)
@@ -551,16 +684,16 @@ def create_sliders_squared_cheek_nose(name="cheek_nose"):
     background = []
 
     # Top Label
-    nose_cheek_crv = create_text('NOSE / CHEEK')
-    left_nose_crv = create_text('LEFT NOSE')
-    right_nose_crv = create_text('RIGHT NOSE')
-    left_cheek_in_out_crv = create_text('IN/OUT')
-    right_cheek_in_out_crv = create_text('IN/OUT')
+    nose_cheek_crv = create_text("NOSE / CHEEK")
+    left_nose_crv = create_text("LEFT NOSE")
+    right_nose_crv = create_text("RIGHT NOSE")
+    left_cheek_in_out_crv = create_text("IN/OUT")
+    right_cheek_in_out_crv = create_text("IN/OUT")
     move_to_origin(nose_cheek_crv)
     rescale(nose_cheek_crv, 1.75)
-    cmds.setAttr(nose_cheek_crv + '.ty', 7.3)
+    cmds.setAttr(nose_cheek_crv + ".ty", 7.3)
     for ctrl in [nose_cheek_crv, left_nose_crv, right_nose_crv, left_cheek_in_out_crv, right_cheek_in_out_crv]:
-        cmds.setAttr(ctrl + '.overrideDisplayType', 2)
+        cmds.setAttr(ctrl + ".overrideDisplayType", 2)
     background.append(nose_cheek_crv)
     background.append(left_nose_crv)
     background.append(right_nose_crv)
@@ -568,76 +701,76 @@ def create_sliders_squared_cheek_nose(name="cheek_nose"):
     background.append(right_cheek_in_out_crv)
 
     # 1D Controls
-    left_cheek_in_out_ctrl = create_slider_squared_one_dimension('left_cheek_in_out_offset_ctrl')
-    right_cheek_in_out_ctrl = create_slider_squared_one_dimension('right_cheek_in_out_offset_ctrl')
+    left_cheek_in_out_ctrl = create_slider_squared_one_dimension("left_cheek_in_out_offset_ctrl")
+    right_cheek_in_out_ctrl = create_slider_squared_one_dimension("right_cheek_in_out_offset_ctrl")
 
     # 2D Controls
-    left_cheek_ctrl = create_slider_squared_two_dimensions('left_cheek_offset_ctrl')
-    right_cheek_ctrl = create_slider_squared_two_dimensions('right_cheek_offset_ctrl')
-    left_nose_ctrl = create_slider_squared_two_dimensions('left_nose_offset_ctrl')
-    right_nose_ctrl = create_slider_squared_two_dimensions('right_nose_offset_ctrl')
-    main_nose_ctrl = create_slider_squared_two_dimensions('main_nose_offset_ctrl')
+    left_cheek_ctrl = create_slider_squared_two_dimensions("left_cheek_offset_ctrl")
+    right_cheek_ctrl = create_slider_squared_two_dimensions("right_cheek_offset_ctrl")
+    left_nose_ctrl = create_slider_squared_two_dimensions("left_nose_offset_ctrl")
+    right_nose_ctrl = create_slider_squared_two_dimensions("right_nose_offset_ctrl")
+    main_nose_ctrl = create_slider_squared_two_dimensions("main_nose_offset_ctrl")
 
     # Reposition / Rescale BG
     left_nose_crv_tx = 0.05
     right_nose_crv_tx = -5.3
     nose_crv_ty = -5.56
-    nose_crv_scale = .5
-    cmds.setAttr(left_nose_crv + '.tx', left_nose_crv_tx)
-    cmds.setAttr(right_nose_crv + '.tx', right_nose_crv_tx)
-    cmds.setAttr(left_nose_crv + '.ty', nose_crv_ty)
-    cmds.setAttr(right_nose_crv + '.ty', nose_crv_ty)
+    nose_crv_scale = 0.5
+    cmds.setAttr(left_nose_crv + ".tx", left_nose_crv_tx)
+    cmds.setAttr(right_nose_crv + ".tx", right_nose_crv_tx)
+    cmds.setAttr(left_nose_crv + ".ty", nose_crv_ty)
+    cmds.setAttr(right_nose_crv + ".ty", nose_crv_ty)
     rescale(left_nose_crv, nose_crv_scale, freeze=False)
     rescale(right_nose_crv, nose_crv_scale, freeze=False)
 
     left_cheek_in_out_crv_tx = 5.35
     right_cheek_in_out_crv_tx = -8.65
     cheek_in_out_crv_ty = -5.5
-    cheek_in_out_crv_scale = .55
-    cmds.setAttr(left_cheek_in_out_crv + '.tx', left_cheek_in_out_crv_tx)
-    cmds.setAttr(right_cheek_in_out_crv + '.tx', right_cheek_in_out_crv_tx)
-    cmds.setAttr(left_cheek_in_out_crv + '.ty', cheek_in_out_crv_ty)
-    cmds.setAttr(right_cheek_in_out_crv + '.ty', cheek_in_out_crv_ty)
+    cheek_in_out_crv_scale = 0.55
+    cmds.setAttr(left_cheek_in_out_crv + ".tx", left_cheek_in_out_crv_tx)
+    cmds.setAttr(right_cheek_in_out_crv + ".tx", right_cheek_in_out_crv_tx)
+    cmds.setAttr(left_cheek_in_out_crv + ".ty", cheek_in_out_crv_ty)
+    cmds.setAttr(right_cheek_in_out_crv + ".ty", cheek_in_out_crv_ty)
     rescale(left_cheek_in_out_crv, cheek_in_out_crv_scale, freeze=False)
     rescale(right_cheek_in_out_crv, cheek_in_out_crv_scale, freeze=False)
 
     # Reposition / Rescale Ctrls
     cheek_tx = 13.5
     cheek_ty = -1
-    cheek_scale = .75
-    cmds.setAttr(left_cheek_ctrl.offset + '.tx', cheek_tx)
-    cmds.setAttr(right_cheek_ctrl.offset + '.tx', -cheek_tx)
-    cmds.setAttr(left_cheek_ctrl.offset + '.ty', cheek_ty)
-    cmds.setAttr(right_cheek_ctrl.offset + '.ty', cheek_ty)
+    cheek_scale = 0.75
+    cmds.setAttr(left_cheek_ctrl.offset + ".tx", cheek_tx)
+    cmds.setAttr(right_cheek_ctrl.offset + ".tx", -cheek_tx)
+    cmds.setAttr(left_cheek_ctrl.offset + ".ty", cheek_ty)
+    cmds.setAttr(right_cheek_ctrl.offset + ".ty", cheek_ty)
     rescale(left_cheek_ctrl.offset, cheek_scale, freeze=False)
     rescale(right_cheek_ctrl.offset, cheek_scale, freeze=False)
 
     nose_tx = 2.5
     nose_ty = -3
-    nose_scale = .25
-    cmds.setAttr(left_nose_ctrl.offset + '.tx', nose_tx)
-    cmds.setAttr(right_nose_ctrl.offset + '.tx', -nose_tx)
-    cmds.setAttr(left_nose_ctrl.offset + '.ty', nose_ty)
-    cmds.setAttr(right_nose_ctrl.offset + '.ty', nose_ty)
+    nose_scale = 0.25
+    cmds.setAttr(left_nose_ctrl.offset + ".tx", nose_tx)
+    cmds.setAttr(right_nose_ctrl.offset + ".tx", -nose_tx)
+    cmds.setAttr(left_nose_ctrl.offset + ".ty", nose_ty)
+    cmds.setAttr(right_nose_ctrl.offset + ".ty", nose_ty)
     rescale(left_nose_ctrl.offset, nose_scale, freeze=False)
     rescale(right_nose_ctrl.offset, nose_scale, freeze=False)
 
-    cmds.setAttr(main_nose_ctrl.offset + '.ty', 1.7)
-    rescale(main_nose_ctrl.offset, .3, freeze=False)
+    cmds.setAttr(main_nose_ctrl.offset + ".ty", 1.7)
+    rescale(main_nose_ctrl.offset, 0.3, freeze=False)
 
     cheek_in_out_tx = 7
-    cheek_in_out_ty = -.1
-    cheek_in_out_scale = cheek_scale*.8
-    cmds.setAttr(left_cheek_in_out_ctrl.offset + '.tx', cheek_in_out_tx)
-    cmds.setAttr(right_cheek_in_out_ctrl.offset + '.tx', -cheek_in_out_tx)
-    cmds.setAttr(left_cheek_in_out_ctrl.offset + '.ty', cheek_in_out_ty)
-    cmds.setAttr(right_cheek_in_out_ctrl.offset + '.ty', cheek_in_out_ty)
+    cheek_in_out_ty = -0.1
+    cheek_in_out_scale = cheek_scale * 0.8
+    cmds.setAttr(left_cheek_in_out_ctrl.offset + ".tx", cheek_in_out_tx)
+    cmds.setAttr(right_cheek_in_out_ctrl.offset + ".tx", -cheek_in_out_tx)
+    cmds.setAttr(left_cheek_in_out_ctrl.offset + ".ty", cheek_in_out_ty)
+    cmds.setAttr(right_cheek_in_out_ctrl.offset + ".ty", cheek_in_out_ty)
     rescale(left_cheek_in_out_ctrl.offset, cheek_in_out_scale, freeze=False)
     rescale(right_cheek_in_out_ctrl.offset, cheek_in_out_scale, freeze=False)
 
     # Invert Right Side
     for obj in [right_cheek_ctrl, right_nose_ctrl]:
-        cmds.setAttr(obj.offset + '.sx', cmds.getAttr(obj.offset + '.sx')*-1)
+        cmds.setAttr(obj.offset + ".sx", cmds.getAttr(obj.offset + ".sx") * -1)
 
     # Determine Grp Order
     controls.append(left_cheek_ctrl)
@@ -649,52 +782,109 @@ def create_sliders_squared_cheek_nose(name="cheek_nose"):
     controls.append(right_cheek_in_out_ctrl)
 
     # L and R Indicators
-    l_crv = cmds.curve(p=[[12.357, -0.616, 0], [11.643, -0.616, 0], [11.643, 0.616, 0], [11.807, 0.616, 0],
-                          [11.807, -0.47, 0], [12.357, -0.47, 0], [12.357, -0.616, 0], [11.643, -0.616, 0],
-                          [11.643, 0.616, 0]], d=1,
-                       name='left_indicator_nose_cheek_crv')
-    r_crv_a = cmds.curve(p=[[-11.523, -0.616, 0], [-11.63, -0.616, 0], [-11.736, -0.616, 0], [-11.931, -0.371, 0],
-                            [-12.126, -0.126, 0], [-12.22, -0.126, 0], [-12.313, -0.126, 0], [-12.313, -0.371, 0],
-                            [-12.313, -0.616, 0], [-12.395, -0.616, 0], [-12.477, -0.616, 0], [-12.477, 0, 0],
-                            [-12.477, 0.616, 0], [-12.318, 0.616, 0], [-12.159, 0.616, 0], [-12.053, 0.616, 0],
-                            [-11.91, 0.592, 0], [-11.846, 0.55, 0], [-11.781, 0.509, 0], [-11.706, 0.378, 0],
-                            [-11.706, 0.282, 0], [-11.706, 0.146, 0], [-11.843, -0.036, 0], [-11.962, -0.08, 0],
-                            [-11.742, -0.348, 0], [-11.523, -0.616, 0]], d=1,
-                         name='right_indicator_a_nose_cheek_crv')
-    r_crv_b = cmds.curve(p=[[-11.877, 0.269, 0], [-11.877, 0.323, 0], [-11.915, 0.406, 0], [-11.955, 0.433, 0],
-                            [-11.99, 0.456, 0], [-12.082, 0.475, 0], [-12.151, 0.475, 0], [-12.232, 0.475, 0],
-                            [-12.313, 0.475, 0], [-12.313, 0.243, 0], [-12.313, 0.01, 0], [-12.241, 0.01, 0],
-                            [-12.169, 0.01, 0], [-12.099, 0.01, 0], [-11.986, 0.035, 0], [-11.947, 0.074, 0],
-                            [-11.911, 0.109, 0], [-11.877, 0.205, 0], [-11.877, 0.269, 0]], d=1,
-                         name='right_indicator_b_nose_cheek_crv')
+    l_crv = cmds.curve(
+        p=[
+            [12.357, -0.616, 0],
+            [11.643, -0.616, 0],
+            [11.643, 0.616, 0],
+            [11.807, 0.616, 0],
+            [11.807, -0.47, 0],
+            [12.357, -0.47, 0],
+            [12.357, -0.616, 0],
+            [11.643, -0.616, 0],
+            [11.643, 0.616, 0],
+        ],
+        d=1,
+        name="left_indicator_nose_cheek_crv",
+    )
+    r_crv_a = cmds.curve(
+        p=[
+            [-11.523, -0.616, 0],
+            [-11.63, -0.616, 0],
+            [-11.736, -0.616, 0],
+            [-11.931, -0.371, 0],
+            [-12.126, -0.126, 0],
+            [-12.22, -0.126, 0],
+            [-12.313, -0.126, 0],
+            [-12.313, -0.371, 0],
+            [-12.313, -0.616, 0],
+            [-12.395, -0.616, 0],
+            [-12.477, -0.616, 0],
+            [-12.477, 0, 0],
+            [-12.477, 0.616, 0],
+            [-12.318, 0.616, 0],
+            [-12.159, 0.616, 0],
+            [-12.053, 0.616, 0],
+            [-11.91, 0.592, 0],
+            [-11.846, 0.55, 0],
+            [-11.781, 0.509, 0],
+            [-11.706, 0.378, 0],
+            [-11.706, 0.282, 0],
+            [-11.706, 0.146, 0],
+            [-11.843, -0.036, 0],
+            [-11.962, -0.08, 0],
+            [-11.742, -0.348, 0],
+            [-11.523, -0.616, 0],
+        ],
+        d=1,
+        name="right_indicator_a_nose_cheek_crv",
+    )
+    r_crv_b = cmds.curve(
+        p=[
+            [-11.877, 0.269, 0],
+            [-11.877, 0.323, 0],
+            [-11.915, 0.406, 0],
+            [-11.955, 0.433, 0],
+            [-11.99, 0.456, 0],
+            [-12.082, 0.475, 0],
+            [-12.151, 0.475, 0],
+            [-12.232, 0.475, 0],
+            [-12.313, 0.475, 0],
+            [-12.313, 0.243, 0],
+            [-12.313, 0.01, 0],
+            [-12.241, 0.01, 0],
+            [-12.169, 0.01, 0],
+            [-12.099, 0.01, 0],
+            [-11.986, 0.035, 0],
+            [-11.947, 0.074, 0],
+            [-11.911, 0.109, 0],
+            [-11.877, 0.205, 0],
+            [-11.877, 0.269, 0],
+        ],
+        d=1,
+        name="right_indicator_b_nose_cheek_crv",
+    )
 
     r_crv = combine_curves_list([r_crv_a, r_crv_b])
-    cmds.setAttr(l_crv + '.overrideDisplayType', 2)
-    cmds.setAttr(r_crv + '.overrideDisplayType', 2)
-    cmds.setAttr(l_crv + '.ty', 7.3)
-    cmds.setAttr(r_crv + '.ty', 7.3)
-    cmds.setAttr(l_crv + '.tx', 3)
-    cmds.setAttr(r_crv + '.tx', -3)
+    cmds.setAttr(l_crv + ".overrideDisplayType", 2)
+    cmds.setAttr(r_crv + ".overrideDisplayType", 2)
+    cmds.setAttr(l_crv + ".ty", 7.3)
+    cmds.setAttr(r_crv + ".ty", 7.3)
+    cmds.setAttr(l_crv + ".tx", 3)
+    cmds.setAttr(r_crv + ".tx", -3)
     background.append(l_crv)
     background.append(r_crv)
 
     # Parent Groups
-    gui_grp = cmds.group(name=f'{name}_gui_grp', world=True, empty=True)
-    bg_grp = cmds.group(name=f'{name}_background_grp', world=True, empty=True)
+    gui_grp = cmds.group(name=f"{name}_gui_grp", world=True, empty=True)
+    bg_grp = cmds.group(name=f"{name}_background_grp", world=True, empty=True)
 
     # General Background
-    eyebrow_bg_crv = cmds.curve(name=f'{name}_bg_crv', p=[[-20.0, 10.0, 0.0], [-20.0, -8.0, 0.0], [20.0, -8.0, 0.0],
-                                                             [20.0, 10.0, 0.0], [-20.0, 10.0, 0.0]], d=1)
+    eyebrow_bg_crv = cmds.curve(
+        name=f"{name}_bg_crv",
+        p=[[-20.0, 10.0, 0.0], [-20.0, -8.0, 0.0], [20.0, -8.0, 0.0], [20.0, 10.0, 0.0], [-20.0, 10.0, 0.0]],
+        d=1,
+    )
 
-    cmds.setAttr(eyebrow_bg_crv + '.overrideDisplayType', 1)
+    cmds.setAttr(eyebrow_bg_crv + ".overrideDisplayType", 1)
     background.append(eyebrow_bg_crv)
 
     for obj in controls:
         cmds.parent(obj.offset, gui_grp)
-        if 'left_' in obj.offset:
+        if "left_" in obj.offset:
             set_color_viewport(obj.offset, LEFT_CTRL_COLOR)
             set_color_outliner(obj.offset, (0.21, 0.59, 1))  # Soft Blue
-        elif 'right_' in obj.offset:
+        elif "right_" in obj.offset:
             set_color_viewport(obj.offset, RIGHT_CTRL_COLOR)
             set_color_outliner(obj.offset, RIGHT_CTRL_COLOR)
         else:
@@ -703,7 +893,7 @@ def create_sliders_squared_cheek_nose(name="cheek_nose"):
 
     for obj in background:
         cmds.parent(obj, bg_grp)
-        cmds.setAttr(obj + '.overrideEnabled', 1)
+        cmds.setAttr(obj + ".overrideEnabled", 1)
 
     # Background Group
     cmds.parent(bg_grp, gui_grp)
@@ -726,20 +916,20 @@ def create_sliders_squared_eyes(name="eyes"):
     background = []
 
     # Top Label
-    eyebrows_crv = create_text('EYES')
+    eyebrows_crv = create_text("EYES")
     move_to_origin(eyebrows_crv)
     rescale(eyebrows_crv, 1.75)
-    cmds.setAttr(eyebrows_crv + '.ty', 8.6)
-    cmds.setAttr(eyebrows_crv + '.overrideDisplayType', 2)
+    cmds.setAttr(eyebrows_crv + ".ty", 8.6)
+    cmds.setAttr(eyebrows_crv + ".overrideDisplayType", 2)
     background.append(eyebrows_crv)
 
     # 1D Controls
-    left_upper_eyelid_ctrl = create_slider_squared_one_dimension('left_upperEyelid_offset_ctrl')
-    left_lower_eyelid_ctrl = create_slider_squared_one_dimension('left_lowerEyelid_offset_ctrl')
-    left_blink_eyelid_ctrl = create_slider_squared_one_dimension('left_blinkEyelid_ctrl')
-    right_upper_eyelid_ctrl = create_slider_squared_one_dimension('right_upperEyelid_offset_ctrl')
-    right_lower_eyelid_ctrl = create_slider_squared_one_dimension('right_lowerEyelid_offset_ctrl')
-    right_blink_eyelid_ctrl = create_slider_squared_one_dimension('right_blinkEyelid_ctrl')
+    left_upper_eyelid_ctrl = create_slider_squared_one_dimension("left_upperEyelid_offset_ctrl")
+    left_lower_eyelid_ctrl = create_slider_squared_one_dimension("left_lowerEyelid_offset_ctrl")
+    left_blink_eyelid_ctrl = create_slider_squared_one_dimension("left_blinkEyelid_ctrl")
+    right_upper_eyelid_ctrl = create_slider_squared_one_dimension("right_upperEyelid_offset_ctrl")
+    right_lower_eyelid_ctrl = create_slider_squared_one_dimension("right_lowerEyelid_offset_ctrl")
+    right_blink_eyelid_ctrl = create_slider_squared_one_dimension("right_blinkEyelid_ctrl")
 
     _offset_slider_range(left_upper_eyelid_ctrl, offset_thickness=1)
     _offset_slider_range(left_lower_eyelid_ctrl, offset_thickness=1)
@@ -753,26 +943,26 @@ def create_sliders_squared_eyes(name="eyes"):
     #                  right_upper_eyelid_ctrl, right_lower_eyelid_ctrl, right_blink_eyelid_ctrl]
     to_scale_down = [left_blink_eyelid_ctrl, right_blink_eyelid_ctrl]
     for ctrl in to_scale_down:
-        cmds.setAttr(ctrl.offset + '.sx', 0.5)
-        cmds.setAttr(ctrl.offset + '.sy', 0.5)
-        cmds.setAttr(ctrl.offset + '.sz', 0.5)
+        cmds.setAttr(ctrl.offset + ".sx", 0.5)
+        cmds.setAttr(ctrl.offset + ".sy", 0.5)
+        cmds.setAttr(ctrl.offset + ".sz", 0.5)
 
     # TY
     rescale(left_upper_eyelid_ctrl.offset, 0.25, freeze=False)
     rescale(left_lower_eyelid_ctrl.offset, 0.25, freeze=False)
-    cmds.setAttr(left_upper_eyelid_ctrl.offset + '.tx', 15)
-    cmds.setAttr(left_lower_eyelid_ctrl.offset + '.tx', 15)
-    cmds.setAttr(left_upper_eyelid_ctrl.offset + '.ty', 3)
-    cmds.setAttr(left_lower_eyelid_ctrl.offset + '.ty', -4)
-    cmds.setAttr(left_blink_eyelid_ctrl.offset + '.tx', 5)
+    cmds.setAttr(left_upper_eyelid_ctrl.offset + ".tx", 15)
+    cmds.setAttr(left_lower_eyelid_ctrl.offset + ".tx", 15)
+    cmds.setAttr(left_upper_eyelid_ctrl.offset + ".ty", 3)
+    cmds.setAttr(left_lower_eyelid_ctrl.offset + ".ty", -4)
+    cmds.setAttr(left_blink_eyelid_ctrl.offset + ".tx", 5)
 
     rescale(right_upper_eyelid_ctrl.offset, 0.25, freeze=False)
     rescale(right_lower_eyelid_ctrl.offset, 0.25, freeze=False)
-    cmds.setAttr(right_upper_eyelid_ctrl.offset + '.tx', -15)
-    cmds.setAttr(right_lower_eyelid_ctrl.offset + '.tx', -15)
-    cmds.setAttr(right_upper_eyelid_ctrl.offset + '.ty', 3)
-    cmds.setAttr(right_lower_eyelid_ctrl.offset + '.ty', -4)
-    cmds.setAttr(right_blink_eyelid_ctrl.offset + '.tx', -5)
+    cmds.setAttr(right_upper_eyelid_ctrl.offset + ".tx", -15)
+    cmds.setAttr(right_lower_eyelid_ctrl.offset + ".tx", -15)
+    cmds.setAttr(right_upper_eyelid_ctrl.offset + ".ty", 3)
+    cmds.setAttr(right_lower_eyelid_ctrl.offset + ".ty", -4)
+    cmds.setAttr(right_blink_eyelid_ctrl.offset + ".tx", -5)
 
     # Determine Grp Order
     controls.append(left_upper_eyelid_ctrl)
@@ -783,65 +973,122 @@ def create_sliders_squared_eyes(name="eyes"):
     controls.append(right_blink_eyelid_ctrl)
 
     # L and R Indicators
-    l_crv = cmds.curve(p=[[12.357, -0.616, 0], [11.643, -0.616, 0], [11.643, 0.616, 0], [11.807, 0.616, 0],
-                          [11.807, -0.47, 0], [12.357, -0.47, 0], [12.357, -0.616, 0], [11.643, -0.616, 0],
-                          [11.643, 0.616, 0]], d=1,
-                       name='left_indicator_eyes_crv')
-    r_crv_a = cmds.curve(p=[[-11.523, -0.616, 0], [-11.63, -0.616, 0], [-11.736, -0.616, 0], [-11.931, -0.371, 0],
-                            [-12.126, -0.126, 0], [-12.22, -0.126, 0], [-12.313, -0.126, 0], [-12.313, -0.371, 0],
-                            [-12.313, -0.616, 0], [-12.395, -0.616, 0], [-12.477, -0.616, 0], [-12.477, 0, 0],
-                            [-12.477, 0.616, 0], [-12.318, 0.616, 0], [-12.159, 0.616, 0], [-12.053, 0.616, 0],
-                            [-11.91, 0.592, 0], [-11.846, 0.55, 0], [-11.781, 0.509, 0], [-11.706, 0.378, 0],
-                            [-11.706, 0.282, 0], [-11.706, 0.146, 0], [-11.843, -0.036, 0], [-11.962, -0.08, 0],
-                            [-11.742, -0.348, 0], [-11.523, -0.616, 0]], d=1,
-                         name='right_indicator_a_eyes_crv')
-    r_crv_b = cmds.curve(p=[[-11.877, 0.269, 0], [-11.877, 0.323, 0], [-11.915, 0.406, 0], [-11.955, 0.433, 0],
-                            [-11.99, 0.456, 0], [-12.082, 0.475, 0], [-12.151, 0.475, 0], [-12.232, 0.475, 0],
-                            [-12.313, 0.475, 0], [-12.313, 0.243, 0], [-12.313, 0.01, 0], [-12.241, 0.01, 0],
-                            [-12.169, 0.01, 0], [-12.099, 0.01, 0], [-11.986, 0.035, 0], [-11.947, 0.074, 0],
-                            [-11.911, 0.109, 0], [-11.877, 0.205, 0], [-11.877, 0.269, 0]], d=1,
-                         name='right_indicator_b_eyes_crv')
+    l_crv = cmds.curve(
+        p=[
+            [12.357, -0.616, 0],
+            [11.643, -0.616, 0],
+            [11.643, 0.616, 0],
+            [11.807, 0.616, 0],
+            [11.807, -0.47, 0],
+            [12.357, -0.47, 0],
+            [12.357, -0.616, 0],
+            [11.643, -0.616, 0],
+            [11.643, 0.616, 0],
+        ],
+        d=1,
+        name="left_indicator_eyes_crv",
+    )
+    r_crv_a = cmds.curve(
+        p=[
+            [-11.523, -0.616, 0],
+            [-11.63, -0.616, 0],
+            [-11.736, -0.616, 0],
+            [-11.931, -0.371, 0],
+            [-12.126, -0.126, 0],
+            [-12.22, -0.126, 0],
+            [-12.313, -0.126, 0],
+            [-12.313, -0.371, 0],
+            [-12.313, -0.616, 0],
+            [-12.395, -0.616, 0],
+            [-12.477, -0.616, 0],
+            [-12.477, 0, 0],
+            [-12.477, 0.616, 0],
+            [-12.318, 0.616, 0],
+            [-12.159, 0.616, 0],
+            [-12.053, 0.616, 0],
+            [-11.91, 0.592, 0],
+            [-11.846, 0.55, 0],
+            [-11.781, 0.509, 0],
+            [-11.706, 0.378, 0],
+            [-11.706, 0.282, 0],
+            [-11.706, 0.146, 0],
+            [-11.843, -0.036, 0],
+            [-11.962, -0.08, 0],
+            [-11.742, -0.348, 0],
+            [-11.523, -0.616, 0],
+        ],
+        d=1,
+        name="right_indicator_a_eyes_crv",
+    )
+    r_crv_b = cmds.curve(
+        p=[
+            [-11.877, 0.269, 0],
+            [-11.877, 0.323, 0],
+            [-11.915, 0.406, 0],
+            [-11.955, 0.433, 0],
+            [-11.99, 0.456, 0],
+            [-12.082, 0.475, 0],
+            [-12.151, 0.475, 0],
+            [-12.232, 0.475, 0],
+            [-12.313, 0.475, 0],
+            [-12.313, 0.243, 0],
+            [-12.313, 0.01, 0],
+            [-12.241, 0.01, 0],
+            [-12.169, 0.01, 0],
+            [-12.099, 0.01, 0],
+            [-11.986, 0.035, 0],
+            [-11.947, 0.074, 0],
+            [-11.911, 0.109, 0],
+            [-11.877, 0.205, 0],
+            [-11.877, 0.269, 0],
+        ],
+        d=1,
+        name="right_indicator_b_eyes_crv",
+    )
 
     r_crv = combine_curves_list([r_crv_a, r_crv_b])
-    cmds.setAttr(l_crv + '.overrideDisplayType', 2)
-    cmds.setAttr(r_crv + '.overrideDisplayType', 2)
-    cmds.setAttr(l_crv + '.ty', 8.6)
-    cmds.setAttr(r_crv + '.ty', 8.6)
-    cmds.setAttr(l_crv + '.tx', 3)
-    cmds.setAttr(r_crv + '.tx', -3)
+    cmds.setAttr(l_crv + ".overrideDisplayType", 2)
+    cmds.setAttr(r_crv + ".overrideDisplayType", 2)
+    cmds.setAttr(l_crv + ".ty", 8.6)
+    cmds.setAttr(r_crv + ".ty", 8.6)
+    cmds.setAttr(l_crv + ".tx", 3)
+    cmds.setAttr(r_crv + ".tx", -3)
     background.append(l_crv)
     background.append(r_crv)
 
     # Main Label
-    blink_crv = create_text('BLINK')
-    blink_crv = cmds.rename(blink_crv, 'left_eye_' + blink_crv)
+    blink_crv = create_text("BLINK")
+    blink_crv = cmds.rename(blink_crv, "left_eye_" + blink_crv)
     move_to_origin(blink_crv)
-    rescale(blink_crv, .7)
-    cmds.setAttr(blink_crv + '.ty', -7.3)
-    cmds.setAttr(blink_crv + '.tx', 3.615)
-    cmds.setAttr(blink_crv + '.overrideDisplayType', 2)
-    right_blink_crv = cmds.duplicate(blink_crv, name=blink_crv.replace('left', 'right'))[0]
-    cmds.setAttr(right_blink_crv + '.tx', -6.385)
+    rescale(blink_crv, 0.7)
+    cmds.setAttr(blink_crv + ".ty", -7.3)
+    cmds.setAttr(blink_crv + ".tx", 3.615)
+    cmds.setAttr(blink_crv + ".overrideDisplayType", 2)
+    right_blink_crv = cmds.duplicate(blink_crv, name=blink_crv.replace("left", "right"))[0]
+    cmds.setAttr(right_blink_crv + ".tx", -6.385)
     background.append(blink_crv)
     background.append(right_blink_crv)
 
     # Parent Groups
-    gui_grp = cmds.group(name=f'{name}_gui_grp', world=True, empty=True)
-    bg_grp = cmds.group(name=f'{name}_background_grp', world=True, empty=True)
+    gui_grp = cmds.group(name=f"{name}_gui_grp", world=True, empty=True)
+    bg_grp = cmds.group(name=f"{name}_background_grp", world=True, empty=True)
 
     # General Background
-    eye_bg_crv = cmds.curve(name=f'{name}_bg_crv', p=[[-20.0, 11.0, 0.0], [-20.0, -9.0, 0.0], [20.0, -9.0, 0.0],
-                                                      [20.0, 11.0, 0.0], [-20.0, 11.0, 0.0]], d=1)
+    eye_bg_crv = cmds.curve(
+        name=f"{name}_bg_crv",
+        p=[[-20.0, 11.0, 0.0], [-20.0, -9.0, 0.0], [20.0, -9.0, 0.0], [20.0, 11.0, 0.0], [-20.0, 11.0, 0.0]],
+        d=1,
+    )
 
-    cmds.setAttr(eye_bg_crv + '.overrideDisplayType', 1)
+    cmds.setAttr(eye_bg_crv + ".overrideDisplayType", 1)
     background.append(eye_bg_crv)
 
     for obj in controls:
         cmds.parent(obj.offset, gui_grp)
-        if 'left_' in obj.offset:
+        if "left_" in obj.offset:
             set_color_viewport(obj.offset, LEFT_CTRL_COLOR)
             set_color_outliner(obj.offset, (0.21, 0.59, 1))  # Soft Blue
-        elif 'right_' in obj.offset:
+        elif "right_" in obj.offset:
             set_color_viewport(obj.offset, RIGHT_CTRL_COLOR)
             set_color_outliner(obj.offset, RIGHT_CTRL_COLOR)
         else:
@@ -850,7 +1097,7 @@ def create_sliders_squared_eyes(name="eyes"):
 
     for obj in background:
         cmds.parent(obj, bg_grp)
-        cmds.setAttr(obj + '.overrideEnabled', 1)
+        cmds.setAttr(obj + ".overrideEnabled", 1)
 
     # Background Group
     cmds.parent(bg_grp, gui_grp)
@@ -871,7 +1118,7 @@ def create_sliders_squared_facial_side_gui(name="facial", add_nose_cheeks=True):
                        E.g. ('eyebrow_gui_grp', ['ctrl_one', 'ctrl_two'])
     """
     selection = cmds.ls(selection=True)
-    parent_grp = cmds.group(empty=True, world=True, name=f'{name}_gui_grp')
+    parent_grp = cmds.group(empty=True, world=True, name=f"{name}_gui_grp")
     eyebrow_ctrls = create_sliders_squared_eyebrows()
     eye_ctrls = create_sliders_squared_eyes()
     mouth_ctrls = create_sliders_squared_mouth()
@@ -901,44 +1148,44 @@ def _offset_slider_range(slider_control_data, offset_by=5, offset_thickness=0):
     ctrl = slider_control_data.name
     ctrl_grp = slider_control_data.offset
 
-    current_min_trans_y_limit = cmds.getAttr(ctrl + '.minTransYLimit')
-    current_max_trans_y_limit = cmds.getAttr(ctrl + '.maxTransYLimit')
+    current_min_trans_y_limit = cmds.getAttr(ctrl + ".minTransYLimit")
+    current_max_trans_y_limit = cmds.getAttr(ctrl + ".maxTransYLimit")
 
-    cmds.setAttr(ctrl + '.minTransYLimit', current_min_trans_y_limit - offset_by)
-    cmds.setAttr(ctrl + '.maxTransYLimit', current_max_trans_y_limit + offset_by)
+    cmds.setAttr(ctrl + ".minTransYLimit", current_min_trans_y_limit - offset_by)
+    cmds.setAttr(ctrl + ".maxTransYLimit", current_max_trans_y_limit + offset_by)
 
     children = cmds.listRelatives(ctrl_grp, children=True) or []
     for child in children:
-        if '_bg_crv' in child:
+        if "_bg_crv" in child:
             # Top
-            cmds.move(offset_by, child + '.cv[1]', moveY=True, relative=True)
-            cmds.move(offset_by, child + '.cv[2]', moveY=True, relative=True)
+            cmds.move(offset_by, child + ".cv[1]", moveY=True, relative=True)
+            cmds.move(offset_by, child + ".cv[2]", moveY=True, relative=True)
             # Bottom
-            cmds.move(-offset_by, child + '.cv[3]', moveY=True, relative=True)
-            cmds.move(-offset_by, child + '.cv[4]', moveY=True, relative=True)
-            cmds.move(-offset_by, child + '.cv[0]', moveY=True, relative=True)
+            cmds.move(-offset_by, child + ".cv[3]", moveY=True, relative=True)
+            cmds.move(-offset_by, child + ".cv[4]", moveY=True, relative=True)
+            cmds.move(-offset_by, child + ".cv[0]", moveY=True, relative=True)
 
     if offset_thickness:
         for child in children:
             # Left
-            cmds.move(-offset_thickness, child + '.cv[1]', moveX=True, relative=True)
-            cmds.move(-offset_thickness, child + '.cv[4]', moveX=True, relative=True)
-            cmds.move(-offset_thickness, child + '.cv[0]', moveX=True, relative=True)
+            cmds.move(-offset_thickness, child + ".cv[1]", moveX=True, relative=True)
+            cmds.move(-offset_thickness, child + ".cv[4]", moveX=True, relative=True)
+            cmds.move(-offset_thickness, child + ".cv[0]", moveX=True, relative=True)
             # Right
-            cmds.move(offset_thickness, child + '.cv[2]', moveX=True, relative=True)
-            cmds.move(offset_thickness, child + '.cv[3]', moveX=True, relative=True)
+            cmds.move(offset_thickness, child + ".cv[2]", moveX=True, relative=True)
+            cmds.move(offset_thickness, child + ".cv[3]", moveX=True, relative=True)
 
             # Top
-            cmds.move(offset_thickness, child + '.cv[1]', moveY=True, relative=True)
-            cmds.move(offset_thickness, child + '.cv[2]', moveY=True, relative=True)
+            cmds.move(offset_thickness, child + ".cv[1]", moveY=True, relative=True)
+            cmds.move(offset_thickness, child + ".cv[2]", moveY=True, relative=True)
             # Bottom
-            cmds.move(-offset_thickness, child + '.cv[3]', moveY=True, relative=True)
-            cmds.move(-offset_thickness, child + '.cv[4]', moveY=True, relative=True)
-            cmds.move(-offset_thickness, child + '.cv[0]', moveY=True, relative=True)
+            cmds.move(-offset_thickness, child + ".cv[3]", moveY=True, relative=True)
+            cmds.move(-offset_thickness, child + ".cv[4]", moveY=True, relative=True)
+            cmds.move(-offset_thickness, child + ".cv[0]", moveY=True, relative=True)
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # create_facial_side_gui()
     cmds.file(new=True, force=True)
-    offset_ctrl = create_slider_squared_one_dimension('offset_ctrl')
+    offset_ctrl = create_slider_squared_one_dimension("offset_ctrl")

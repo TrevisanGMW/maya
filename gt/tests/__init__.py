@@ -1,5 +1,5 @@
 """
-Tests module
+Tests All
 """
 
 import unittest
@@ -28,7 +28,6 @@ package_parent_dir = os.path.dirname(package_root_dir)
 for to_append in [source_dir, package_root_dir, package_parent_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
-
 
 # Modules to Test
 modules_to_test = [
@@ -89,8 +88,8 @@ modules_to_test = [
     test_core.test_uuid,
     test_core.test_version,
     # Utils
-    test_utils.test_system,
     test_utils.test_request,
+    test_utils.test_system,
 ]
 
 

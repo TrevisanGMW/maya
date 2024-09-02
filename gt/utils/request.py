@@ -1,6 +1,10 @@
 """
 Request Utilities
 github.com/TrevisanGMW/gt-tools
+
+Code Namespace:
+    utils_request # import gt.utils.request as utils_request
+
 """
 
 from gt.core.str import remove_strings_from_string

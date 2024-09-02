@@ -6,6 +6,7 @@ Code Namespace:
 """
 
 from gt.core.feedback import print_when_true
+import gt.utils.request as utils_request
 from collections import namedtuple
 import importlib.util
 import logging
@@ -17,10 +18,14 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+SemanticVersion = namedtuple("SemanticVersion", ["major", "minor", "patch"])
+PACKAGE_GITHUB_URL = "https://api.github.com/repos/TrevisanGMW/gt-tools"
+PACKAGE_RELEASES_URL = f"{PACKAGE_GITHUB_URL}/releases"
+PACKAGE_LATEST_RELEASE_URL = f"{PACKAGE_RELEASES_URL}/latest"
+PACKAGE_TAGS_URL = f"{PACKAGE_RELEASES_URL}/tags/"
 VERSION_BIGGER = 1
 VERSION_SMALLER = -1
 VERSION_EQUAL = 0
-SemanticVersion = namedtuple("SemanticVersion", ["major", "minor", "patch"])
 
 
 def is_semantic_version(version_str, metadata_ok=True):
@@ -87,9 +92,9 @@ def compare_versions(version_a, version_b):
         version_b (str): A string describing a version to be compared with version_a
     Returns:
         int: Comparison result
-             -1: if older ("a" older than "b")
+             -1: if older ("A" older than "B")
              0: if equal,
-             1: if newer ("a" newer than "b")
+             1: if newer ("A" newer than "B")
     """
     major_a, minor_a, patch_a = parse_semantic_version(version_a, as_tuple=True)
     major_b, minor_b, patch_b = parse_semantic_version(version_b, as_tuple=True)
@@ -139,6 +144,35 @@ def get_package_version(package_path=None):
         return
 
 
+def get_legacy_package_version():
+    """
+    Retrieves the legacy version of the package from Maya's optionVar 'gt_tools_version' if it exists and is a valid
+    semantic version.
+
+    Returns:
+        str or None: The legacy package version as a string if it exists and is a valid semantic version, or None if
+        the version is not found or is not a valid semantic version.
+    """
+    option_var = "gt_tools_version"
+    legacy_version = None
+    try:
+        import maya.cmds as cmds
+
+        legacy_version = cmds.optionVar(query=option_var)
+    except Exception as e:
+        logger.debug(str(e))
+        logger.debug(f'Unable to retrieve legacy version using "cmds". Trying "mel"...')
+        try:
+            import maya.mel as mel
+
+            legacy_version = mel.eval(f'optionVar -q "{option_var}";')
+        except Exception as e:
+            logger.debug(str(e))
+            logger.debug(f"Unable to retrieve legacy Maya version")
+    if legacy_version and is_semantic_version(legacy_version, metadata_ok=False):
+        return legacy_version
+
+
 def get_installed_version(verbose=True):
     """
     Get Installed Package Version
@@ -147,13 +181,102 @@ def get_installed_version(verbose=True):
     Returns:
         str or None: A semantic version string or None if not installed. e.g. "1.2.3"
     """
-    from gt.core.setup import get_installed_core_module_path
+    from gt.core.setup import is_legacy_version_install_present, get_installed_core_module_path
 
     package_core_module = get_installed_core_module_path(only_existing=False)
     if not os.path.exists(package_core_module):
         message = f'Package not installed. Missing path: "{package_core_module}"'
         print_when_true(message, do_print=verbose, use_system_write=True)
         return
+    installed_version = get_package_version(package_path=package_core_module)
+    if not installed_version and is_legacy_version_install_present():
+        installed_version = get_legacy_package_version()
+    if installed_version and is_semantic_version(installed_version, metadata_ok=False):
+        return installed_version
+
+
+def get_github_releases(verbose=True, only_latest=False):
+    """
+    Retrieves the content of the latest "GitHub release" for this package.
+    Exceptions are handled inside the function (seen through "verbose" mode)
+
+    Args:
+        verbose (bool, optional): If True, prints detailed information. Default is True.
+        only_latest (bool, optional): If active, it will only return the latest release.
+
+    Returns:
+        tuple: A tuple with the web-response and the content of the latest GitHub release. (response, None) if it fails.
+    """
+    if only_latest:
+        response, response_content = utils_request.http_get_request(PACKAGE_LATEST_RELEASE_URL)
+    else:
+        response, response_content = utils_request.http_get_request(PACKAGE_RELEASES_URL)
+    try:
+        response_type = utils_request.get_http_response_type(response.status)
+        if response_type != "successful":
+            message = (
+                f"HTTP response returned unsuccessful status code. "
+                f'URL: "{PACKAGE_RELEASES_URL} (Status: "{response.status})'
+            )
+            print_when_true(message, do_print=verbose, use_system_write=True)
+            return response, None
+        if not response_content:
+            message = (
+                f"HTTP requested content is empty or missing. "
+                f'URL: "{PACKAGE_RELEASES_URL} (Status: "{response.status})'
+            )
+            print_when_true(message, do_print=verbose, use_system_write=True)
+        return response, response_content
+    except Exception as e:
+        message = f"An error occurred while getting latest release content. Issue: {e}"
+        print_when_true(message, do_print=verbose, use_system_write=True)
+        if response:
+            return response, None
+        return None, None
+
+
+def get_latest_github_release_version(verbose=True, response_content=None):
+    """
+    Retrieves the version from the latest GitHub released content for this package.
+
+    Args:
+        verbose (bool, optional): If True, prints detailed information. Default is True.
+        response_content (str, optional): If provided, this response will be used instead of requesting a new one.
+                                          The purpose of this parameter is to reduce the number of requests while
+                                          retrieving data from "GitHub". It can be a string or a list.
+
+    Returns:
+        str or None: The version of the latest GitHub release, formatted as a dot-separated string. e.g. "1.2.3"
+                     None if operation failed to retrieve it.
+    """
+    if response_content:
+        _response_content = response_content
+    else:
+        _, _response_content = get_github_releases(verbose=verbose)
+    content = {}
+    try:
+        from json import loads
+
+        content = loads(_response_content)
+        if isinstance(content, list):
+            if len(content) > 0:
+                content = content[0]  # First one is the latest release
+            else:
+                message = f"Unable to get version. Response content was an empty list."
+                print_when_true(message, do_print=verbose, use_system_write=True)
+                return
+    except Exception as e:
+        message = f'Failed to extract JSON data from response. Issue: "{e}".'
+        print_when_true(message, do_print=verbose, use_system_write=True)
+        return
+    tag_name = content.get("tag_name")
+    if not tag_name:
+        message = f'HTTP requested content is missing "tag_name". ' f'URL: "{PACKAGE_RELEASES_URL}'
+        print_when_true(message, do_print=verbose, use_system_write=True)
+        return
+
+    version = parse_semantic_version(tag_name)
+    return version
 
 
 if __name__ == "__main__":
