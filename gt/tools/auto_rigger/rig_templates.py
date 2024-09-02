@@ -1,10 +1,17 @@
-from gt.tools.auto_rigger.template_biped import create_template_biped
+"""
+Templates
+
+Code Namespace:
+    tools_rig_templates # import gt.tools.auto_rigger.rig_templates as tools_rig_templates
+"""
+
+import gt.tools.auto_rigger.template_biped as tools_templates_biped
 import types
 
 
 class RigTemplates:
     # General
-    TemplateBiped = create_template_biped
+    TemplateBiped = tools_templates_biped.create_template_biped
 
     @staticmethod
     def get_dict_templates():
@@ -15,8 +22,9 @@ class RigTemplates:
                   e.g. 'ModuleBipedArm': <class 'ModuleBipedArm'>
         """
         modules_attrs = vars(RigTemplates)
-        callable_attributes = {name: value for name, value in modules_attrs.items()
-                               if isinstance(value, types.FunctionType)}
+        callable_attributes = {
+            name: value for name, value in modules_attrs.items() if isinstance(value, types.FunctionType)
+        }
         return callable_attributes
 
     @staticmethod
@@ -41,4 +49,6 @@ class RigTemplates:
 
 if __name__ == "__main__":
     import pprint
+
     pprint.pprint(RigTemplates.get_dict_templates())
+    pprint.pprint(RigTemplates.get_template_names())

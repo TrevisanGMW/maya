@@ -2,35 +2,35 @@
  GT Connect Attributes Script
  github.com/TrevisanGMW/gt-tools - 2020-02-04
 """
+
 from maya import OpenMayaUI as OpenMayaUI
-from PySide2.QtWidgets import QWidget
-from shiboken2 import wrapInstance
-from PySide2.QtGui import QIcon
+import gt.ui.qt_import as ui_qt
 import maya.cmds as cmds
 import maya.mel as mel
 
 # Script Name
-script_name = "GT Connect Attributes"
+script_name = "Connect Attributes"
 
 # Version:
 script_version = "?.?.?"  # Module version (init)
 
-settings = {'target_list': [],
-            'source_obj': [],
-            'def_reverse_node': False,
-            'def_disconnect': False,
-            'def_single_source_target': True,
-            'def_use_custom_node': False,
-            'def_force_connection': False,
-            'status_single_source_target': False,
-            'status_use_custom_node': False,
-            'status_use_reverse_node': False,
-            'status_disconnect': False,
-            'status_add_input': False,
-            'status_force_connection': False,
-            'input_node_type': 'condition',
-            'custom_node': 'plusMinusAverage'
-            }
+settings = {
+    "target_list": [],
+    "source_obj": [],
+    "def_reverse_node": False,
+    "def_disconnect": False,
+    "def_single_source_target": True,
+    "def_use_custom_node": False,
+    "def_force_connection": False,
+    "status_single_source_target": False,
+    "status_use_custom_node": False,
+    "status_use_reverse_node": False,
+    "status_disconnect": False,
+    "status_add_input": False,
+    "status_force_connection": False,
+    "input_node_type": "condition",
+    "custom_node": "plusMinusAverage",
+}
 
 
 # Main Form ============================================================================
@@ -40,9 +40,15 @@ def build_gui_connect_attributes():
         cmds.deleteUI(window_name)
 
         # Main GUI Start Here =================================================================================
-    title_bgc_color = (.4, .4, .4)
-    window_gui_connect_attributes = cmds.window(window_name, title=script_name + "  (v" + script_version + ')',
-                                                titleBar=True, mnb=False, mxb=False, sizeable=True)
+    title_bgc_color = (0.4, 0.4, 0.4)
+    window_gui_connect_attributes = cmds.window(
+        window_name,
+        title=script_name + "  (v" + script_version + ")",
+        titleBar=True,
+        mnb=False,
+        mxb=False,
+        sizeable=True,
+    )
 
     cmds.window(window_name, e=True, s=True, wh=[1, 1])
 
@@ -50,126 +56,175 @@ def build_gui_connect_attributes():
 
     # Title Text
 
-    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.separator(h=10, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main)  # Window Size Adjustment
-    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)],
-                         p=content_main)  # Title Column
+    cmds.rowColumnLayout(
+        nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main
+    )  # Title Column
     cmds.text(" ", bgc=title_bgc_color)  # Tiny Empty Green Space
     cmds.text(script_name, bgc=title_bgc_color, fn="boldLabelFont", align="left")
     cmds.button(l="Help", bgc=title_bgc_color, c=lambda x: build_gui_help_connect_attributes())
-    cmds.separator(h=10, style='none', p=content_main)  # Empty Space
+    cmds.separator(h=10, style="none", p=content_main)  # Empty Space
 
     # Body ====================
     body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
 
     # Checkbox - Selection as Source and Target
     interactive_container_misc = cmds.rowColumnLayout(p=body_column, nc=1, cs=[(1, 12)], h=25)
-    single_source_target = cmds.checkBox(p=interactive_container_misc,
-                                         label='  Use Selection for Source and Target (s)',
-                                         value=settings.get("def_single_source_target"),
-                                         cc=lambda x: is_using_single_target(
-                                             cmds.checkBox(single_source_target, query=True, value=True)))
+    single_source_target = cmds.checkBox(
+        p=interactive_container_misc,
+        label="  Use Selection for Source and Target (s)",
+        value=settings.get("def_single_source_target"),
+        cc=lambda x: is_using_single_target(cmds.checkBox(single_source_target, query=True, value=True)),
+    )
 
     # CheckboxGrp Reverse and Disconnect
     interactive_container_jnt = cmds.rowColumnLayout(p=body_column, nc=1, cs=[(1, 11)], h=25)
-    rev_disc_check_box_grp = cmds.checkBoxGrp(p=interactive_container_jnt, columnWidth2=[137, 0], numberOfCheckBoxes=2,
-                                              label1='  Add Reverse Node', label2=" Disconnect",
-                                              v1=settings.get("def_reverse_node"), v2=settings.get("def_disconnect"),
-                                              cc1=lambda x: update_stored_values(), cc2=lambda x: is_disconnecting(
-            cmds.checkBoxGrp(rev_disc_check_box_grp, q=True, v2=True)))
+    rev_disc_check_box_grp = cmds.checkBoxGrp(
+        p=interactive_container_jnt,
+        columnWidth2=[137, 0],
+        numberOfCheckBoxes=2,
+        label1="  Add Reverse Node",
+        label2=" Disconnect",
+        v1=settings.get("def_reverse_node"),
+        v2=settings.get("def_disconnect"),
+        cc1=lambda x: update_stored_values(),
+        cc2=lambda x: is_disconnecting(cmds.checkBoxGrp(rev_disc_check_box_grp, q=True, v2=True)),
+    )
 
     # Checkbox - Override Existing (Force Connection)
     override_existing_container = cmds.rowColumnLayout(p=body_column, nc=1, cs=[(1, 12)], h=25)
-    forcing_connection_checkbox = cmds.checkBox(p=override_existing_container,
-                                                label='  Force Connection  (Overrides Existing)',
-                                                value=settings.get("def_force_connection"),
-                                                cc=lambda x: update_stored_values())
+    forcing_connection_checkbox = cmds.checkBox(
+        p=override_existing_container,
+        label="  Force Connection  (Overrides Existing)",
+        value=settings.get("def_force_connection"),
+        cc=lambda x: update_stored_values(),
+    )
 
     cmds.separator(h=15, p=body_column)
 
     # Checkbox Use Custom Node Between Connection
     interactive_container_misc = cmds.rowColumnLayout(p=body_column, nc=1, cs=[(1, 12)], h=25)
-    add_custom_node = cmds.checkBox(p=interactive_container_misc, label='  Add Custom Node Between Connection',
-                                    value=settings.get("def_use_custom_node"),
-                                    cc=lambda x: is_using_custom_node(
-                                        cmds.checkBox(add_custom_node, query=True, value=True)))  # UPDATE THIS
+    add_custom_node = cmds.checkBox(
+        p=interactive_container_misc,
+        label="  Add Custom Node Between Connection",
+        value=settings.get("def_use_custom_node"),
+        cc=lambda x: is_using_custom_node(cmds.checkBox(add_custom_node, query=True, value=True)),
+    )  # UPDATE THIS
 
     # Dropdown Menu (Custom Node)
     custom_node_menu_container = cmds.rowColumnLayout(p=body_column, nc=1, cw=[(1, 247)], cs=[(1, 3)], h=25)
-    custom_node_menu = cmds.optionMenu(en=False, p=custom_node_menu_container, label='   Custom Node : ',
-                                       cc=lambda x: update_stored_values())
-    cmds.menuItem(label='plusMinusAverage')
-    cmds.menuItem(label='multiplyDivide')
-    cmds.menuItem(label='condition')
+    custom_node_menu = cmds.optionMenu(
+        en=False, p=custom_node_menu_container, label="   Custom Node : ", cc=lambda x: update_stored_values()
+    )
+    cmds.menuItem(label="plusMinusAverage")
+    cmds.menuItem(label="multiplyDivide")
+    cmds.menuItem(label="condition")
 
-    cmds.separator(h=5, style='none', p=body_column)  # Empty Space
+    cmds.separator(h=5, style="none", p=body_column)  # Empty Space
 
     # Checkbox and Dropdown Menu for Input node and its type
     node_behaviour_container_one = cmds.rowColumnLayout(p=body_column, numberOfRows=1, h=25)
     cmds.text("    ")
-    add_ctrl_node = cmds.checkBox(p=node_behaviour_container_one, en=False, label='  Add Input Node  ',
-                                  value=settings.get("def_use_custom_node"),
-                                  cc=lambda x: update_stored_values())
+    add_ctrl_node = cmds.checkBox(
+        p=node_behaviour_container_one,
+        en=False,
+        label="  Add Input Node  ",
+        value=settings.get("def_use_custom_node"),
+        cc=lambda x: update_stored_values(),
+    )
 
-    ctrl_node_output = cmds.optionMenu(en=False, p=node_behaviour_container_one, label='', w=120,
-                                       cc=lambda x: update_stored_values())
-    cmds.menuItem(label='condition')
-    cmds.menuItem(label='plusMinusAverage')
-    cmds.menuItem(label='multiplyDivide')
+    ctrl_node_output = cmds.optionMenu(
+        en=False, p=node_behaviour_container_one, label="", w=120, cc=lambda x: update_stored_values()
+    )
+    cmds.menuItem(label="condition")
+    cmds.menuItem(label="plusMinusAverage")
+    cmds.menuItem(label="multiplyDivide")
     cmds.text("   ", p=custom_node_menu_container)
 
     cmds.separator(h=10, p=body_column)
-    cmds.separator(h=3, style='none', p=body_column)  # Empty Space
+    cmds.separator(h=3, style="none", p=body_column)  # Empty Space
 
     # Source List Loader (Buttons)
     source_container = cmds.rowColumnLayout(p=body_column, numberOfRows=1)
-    source_btn = cmds.button(p=source_container, l="Load Source Object", c=lambda x: update_load_btn_jnt("source"),
-                             w=130)
-    source_status = cmds.button(p=source_container, l="Not loaded yet", bgc=(.2, .2, .2), w=130,
-                                c="cmds.headsUpMessage( 'Select your source element and click on "
-                                  "\"Load Source Object\"', verticalOffset=150 , time=5.0)")
+    source_btn = cmds.button(
+        p=source_container, l="Load Source Object", c=lambda x: update_load_btn_jnt("source"), w=130
+    )
+    source_status = cmds.button(
+        p=source_container,
+        l="Not loaded yet",
+        bgc=(0.2, 0.2, 0.2),
+        w=130,
+        c="cmds.headsUpMessage( 'Select your source element and click on "
+        '"Load Source Object"\', verticalOffset=150 , time=5.0)',
+    )
 
     # Target List Loader (Buttons)
     target_container = cmds.rowColumnLayout(p=body_column, numberOfRows=1)
-    target_btn = cmds.button(p=target_container, l="Load Target Objects", c=lambda x: update_load_btn_jnt("target"),
-                             w=130)
-    target_status = cmds.button(p=target_container, l="Not loaded yet", bgc=(.2, .2, .2), w=130,
-                                c="cmds.headsUpMessage( 'Select your target elements and click on "
-                                  "\"Load Target Objects\"', verticalOffset=150 , time=5.0)")
-    cmds.separator(h=3, style='none', p=body_column)  # Empty Space
+    target_btn = cmds.button(
+        p=target_container, l="Load Target Objects", c=lambda x: update_load_btn_jnt("target"), w=130
+    )
+    target_status = cmds.button(
+        p=target_container,
+        l="Not loaded yet",
+        bgc=(0.2, 0.2, 0.2),
+        w=130,
+        c="cmds.headsUpMessage( 'Select your target elements and click on "
+        '"Load Target Objects"\', verticalOffset=150 , time=5.0)',
+    )
+    cmds.separator(h=3, style="none", p=body_column)  # Empty Space
     cmds.separator(h=10, p=body_column)
 
     # Source/Target Attributes
     bottom_container = cmds.rowColumnLayout(p=body_column, adj=True)
-    cmds.text('Source Attribute (Only One):', p=bottom_container)
-    source_attributes_input = cmds.textField(p=bottom_container, text="translate",
-                                             enterCommand=lambda x: connect_attributes(
-                                                 cmds.textField(source_attributes_input, q=True, text=True),
-                                                 cmds.textField(target_attributes_input, q=True, text=True)))
-    cmds.text('Target Attributes:', p=bottom_container)
-    target_attributes_input = cmds.textField(p=bottom_container, text="translate, rotate, scale",
-                                             enterCommand=lambda x: connect_attributes(
-                                                 cmds.textField(source_attributes_input, q=True, text=True),
-                                                 cmds.textField(target_attributes_input, q=True, text=True)))
+    cmds.text("Source Attribute (Only One):", p=bottom_container)
+    source_attributes_input = cmds.textField(
+        p=bottom_container,
+        text="translate",
+        enterCommand=lambda x: connect_attributes(
+            cmds.textField(source_attributes_input, q=True, text=True),
+            cmds.textField(target_attributes_input, q=True, text=True),
+        ),
+    )
+    cmds.text("Target Attributes:", p=bottom_container)
+    target_attributes_input = cmds.textField(
+        p=bottom_container,
+        text="translate, rotate, scale",
+        enterCommand=lambda x: connect_attributes(
+            cmds.textField(source_attributes_input, q=True, text=True),
+            cmds.textField(target_attributes_input, q=True, text=True),
+        ),
+    )
 
-    cmds.separator(h=3, style='none', p=body_column)  # Empty Space
+    cmds.separator(h=3, style="none", p=body_column)  # Empty Space
     cmds.separator(h=10, p=body_column)
 
     # Print Attributes Buttons
     cmds.rowColumnLayout(p=body_column, adj=True, h=5)
     show_attributes_container = cmds.rowColumnLayout(p=body_column, numberOfRows=1, h=25)
-    cmds.button(p=show_attributes_container, l="List All Attributes", w=130,
-                c=lambda x: print_selection_attributes("all"))
-    cmds.button(p=show_attributes_container, l="List Keyable Attributes", w=130,
-                c=lambda x: print_selection_attributes("keyable"))
+    cmds.button(
+        p=show_attributes_container, l="List All Attributes", w=130, c=lambda x: print_selection_attributes("all")
+    )
+    cmds.button(
+        p=show_attributes_container,
+        l="List Keyable Attributes",
+        w=130,
+        c=lambda x: print_selection_attributes("keyable"),
+    )
 
-    cmds.separator(h=10, style='none', p=body_column)  # Empty Space
+    cmds.separator(h=10, style="none", p=body_column)  # Empty Space
 
     # Connect Button (Main Function)
-    cmds.button(p=body_column, l="Connect Attributes", bgc=(.6, .6, .6),
-                c=lambda x: connect_attributes(cmds.textField(source_attributes_input, q=True, text=True),
-                                               cmds.textField(target_attributes_input, q=True, text=True)))
-    cmds.separator(h=10, style='none', p=body_column)  # Empty Space
+    cmds.button(
+        p=body_column,
+        l="Connect Attributes",
+        bgc=(0.6, 0.6, 0.6),
+        c=lambda x: connect_attributes(
+            cmds.textField(source_attributes_input, q=True, text=True),
+            cmds.textField(target_attributes_input, q=True, text=True),
+        ),
+    )
+    cmds.separator(h=10, style="none", p=body_column)  # Empty Space
 
     # Prints selection attributes
     def print_selection_attributes(operation):
@@ -193,21 +248,33 @@ def build_gui_connect_attributes():
         if state:
             settings["status_single_source_target"] = cmds.checkBox(single_source_target, q=True, value=True)
             cmds.button(source_btn, e=True, en=False)
-            cmds.button(source_status, l="Not necessary", e=True, en=False, bgc=(.25, .25, .25))
+            cmds.button(source_status, l="Not necessary", e=True, en=False, bgc=(0.25, 0.25, 0.25))
             cmds.button(target_btn, e=True, en=False)
-            cmds.button(target_status, l="Not necessary", e=True, en=False, bgc=(.25, .25, .25))
+            cmds.button(target_status, l="Not necessary", e=True, en=False, bgc=(0.25, 0.25, 0.25))
             settings["target_list"] = []
             settings["source_obj"] = []
         else:
             settings["status_single_source_target"] = cmds.checkBox(single_source_target, q=True, value=True)
             cmds.button(source_btn, e=True, en=True)
-            cmds.button(source_status, l="Not loaded yet", e=True, en=True, bgc=(.2, .2, .2),
-                        c="cmds.headsUpMessage( 'Select your source element and click on "
-                          "\"Load Source Object\"', verticalOffset=150 , time=5.0)")
+            cmds.button(
+                source_status,
+                l="Not loaded yet",
+                e=True,
+                en=True,
+                bgc=(0.2, 0.2, 0.2),
+                c="cmds.headsUpMessage( 'Select your source element and click on "
+                '"Load Source Object"\', verticalOffset=150 , time=5.0)',
+            )
             cmds.button(target_btn, e=True, en=True)
-            cmds.button(target_status, l="Not loaded yet", e=True, en=True, bgc=(.2, .2, .2),
-                        c="cmds.headsUpMessage( 'Select your target elements and click on "
-                          "\"Load Target Objects\"', verticalOffset=150 , time=5.0)")
+            cmds.button(
+                target_status,
+                l="Not loaded yet",
+                e=True,
+                en=True,
+                bgc=(0.2, 0.2, 0.2),
+                c="cmds.headsUpMessage( 'Select your target elements and click on "
+                '"Load Target Objects"\', verticalOffset=150 , time=5.0)',
+            )
 
     # Updates elements to reflect the use of in between custom node
     def is_using_custom_node(state):
@@ -274,29 +341,53 @@ def build_gui_connect_attributes():
                 cmds.warning("Something went wrong, make sure you selected all necessary elements")
 
         # If Source
-        if button_name is "source" and received_valid_source_selection is True:
+        if button_name == "source" and received_valid_source_selection is True:
             settings["source_obj"] = selected_elements[0]
-            cmds.button(source_status, l=selected_elements[0], e=True, bgc=(.6, .8, .6), w=130,
-                        c=lambda x: if_exists_select(settings.get("source_obj")))
-        elif button_name is "source":
-            cmds.button(source_status, l="Failed to Load", e=True, bgc=(1, .4, .4), w=130,
-                        c="cmds.headsUpMessage( 'Make sure you select only one "
-                          "source element', verticalOffset=150 , time=5.0)")
+            cmds.button(
+                source_status,
+                l=selected_elements[0],
+                e=True,
+                bgc=(0.6, 0.8, 0.6),
+                w=130,
+                c=lambda x: if_exists_select(settings.get("source_obj")),
+            )
+        elif button_name == "source":
+            cmds.button(
+                source_status,
+                l="Failed to Load",
+                e=True,
+                bgc=(1, 0.4, 0.4),
+                w=130,
+                c="cmds.headsUpMessage( 'Make sure you select only one "
+                "source element', verticalOffset=150 , time=5.0)",
+            )
 
         # If Target
-        if button_name is "target" and received_valid_target_selection is True:
+        if button_name == "target" and received_valid_target_selection is True:
             settings["target_list"] = selected_elements
 
             loaded_text = str(len(selected_elements)) + " objects loaded"
             if len(selected_elements) == 1:
                 loaded_text = selected_elements[0]
 
-            cmds.button(target_status, l=loaded_text, e=True, bgc=(.6, .8, .6), w=130,
-                        c=lambda x: target_list_manager(settings.get("target_list")))
-        elif button_name is "target":
-            cmds.button(target_status, l="Failed to Load", e=True, bgc=(1, .4, .4), w=130,
-                        c="cmds.headsUpMessage( 'Make sure you select at least one "
-                          "target element', verticalOffset=150 , time=5.0)")
+            cmds.button(
+                target_status,
+                l=loaded_text,
+                e=True,
+                bgc=(0.6, 0.8, 0.6),
+                w=130,
+                c=lambda x: target_list_manager(settings.get("target_list")),
+            )
+        elif button_name == "target":
+            cmds.button(
+                target_status,
+                l="Failed to Load",
+                e=True,
+                bgc=(1, 0.4, 0.4),
+                w=130,
+                c="cmds.headsUpMessage( 'Make sure you select at least one "
+                "target element', verticalOffset=150 , time=5.0)",
+            )
 
     # Update Connection Type
     is_using_single_target(settings.get("def_single_source_target"))
@@ -307,8 +398,8 @@ def build_gui_connect_attributes():
 
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/hsRearrange.png')
+    widget = ui_qt.shiboken.wrapInstance(int(qw), ui_qt.QtWidgets.QWidget)
+    icon = ui_qt.QtGui.QIcon(":/hsRearrange.png")
     widget.setWindowIcon(icon)
 
     # Main GUI Ends Here =================================================================================
@@ -325,65 +416,65 @@ def build_gui_help_connect_attributes():
 
     cmds.columnLayout("main_column", p=window_name)
 
-    # Title Text 
-    cmds.separator(h=12, style='none')  # Empty Space
+    # Title Text
+    cmds.separator(h=12, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column")  # Window Size Adjustment
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")  # Title Column
-    cmds.text(script_name + " Help", bgc=(.4, .4, .4), fn="boldLabelFont", align="center")
-    cmds.separator(h=10, style='none', p="main_column")  # Empty Space
+    cmds.text(script_name + " Help", bgc=(0.4, 0.4, 0.4), fn="boldLabelFont", align="center")
+    cmds.separator(h=10, style="none", p="main_column")  # Empty Space
 
     # Body ====================
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")
-    cmds.text(l='This script automates the creation of connections', align="left")
-    cmds.text(l='between attributes from source (output) and target', align="left")
-    cmds.text(l='(input).', align="left")
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(l='Use Selection for Source and Target (s):', align="left", fn="boldLabelFont")
-    cmds.text(l='When this option is activated, you no longer need to', align="left")
-    cmds.text(l='load sources/target (s).', align="left")
-    cmds.text(l='You can simply select: 1st: source, 2nd, 3rd... : target(s)', align="left")
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(l='Add Reverse Node:', align="left", fn="boldLabelFont")
-    cmds.text(l='Adds a reverse node between connections.', align="left")
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(l='Disconnect:', align="left", fn="boldLabelFont")
-    cmds.text(l='Break connections between selected nodes.', align="left")
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(l='Force Connection (Overrides Existing)', align="left", fn="boldLabelFont")
-    cmds.text(l='Connects nodes even if they already have a connection.', align="left")
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(l='Add Custom Node Between Connection: ', align="left", fn="boldLabelFont")
-    cmds.text(l='Allows user to create a node between connections.', align="left")
-    cmds.text(l='Excellent for controlling dataflow.', align="left")
-    cmds.text(l='-Custom Node: Which node to create', align="left")
-    cmds.text(l='-Add Input Node: Creates one master control to update', align="left")
-    cmds.text(l='all in between nodes.', align="left")
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(l='Load Source/Target Objects:', align="left", fn="boldLabelFont")
-    cmds.text(l='Use these buttons to load the objects you want to use', align="left")
-    cmds.text(l='as source and target (s).', align="left")
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(l='Source Attribute and Target Attributes:', align="left", fn="boldLabelFont")
-    cmds.text(l='Name of the attribute you want to connect.', align="left")
-    cmds.text(l='Requirement: Use long or short name (no nice names)', align="left")
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(l='List All Attributes & List Keyable Attributes:', align="left", fn="boldLabelFont")
-    cmds.text(l='Returns a list of attributes that can be used to populate', align="left")
-    cmds.text(l='the Source and Target Attributes fields.', align="left")
-    cmds.separator(h=15, style='none')  # Empty Space
+    cmds.text(l="This script automates the creation of connections", align="left")
+    cmds.text(l="between attributes from source (output) and target", align="left")
+    cmds.text(l="(input).", align="left")
+    cmds.separator(h=15, style="none")  # Empty Space
+    cmds.text(l="Use Selection for Source and Target (s):", align="left", fn="boldLabelFont")
+    cmds.text(l="When this option is activated, you no longer need to", align="left")
+    cmds.text(l="load sources/target (s).", align="left")
+    cmds.text(l="You can simply select: 1st: source, 2nd, 3rd... : target(s)", align="left")
+    cmds.separator(h=15, style="none")  # Empty Space
+    cmds.text(l="Add Reverse Node:", align="left", fn="boldLabelFont")
+    cmds.text(l="Adds a reverse node between connections.", align="left")
+    cmds.separator(h=15, style="none")  # Empty Space
+    cmds.text(l="Disconnect:", align="left", fn="boldLabelFont")
+    cmds.text(l="Break connections between selected nodes.", align="left")
+    cmds.separator(h=15, style="none")  # Empty Space
+    cmds.text(l="Force Connection (Overrides Existing)", align="left", fn="boldLabelFont")
+    cmds.text(l="Connects nodes even if they already have a connection.", align="left")
+    cmds.separator(h=15, style="none")  # Empty Space
+    cmds.text(l="Add Custom Node Between Connection: ", align="left", fn="boldLabelFont")
+    cmds.text(l="Allows user to create a node between connections.", align="left")
+    cmds.text(l="Excellent for controlling dataflow.", align="left")
+    cmds.text(l="-Custom Node: Which node to create", align="left")
+    cmds.text(l="-Add Input Node: Creates one master control to update", align="left")
+    cmds.text(l="all in between nodes.", align="left")
+    cmds.separator(h=15, style="none")  # Empty Space
+    cmds.text(l="Load Source/Target Objects:", align="left", fn="boldLabelFont")
+    cmds.text(l="Use these buttons to load the objects you want to use", align="left")
+    cmds.text(l="as source and target (s).", align="left")
+    cmds.separator(h=15, style="none")  # Empty Space
+    cmds.text(l="Source Attribute and Target Attributes:", align="left", fn="boldLabelFont")
+    cmds.text(l="Name of the attribute you want to connect.", align="left")
+    cmds.text(l="Requirement: Use long or short name (no nice names)", align="left")
+    cmds.separator(h=15, style="none")  # Empty Space
+    cmds.text(l="List All Attributes & List Keyable Attributes:", align="left", fn="boldLabelFont")
+    cmds.text(l="Returns a list of attributes that can be used to populate", align="left")
+    cmds.text(l="the Source and Target Attributes fields.", align="left")
+    cmds.separator(h=15, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p="main_column")
-    cmds.text('Guilherme Trevisan  ')
+    cmds.text("Guilherme Trevisan  ")
     cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1, 1, 1])
     cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p="main_column")
-    cmds.separator(h=15, style='none')  # Empty Space
+    cmds.separator(h=15, style="none")  # Empty Space
     cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1, 1, 1])
-    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.separator(h=7, style="none")  # Empty Space
 
-    # Close Button 
+    # Close Button
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")
-    cmds.separator(h=10, style='none')
-    cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
-    cmds.separator(h=8, style='none')
+    cmds.separator(h=10, style="none")
+    cmds.button(l="OK", h=30, c=lambda args: close_help_gui())
+    cmds.separator(h=8, style="none")
 
     # Show and Lock Window
     cmds.showWindow(window_name)
@@ -391,8 +482,8 @@ def build_gui_help_connect_attributes():
 
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/question.png')
+    widget = ui_qt.shiboken.wrapInstance(int(qw), ui_qt.QtWidgets.QWidget)
+    icon = ui_qt.QtGui.QIcon(":/question.png")
     widget.setWindowIcon(icon)
 
     def close_help_gui():
@@ -423,10 +514,10 @@ def connect_attributes(source_text_attribute, target_text_attributes):
             source_obj = selection[0]
             target_list.remove(source_obj)
 
-    do_disconnect = settings.get('status_disconnect')
-    custom_node = settings.get('custom_node')
-    input_node_type = settings.get('input_node_type')
-    using_reverse_node = settings.get('status_use_reverse_node')
+    do_disconnect = settings.get("status_disconnect")
+    custom_node = settings.get("custom_node")
+    input_node_type = settings.get("input_node_type")
+    using_reverse_node = settings.get("status_use_reverse_node")
     target_attributes_list = parse_text_field(target_text_attributes)
     error_list = []
 
@@ -434,10 +525,10 @@ def connect_attributes(source_text_attribute, target_text_attributes):
     if is_ready_to_connect and do_disconnect is False:
 
         # Creates Necessary Nodes
-        if settings.get('status_add_input'):
+        if settings.get("status_add_input"):
             input_node = cmds.createNode(input_node_type)
         else:
-            input_node = ''
+            input_node = ""
 
         is_source_attr_checked = False
 
@@ -480,8 +571,10 @@ def connect_attributes(source_text_attribute, target_text_attributes):
                     error_list.append(target_obj + " doesn't seem to have an attribute called " + attr)
 
                 # Checks if incoming connection already exists
-                if error_occurred is False and \
-                        cmds.connectionInfo(target_obj + "." + attr, isDestination=True) is False:
+                if (
+                    error_occurred is False
+                    and cmds.connectionInfo(target_obj + "." + attr, isDestination=True) is False
+                ):
                     pass
                 else:
                     if settings.get("status_force_connection") is False:
@@ -492,58 +585,66 @@ def connect_attributes(source_text_attribute, target_text_attributes):
 
                 # Allow it to continue if no errors happened
                 if error_occurred is False:
-                    if settings.get('status_use_custom_node'):  # Is using custom node?
+                    if settings.get("status_use_custom_node"):  # Is using custom node?
 
                         if using_reverse_node:
                             reverse_node = cmds.createNode("reverse")
                         else:
-                            reverse_node = ''
+                            reverse_node = ""
 
                         # Source to inBetween node
                         node_in_between = cmds.createNode(custom_node)
                         if custom_node == "plusMinusAverage":
                             if "3" in cmds.getAttr(str(source_obj) + "." + source_text_attribute, type=True):
-                                cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
-                                                 node_in_between + "." + "input3D[0]")
+                                cmds.connectAttr(
+                                    str(source_obj) + "." + source_text_attribute, node_in_between + "." + "input3D[0]"
+                                )
                             else:
-                                cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
-                                                 node_in_between + "." + "input3D[0].input3Dx")
+                                cmds.connectAttr(
+                                    str(source_obj) + "." + source_text_attribute,
+                                    node_in_between + "." + "input3D[0].input3Dx",
+                                )
 
                         elif custom_node == "multiplyDivide":
                             if "3" in cmds.getAttr(str(source_obj) + "." + source_text_attribute, type=True):
-                                cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
-                                                 node_in_between + "." + "input1")
+                                cmds.connectAttr(
+                                    str(source_obj) + "." + source_text_attribute, node_in_between + "." + "input1"
+                                )
                             else:
-                                cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
-                                                 node_in_between + "." + "input1X")
+                                cmds.connectAttr(
+                                    str(source_obj) + "." + source_text_attribute, node_in_between + "." + "input1X"
+                                )
 
                         elif custom_node == "condition":
                             if "3" in cmds.getAttr(str(source_obj) + "." + source_text_attribute, type=True):
-                                cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
-                                                 node_in_between + "." + "colorIfTrue")
+                                cmds.connectAttr(
+                                    str(source_obj) + "." + source_text_attribute, node_in_between + "." + "colorIfTrue"
+                                )
                             else:
-                                cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
-                                                 node_in_between + "." + "colorIfTrueR")
+                                cmds.connectAttr(
+                                    str(source_obj) + "." + source_text_attribute,
+                                    node_in_between + "." + "colorIfTrueR",
+                                )
 
                         # inBetween node to Target node
                         if using_reverse_node:
                             # Connect Custom node to Reverse Node
                             if custom_node == "plusMinusAverage":
                                 if "3" in cmds.getAttr(target_obj + "." + attr, type=True):
-                                    cmds.connectAttr(node_in_between + "." + "output3D", reverse_node + "." + 'input')
+                                    cmds.connectAttr(node_in_between + "." + "output3D", reverse_node + "." + "input")
                                 else:
-                                    cmds.connectAttr(node_in_between + "." + "output3Dx", reverse_node + "." + 'inputX')
+                                    cmds.connectAttr(node_in_between + "." + "output3Dx", reverse_node + "." + "inputX")
                             elif custom_node == "multiplyDivide":
                                 if "3" in cmds.getAttr(target_obj + "." + attr, type=True):
-                                    cmds.connectAttr(node_in_between + "." + "output", reverse_node + "." + 'input')
+                                    cmds.connectAttr(node_in_between + "." + "output", reverse_node + "." + "input")
                                 else:
-                                    cmds.connectAttr(node_in_between + "." + "outputX", reverse_node + "." + 'inputX')
+                                    cmds.connectAttr(node_in_between + "." + "outputX", reverse_node + "." + "inputX")
 
                             elif custom_node == "condition":
                                 if "3" in cmds.getAttr(target_obj + "." + attr, type=True):
-                                    cmds.connectAttr(node_in_between + "." + "outColor", reverse_node + "." + 'input')
+                                    cmds.connectAttr(node_in_between + "." + "outColor", reverse_node + "." + "input")
                                 else:
-                                    cmds.connectAttr(node_in_between + "." + "outColorR", reverse_node + "." + 'inputX')
+                                    cmds.connectAttr(node_in_between + "." + "outColorR", reverse_node + "." + "inputX")
                             # Reverse Output to Target Node
                             if "3" in cmds.getAttr(target_obj + "." + attr, type=True):
                                 cmds.connectAttr(reverse_node + "." + "output", target_obj + "." + attr)
@@ -570,7 +671,7 @@ def connect_attributes(source_text_attribute, target_text_attributes):
                                     cmds.connectAttr(node_in_between + "." + "outColorR", target_obj + "." + attr)
 
                                     # Input node to custom nodes
-                        if settings.get('status_add_input'):
+                        if settings.get("status_add_input"):
                             if input_node_type == "plusMinusAverage":
                                 out_of_input = "output3D"
                             elif input_node_type == "multiplyDivide":
@@ -578,36 +679,40 @@ def connect_attributes(source_text_attribute, target_text_attributes):
                             elif input_node_type == "condition":
                                 out_of_input = "outColor"
                             else:
-                                out_of_input = ''
+                                out_of_input = ""
 
                             if custom_node == "plusMinusAverage":
                                 cmds.connectAttr(input_node + "." + out_of_input, node_in_between + "." + "input3D[1]")
                             elif custom_node == "multiplyDivide":
                                 cmds.connectAttr(input_node + "." + out_of_input, node_in_between + "." + "input2")
                             elif custom_node == "condition":
-                                cmds.connectAttr(input_node + "." + out_of_input,
-                                                 node_in_between + "." + "colorIfFalse")
+                                cmds.connectAttr(
+                                    input_node + "." + out_of_input, node_in_between + "." + "colorIfFalse"
+                                )
 
                     else:  # Not using custom node (Do simple connection)
                         if using_reverse_node:
                             reverse_node = cmds.createNode("reverse")
                             # Reverse Input
                             if "3" in cmds.getAttr(str(source_obj) + "." + source_text_attribute, type=True):
-                                cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
-                                                 reverse_node + "." + "input")
+                                cmds.connectAttr(
+                                    str(source_obj) + "." + source_text_attribute, reverse_node + "." + "input"
+                                )
                             else:
-                                cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
-                                                 reverse_node + "." + "inputX")
+                                cmds.connectAttr(
+                                    str(source_obj) + "." + source_text_attribute, reverse_node + "." + "inputX"
+                                )
                             # Reverse Output
                             if "3" in cmds.getAttr(target_obj + "." + attr, type=True):
                                 cmds.connectAttr(reverse_node + "." + "output", target_obj + "." + attr)
                             else:
                                 cmds.connectAttr(reverse_node + "." + "outputX", target_obj + "." + attr)
                         else:
-                            cmds.connectAttr(str(source_obj) + "." + source_text_attribute,
-                                             target_obj + "." + attr)  # Simple Connection
+                            cmds.connectAttr(
+                                str(source_obj) + "." + source_text_attribute, target_obj + "." + attr
+                            )  # Simple Connection
 
-    # Disconnect Instead          
+    # Disconnect Instead
     elif is_ready_to_connect and do_disconnect is True:
         for target_obj in target_list:
             for attr in target_attributes_list:
@@ -639,7 +744,7 @@ def connect_attributes(source_text_attribute, target_text_attributes):
         for error in error_list:
             print(error)
         print("#" * 80)
-        cmds.warning('An error happened when creating your connections, open the script editor for more details')
+        cmds.warning("An error happened when creating your connections, open the script editor for more details")
 
     # ============================= End of Main Function =============================
 
@@ -666,11 +771,16 @@ def target_list_manager(input_list):
     print("#" * 80)
     if missing_elements:
         cmds.headsUpMessage(
-            'It looks like you are missing some target elements! Open script editor for more information',
-            verticalOffset=150, time=5.0)
+            "It looks like you are missing some target elements! Open script editor for more information",
+            verticalOffset=150,
+            time=5.0,
+        )
     else:
-        cmds.headsUpMessage('Target elements selected (Open script editor to see a list of your loaded elements)',
-                            verticalOffset=150, time=5.0)
+        cmds.headsUpMessage(
+            "Target elements selected (Open script editor to see a list of your loaded elements)",
+            verticalOffset=150,
+            time=5.0,
+        )
     if settings.get("target_list") != [] and missing_elements is False:
         cmds.select(settings.get("target_list"))
 
@@ -693,7 +803,7 @@ def disconnect_attribute(node, attr_name, source=True, destination=False):
             cmds.disconnectAttr(src_attr, target_attr)
 
 
-# Parses textField data 
+# Parses textField data
 def parse_text_field(text_field_data):
     text_field_data_no_spaces = text_field_data.replace(" ", "")
     if len(text_field_data_no_spaces) <= 0:
@@ -702,7 +812,7 @@ def parse_text_field(text_field_data):
         return_list = text_field_data_no_spaces.split(",")
         empty_objects = []
         for obj in return_list:
-            if '' == obj:
+            if "" == obj:
                 empty_objects.append(obj)
         for obj in empty_objects:
             return_list.remove(obj)
@@ -712,9 +822,9 @@ def parse_text_field(text_field_data):
 # Opens Notepad with header and list of objects
 def export_to_txt(header_string, input_list):
     temp_dir = cmds.internalVar(userTmpDir=True)
-    txt_file = temp_dir + 'tmp_state.txt'
+    txt_file = temp_dir + "tmp_state.txt"
 
-    file_handle = open(txt_file, 'w')
+    file_handle = open(txt_file, "w")
 
     text_to_export = header_string + "\n\n"
     for obj in input_list:
@@ -728,5 +838,5 @@ def export_to_txt(header_string, input_list):
 
 
 # Build UI
-if __name__ == '__main__':
+if __name__ == "__main__":
     build_gui_connect_attributes()

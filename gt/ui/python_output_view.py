@@ -1,21 +1,18 @@
 from gt.ui.syntax_highlighter import PythonSyntaxHighlighter
 from gt.ui.line_text_widget import LineTextWidget
-from gt.ui.qt_utils import MayaWindowMeta
-from PySide2.QtWidgets import QVBoxLayout
-from PySide2 import QtCore, QtWidgets
-from gt.ui import resource_library
-from PySide2.QtGui import QIcon
+import gt.ui.resource_library as ui_res_lib
+import gt.ui.qt_utils as ui_qt_utils
+import gt.ui.qt_import as ui_qt
 from gt.ui import qt_utils
 import logging
 
 # Logging Setup
-
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class PythonOutputView(metaclass=MayaWindowMeta):
+class PythonOutputView(metaclass=ui_qt_utils.MayaWindowMeta):
     def __init__(self, parent=None):
         """
         Initialize the AttributesToPythonView.
@@ -36,14 +33,16 @@ class PythonOutputView(metaclass=MayaWindowMeta):
         self.create_widgets()
         self.create_layout()
 
-        self.setWindowFlags(self.windowFlags() |
-                            QtCore.Qt.WindowMaximizeButtonHint |
-                            QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowIcon(QIcon(resource_library.Icon.dev_code))
+        self.setWindowFlags(
+            self.windowFlags()
+            | ui_qt.QtLib.WindowFlag.WindowMaximizeButtonHint
+            | ui_qt.QtLib.WindowFlag.WindowMinimizeButtonHint
+        )
+        self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.dev_code))
 
-        stylesheet = resource_library.Stylesheet.scroll_bar_base
-        stylesheet += resource_library.Stylesheet.maya_dialog_base
-        stylesheet += resource_library.Stylesheet.list_widget_base
+        stylesheet = ui_res_lib.Stylesheet.scroll_bar_base
+        stylesheet += ui_res_lib.Stylesheet.maya_dialog_base
+        stylesheet += ui_res_lib.Stylesheet.list_widget_base
         self.setStyleSheet(stylesheet)
         qt_utils.resize_to_screen(self, percentage=40, width_percentage=55)
         qt_utils.center_window(self)
@@ -56,19 +55,20 @@ class PythonOutputView(metaclass=MayaWindowMeta):
         self.output_python_box.setMinimumHeight(150)
         PythonSyntaxHighlighter(self.output_python_box.get_text_edit().document())
 
-        self.output_python_box.setSizePolicy(self.output_python_box.sizePolicy().Expanding,
-                                             self.output_python_box.sizePolicy().Expanding)
+        self.output_python_box.setSizePolicy(
+            self.output_python_box.sizePolicy().Expanding, self.output_python_box.sizePolicy().Expanding
+        )
 
     def create_layout(self):
         """Create the layout for the window."""
-        mid_layout = QVBoxLayout()
+        mid_layout = ui_qt.QtWidgets.QVBoxLayout()
         mid_layout.addWidget(self.output_python_box)
         mid_layout.setContentsMargins(0, 5, 0, 5)  # L-T-R-B
 
-        main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout = ui_qt.QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
-        top_layout = QtWidgets.QVBoxLayout()
-        bottom_layout = QtWidgets.QVBoxLayout()
+        top_layout = ui_qt.QtWidgets.QVBoxLayout()
+        bottom_layout = ui_qt.QtWidgets.QVBoxLayout()
 
         top_layout.setContentsMargins(15, 0, 15, 15)  # L-T-R-B
         main_layout.addLayout(top_layout)
@@ -77,7 +77,7 @@ class PythonOutputView(metaclass=MayaWindowMeta):
         main_layout.addLayout(bottom_layout)
 
     def clear_python_output(self):
-        """ Removes all text from the changelog box """
+        """Removes all text from the changelog box"""
         self.output_python_box.get_text_edit().clear()
 
     def set_python_output_text(self, text):
@@ -99,13 +99,14 @@ class PythonOutputView(metaclass=MayaWindowMeta):
         return self.output_python_box.get_text_edit().toPlainText()
 
     def close_window(self):
-        """ Closes this window """
+        """Closes this window"""
         self.close()
 
 
 if __name__ == "__main__":
     import inspect
     import sys
+
     with qt_utils.QtApplicationContext():
         window = PythonOutputView()  # View
         window.set_python_output_text(text=inspect.getsource(sys.modules[__name__]))

@@ -1,7 +1,6 @@
-from PySide2.QtWidgets import QFrame, QWidget, QTextEdit, QHBoxLayout, QDialog, QVBoxLayout
-from PySide2.QtGui import QPainter, QColor, QFont
-from gt.ui.qt_utils import load_custom_font
-from gt.ui import resource_library
+import gt.ui.resource_library as ui_res_lib
+import gt.ui.qt_utils as ui_qt_utils
+import gt.ui.qt_import as ui_qt
 import logging
 
 # Logging Setup
@@ -10,24 +9,26 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class LineTextWidget(QFrame):
+class LineTextWidget(ui_qt.QtWidgets.QFrame):
     """
     A custom widget for displaying line numbers alongside a QTextEdit.
     """
-    class NumberBar(QWidget):
+
+    class NumberBar(ui_qt.QtWidgets.QWidget):
         """
         Widget for displaying line numbers.
         """
+
         def __init__(self, *args):
             super().__init__(*args)
             self.text_edit = None
             self.highest_line = 0  # This is used to update the width of the control.
-            self.number_color = QColor(resource_library.Color.Hex.gray_lighter)
-            self.number_bold_color = QColor(resource_library.Color.Hex.gray_lighter)
+            self.number_color = ui_qt.QtGui.QColor(ui_res_lib.Color.Hex.gray_lighter)
+            self.number_bold_color = ui_qt.QtGui.QColor(ui_res_lib.Color.Hex.gray_lighter)
             self.bar_width_offset = 5
 
             # Set a font
-            font = QFont(load_custom_font(resource_library.Font.roboto))
+            font = ui_qt.QtGui.QFont(ui_qt_utils.load_custom_font(ui_res_lib.Font.roboto))
             font.setPointSizeF(10)  # Adjust the desired font size
             self.setFont(font)
 
@@ -57,7 +58,7 @@ class LineTextWidget(QFrame):
             font_metrics = self.fontMetrics()
             current_block = self.text_edit.document().findBlock(self.text_edit.textCursor().position())
 
-            painter = QPainter(self)
+            painter = ui_qt.QtGui.QPainter(self)
 
             line_count = 0
             # Iterate over all text blocks in the document.
@@ -89,9 +90,11 @@ class LineTextWidget(QFrame):
                 # text_width = font_metrics.boundingRect(str(line_count)).width()
                 # Calculate the text width using logical pixel units
                 text_width = font_metrics.horizontalAdvance(str(line_count))
-                painter.drawText(self.width() - text_width - 3,
-                                 round(position.y()) - contents_y + font_metrics.ascent() + margins.top(),
-                                 str(line_count))
+                painter.drawText(
+                    self.width() - text_width - 3,
+                    round(position.y()) - contents_y + font_metrics.ascent() + margins.top(),
+                    str(line_count),
+                )
 
                 # Remove the bold style if it was set previously.
                 if bold:
@@ -110,42 +113,46 @@ class LineTextWidget(QFrame):
     def __init__(self, *args):
         super().__init__(*args)
 
-        self.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
+        self.setFrameStyle(ui_qt.QtLib.FrameStyle.StyledPanel | ui_qt.QtLib.FrameStyle.Sunken)
         self.setObjectName("LineTextFrame")
-        self.edit = QTextEdit()
+        self.edit = ui_qt.QtWidgets.QTextEdit()
 
-        self.edit.setFrameStyle(QFrame.NoFrame)
-        self.edit.setLineWrapMode(QTextEdit.NoWrap)
+        self.edit.setFrameStyle(ui_qt.QtLib.FrameStyle.NoFrame)
+        self.edit.setLineWrapMode(ui_qt.QtLib.LineWrapMode.NoWrap)
         self.edit.setAcceptRichText(False)
-        font = QFont(load_custom_font(resource_library.Font.roboto))
+        font = ui_qt.QtGui.QFont(ui_qt_utils.load_custom_font(ui_res_lib.Font.roboto))
         font.setPointSizeF(10)
         self.edit.setFont(font)
 
         self.number_bar = self.NumberBar()
         self.number_bar.set_text_edit(self.edit)
 
-        horizontal_layout = QHBoxLayout(self)
+        horizontal_layout = ui_qt.QtWidgets.QHBoxLayout(self)
         horizontal_layout.setSpacing(0)
         horizontal_layout.setContentsMargins(0, 0, 0, 0)
         horizontal_layout.addWidget(self.number_bar)
         horizontal_layout.addWidget(self.edit)
 
-        stylesheet = resource_library.Stylesheet.scroll_bar_base
-        stylesheet += resource_library.Stylesheet.maya_dialog_base
-        stylesheet += resource_library.Stylesheet.list_widget_base
+        stylesheet = ui_res_lib.Stylesheet.scroll_bar_base
+        stylesheet += ui_res_lib.Stylesheet.maya_dialog_base
+        stylesheet += ui_res_lib.Stylesheet.list_widget_base
         self.setStyleSheet(stylesheet)
 
-        frame_color = resource_library.Color.Hex.gray_darker
+        frame_color = ui_res_lib.Color.Hex.gray_darker
         border_radius = "5px"
-        self.edit.setStyleSheet(f"QTextEdit {{ "
-                                f"border: 0px solid {frame_color}; "
-                                f"border-radius: {border_radius}; "
-                                f"color: {resource_library.Color.RGB.white}; "
-                                f"background-color: {resource_library.Color.RGB.gray_darker_mid} }}")
-        self.setStyleSheet(f"#LineTextFrame {{ "
-                           f"border: 2px solid {frame_color}; "
-                           f"border-radius: {border_radius}; "
-                           f"background-color: {resource_library.Color.RGB.gray_darker}; }}")
+        self.edit.setStyleSheet(
+            f"QTextEdit {{ "
+            f"border: 0px solid {frame_color}; "
+            f"border-radius: {border_radius}; "
+            f"color: {ui_res_lib.Color.RGB.white}; "
+            f"background-color: {ui_res_lib.Color.RGB.gray_darker_mid} }}"
+        )
+        self.setStyleSheet(
+            f"#LineTextFrame {{ "
+            f"border: 2px solid {frame_color}; "
+            f"border-radius: {border_radius}; "
+            f"background-color: {ui_res_lib.Color.RGB.gray_darker}; }}"
+        )
 
         self.edit.installEventFilter(self)
         self.edit.viewport().installEventFilter(self)
@@ -165,9 +172,10 @@ class LineTextWidget(QFrame):
         Args:
             color (QColor): New color to set the line numbers.
         """
-        if not isinstance(color, QColor):
-            logger.debug(f'Unable to set line number color. '
-                         f'Expected "QColor" object, but received "{str(type(color))}"')
+        if not isinstance(color, ui_qt.QtGui.QColor):
+            logger.debug(
+                f"Unable to set line number color. " f'Expected "QColor" object, but received "{str(type(color))}"'
+            )
             return
         self.number_bar.number_color = color
 
@@ -177,9 +185,10 @@ class LineTextWidget(QFrame):
         Args:
             color (QColor): New color to set the line numbers.
         """
-        if not isinstance(color, QColor):
-            logger.debug(f'Unable to set line number bold color. '
-                         f'Expected "QColor" object, but received "{str(type(color))}"')
+        if not isinstance(color, ui_qt.QtGui.QColor):
+            logger.debug(
+                f"Unable to set line number bold color. " f'Expected "QColor" object, but received "{str(type(color))}"'
+            )
             return
         self.number_bar.number_bold_color = color
 
@@ -191,7 +200,8 @@ class LineTextWidget(QFrame):
 
 
 if __name__ == "__main__":
-    class ExampleDialog(QDialog):
+
+    class ExampleDialog(ui_qt.QtWidgets.QDialog):
         """
         Example dialog containing the LineTextWidget.
         """
@@ -202,22 +212,24 @@ if __name__ == "__main__":
             self.setWindowTitle("Line Text Widget Example")
             self.setGeometry(100, 100, 800, 600)
 
-            stylesheet = resource_library.Stylesheet.scroll_bar_base
-            stylesheet += resource_library.Stylesheet.maya_dialog_base
-            stylesheet += resource_library.Stylesheet.list_widget_base
+            stylesheet = ui_res_lib.Stylesheet.scroll_bar_base
+            stylesheet += ui_res_lib.Stylesheet.maya_dialog_base
+            stylesheet += ui_res_lib.Stylesheet.list_widget_base
             self.setStyleSheet(stylesheet)
 
             line_text_widget = LineTextWidget(self)
             import inspect
             import sys
             from gt.ui.syntax_highlighter import PythonSyntaxHighlighter
+
             line_text_widget.get_text_edit().setText(inspect.getsource(sys.modules[__name__]))
             PythonSyntaxHighlighter(line_text_widget.get_text_edit().document())
-            layout = QVBoxLayout(self)
+            layout = ui_qt.QtWidgets.QVBoxLayout(self)
             layout.addWidget(line_text_widget)
             self.setLayout(layout)
 
     from gt.ui import qt_utils
+
     with qt_utils.QtApplicationContext():
         window = ExampleDialog()
         window.show()

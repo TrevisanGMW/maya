@@ -1,16 +1,17 @@
-from gt.utils.session_utils import is_script_in_interactive_maya
-from PySide2.QtWidgets import QFileDialog
+import gt.core.session as core_session
+import gt.ui.qt_import as ui_qt
 
 
-def file_dialog(caption="Open File",
-                parent=None,
-                write_mode=False,
-                starting_directory=None,
-                file_filter="All Files (*);;",
-                dir_only=False,
-                ok_caption="Open",
-                cancel_caption="Cancel"
-                ):
+def file_dialog(
+    caption="Open File",
+    parent=None,
+    write_mode=False,
+    starting_directory=None,
+    file_filter="All Files (*);;",
+    dir_only=False,
+    ok_caption="Open",
+    cancel_caption="Cancel",
+):
     """
     Shows a file dialog to open/select or write a file or directory.
     Args:
@@ -29,15 +30,17 @@ def file_dialog(caption="Open File",
     Returns:
         str: Path to the selected file/directory or empty string if cancelled.
     """
-    if is_script_in_interactive_maya():  # Within Maya ----------------------------------
+    if core_session.is_script_in_interactive_maya():  # Within Maya ----------------------------------
         import maya.cmds as cmds
-        params = {"fileFilter": file_filter,
-                  "dialogStyle": 2,  # Use a custom file, which is consistent across platforms.,
-                  "fileMode": 1,  # Open File
-                  "okCaption": ok_caption,
-                  "cancelCaption": cancel_caption,
-                  "caption": caption,
-                  }
+
+        params = {
+            "fileFilter": file_filter,
+            "dialogStyle": 2,  # Use a custom file, which is consistent across platforms.,
+            "fileMode": 1,  # Open File
+            "okCaption": ok_caption,
+            "cancelCaption": cancel_caption,
+            "caption": caption,
+        }
         # Determine File Mode
         if write_mode:
             params["fileMode"] = 0  # Write File
@@ -52,15 +55,17 @@ def file_dialog(caption="Open File",
         return ""
 
     else:  # Outside Maya ----------------------------------------------------------------
-        options = QFileDialog.Options()
+        print("got here")
+        options = ui_qt.QtWidgets.QFileDialog.Options()
 
-        params = {"filter": file_filter,
-                  "caption": caption,
-                  }
+        params = {
+            "filter": file_filter,
+            "caption": caption,
+        }
 
         if starting_directory and isinstance(starting_directory, str):
             params["startingDirectory"] = starting_directory
-        _file_dialog = QFileDialog(parent=parent)
+        _file_dialog = ui_qt.QtWidgets.QFileDialog(parent=parent)
         if write_mode and not dir_only:  # Write File
             file_path, _ = _file_dialog.getSaveFileName(options=options, **params)
         elif dir_only:  # Dir Only

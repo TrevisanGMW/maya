@@ -1,8 +1,8 @@
 """
 Orient Joints Controller
 """
-from gt.utils.joint_utils import orient_joint, copy_parent_orients, reset_orients
-from gt.utils.display_utils import set_lra_state
+from gt.core.joint import orient_joint, copy_parent_orients, reset_orients
+from gt.core.display import set_lra_state
 import logging
 
 

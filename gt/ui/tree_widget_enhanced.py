@@ -1,4 +1,11 @@
-from PySide2.QtWidgets import QTreeWidget, QTreeWidgetItem
+"""
+Tree widget enhanced
+
+Code Namespace:
+    ui_tree_enhanced # import gt.ui.tree_widget_enhanced as ui_tree_enhanced
+"""
+
+import gt.ui.qt_import as ui_qt
 
 
 def remove_tree_item_from_tree(item_to_remove):
@@ -50,10 +57,10 @@ def reorder_tree_item(item, new_index):
     return new_index
 
 
-class QTreeEnhanced(QTreeWidget):
+class QTreeEnhanced(ui_qt.QtWidgets.QTreeWidget):
     def __init__(self):
         super().__init__()
-        self.setDragDropMode(QTreeWidget.InternalMove)  # Drag and Drop enabled
+        self.setDragDropMode(ui_qt.QtLib.DragDropMode.InternalMove)  # Drag and Drop enabled
         self.drop_callback = None
         self.one_root_mode = False
         self.last_drop_source_item = None
@@ -190,7 +197,7 @@ class QTreeEnhanced(QTreeWidget):
             return self.drop_callback(*args, **kwargs)
 
 
-class QTreeItemEnhanced(QTreeWidgetItem):
+class QTreeItemEnhanced(ui_qt.QtWidgets.QTreeWidgetItem):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -240,6 +247,7 @@ class QTreeItemEnhanced(QTreeWidgetItem):
 
 if __name__ == "__main__":
     from gt.ui import qt_utils
+
     with qt_utils.QtApplicationContext():
         a_tree_widget = QTreeEnhanced()
         a_tree_widget.set_one_root_mode(state=True)

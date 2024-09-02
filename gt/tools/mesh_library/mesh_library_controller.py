@@ -4,14 +4,13 @@ Mesh Library Controller
 This module contains the MeshLibraryController class responsible for managing interactions between the
 MeshLibraryModel and the user interface.
 """
-from PySide2.QtWidgets import QMessageBox, QAbstractItemView
+
 from gt.ui.input_window_text import InputWindowText
-from gt.utils.prefs_utils import Prefs
-from gt.utils import iterable_utils
-from gt.ui import resource_library
-from PySide2.QtGui import QIcon
+import gt.ui.resource_library as ui_res_lib
+import gt.core.iterable as core_iter
+import gt.core.prefs as core_prefs
+import gt.ui.qt_import as ui_qt
 from functools import partial
-from PySide2.QtCore import Qt
 import logging
 import sys
 import os
@@ -40,7 +39,7 @@ class MeshLibraryController:
         self.view = view
         self.view.controller = self
         # Preferences
-        self.preferences = Prefs("mesh_library")
+        self.preferences = core_prefs.Prefs("mesh_library")
         self.preferences.set_user_files_sub_folder("user_meshes")
         user_meshes_dir = self.preferences.get_user_files_dir_path(create_if_missing=False)
         self.model.import_user_mesh_library(source_dir=user_meshes_dir)
@@ -61,10 +60,10 @@ class MeshLibraryController:
         """
         item = self.view.item_list.currentItem()
         if not item:
-            logger.debug(f'No item selected. Skipping UI update.')
+            logger.debug(f"No item selected. Skipping UI update.")
             return
         item_name = self.view.item_list.currentItem().text()
-        metadata = item.data(Qt.UserRole)
+        metadata = item.data(ui_qt.QtLib.ItemDataRole.UserRole)
         new_preview_image = self.model.get_preview_image(object_name=item_name)
         if new_preview_image:
             self.view.update_preview_image(new_image_path=new_preview_image)
@@ -80,19 +79,19 @@ class MeshLibraryController:
                 self.set_view_parametric_mesh_mode()
 
     def set_view_base_mesh_mode(self):
-        """ Changes the UI to look like you have a package mesh (base) selected """
+        """Changes the UI to look like you have a package mesh (base) selected"""
         self.view.set_snapshot_button_enabled(False)
         self.view.set_parameters_button_enabled(False)
         self.view.set_delete_button_enabled(False)
 
     def set_view_user_mesh_mode(self):
-        """ Changes the UI to look like you have a user-defined mesh selected """
+        """Changes the UI to look like you have a user-defined mesh selected"""
         self.view.set_snapshot_button_enabled(True)
         self.view.set_parameters_button_enabled(False)
         self.view.set_delete_button_enabled(True)
 
     def set_view_parametric_mesh_mode(self):
-        """ Changes the UI to look like you have a package parametric mesh selected """
+        """Changes the UI to look like you have a package parametric mesh selected"""
         self.view.set_snapshot_button_enabled(False)
         self.view.set_parameters_button_enabled(True)
         self.view.set_delete_button_enabled(False)
@@ -120,9 +119,9 @@ class MeshLibraryController:
         """
         item = self.view.item_list.currentItem()
         if not item:
-            logger.debug(f'No item selected.')
+            logger.debug(f"No item selected.")
             return
-        metadata = item.data(Qt.UserRole)
+        metadata = item.data(ui_qt.QtLib.ItemDataRole.UserRole)
         if not metadata or not metadata.get("object"):
             logger.debug(f'Selected item "{item}" is missing the metadata necessary to retrieve a mesh.')
             return
@@ -139,7 +138,7 @@ class MeshLibraryController:
             item = list_widget.item(index)
             if item.text() == item_name:
                 item.setSelected(True)
-                list_widget.scrollToItem(item, QAbstractItemView.PositionAtCenter)
+                list_widget.scrollToItem(item, ui_qt.QtLib.ScrollHint.PositionAtCenter)
                 self.view.item_list.setCurrentItem(item)
                 self.on_item_selection_changed()
                 return True
@@ -156,9 +155,9 @@ class MeshLibraryController:
         meshes_param = self.model.get_param_meshes()
         meshes_user = self.model.get_user_meshes()
 
-        icon_base_mesh = QIcon(resource_library.Icon.mesh_library_base)
-        icon_param_mesh = QIcon(resource_library.Icon.mesh_library_param)
-        icon_user_mesh = QIcon(resource_library.Icon.mesh_library_user)
+        icon_base_mesh = ui_qt.QtGui.QIcon(ui_res_lib.Icon.mesh_library_base)
+        icon_param_mesh = ui_qt.QtGui.QIcon(ui_res_lib.Icon.mesh_library_param)
+        icon_user_mesh = ui_qt.QtGui.QIcon(ui_res_lib.Icon.mesh_library_user)
 
         for mesh_name, mesh in meshes_base.items():
             if filter_str and filter_str not in mesh_name:
@@ -178,37 +177,41 @@ class MeshLibraryController:
         self.view.item_list.setCurrentRow(0)  # Select index 0
 
     def open_parameter_editor(self):
-        """ Opens an input window so the user can update the parameters of a parametric mesh """
+        """Opens an input window so the user can update the parameters of a parametric mesh"""
         item = self.view.item_list.currentItem()
         if not item:
-            logger.warning(f'No item selected. Unable to open parameter editor.')
+            logger.warning(f"No item selected. Unable to open parameter editor.")
             return
         item_name = self.view.item_list.currentItem().text()
         param_mesh = self.get_selected_item_object()
         parameters = param_mesh.get_parameters()
         if not parameters:
-            logger.debug(f'Selected parametric mesh does not have any parameters.')
+            logger.debug(f"Selected parametric mesh does not have any parameters.")
             parameters = "{\n# This parametric mesh does not have any parameters.\n}"
-        from gt.utils.mesh_utils import ParametricMesh
+        from gt.core.mesh import ParametricMesh
+
         if not isinstance(param_mesh, ParametricMesh):
             logger.warning(f'Unable to edit parameters. Selected item is not of the type "ParametricMesh."')
             return
-        param_win = InputWindowText(parent=self.view,
-                                    message=param_mesh.get_docstrings(),
-                                    window_title=f'Parameters for "{item_name}"',
-                                    image=resource_library.Icon.mesh_library_param,
-                                    window_icon=resource_library.Icon.library_parameters,
-                                    image_scale_pct=10,
-                                    is_python_code=True)
+        param_win = InputWindowText(
+            parent=self.view,
+            message=param_mesh.get_docstrings(),
+            window_title=f'Parameters for "{item_name}"',
+            image=ui_res_lib.Icon.mesh_library_param,
+            window_icon=ui_res_lib.Icon.library_parameters,
+            image_scale_pct=10,
+            is_python_code=True,
+        )
         param_win.set_confirm_button_text("Build")
         formatted_dict = None
         if isinstance(parameters, dict):
-            formatted_dict = iterable_utils.dict_as_formatted_str(parameters, one_key_per_line=True)
+            formatted_dict = core_iter.dict_as_formatted_str(parameters, one_key_per_line=True)
         elif isinstance(parameters, str):
             formatted_dict = parameters
         param_win.set_text_field_text(formatted_dict)
-        param_win.confirm_button.clicked.connect(partial(self.model.build_mesh_with_custom_parameters,
-                                                         param_win.get_text_field_text, param_mesh))
+        param_win.confirm_button.clicked.connect(
+            partial(self.model.build_mesh_with_custom_parameters, param_win.get_text_field_text, param_mesh)
+        )
         param_win.show()
 
     def add_user_mesh(self):
@@ -233,19 +236,24 @@ class MeshLibraryController:
         """
         mesh = self.get_selected_item_object()
         if not mesh:
-            logger.warning(f'Unable to retrieve mesh object associated to selected item.')
+            logger.warning(f"Unable to retrieve mesh object associated to selected item.")
             return
         mesh_name = mesh.get_name()
-        user_choice = QMessageBox.question(None, f'Mesh: "{mesh.get_name()}"',
-                                           f'Are you sure you want to delete mesh "{mesh_name}"?',
-                                           QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        user_choice = ui_qt.QtWidgets.QMessageBox.question(
+            None,
+            f'Mesh: "{mesh.get_name()}"',
+            f'Are you sure you want to delete mesh "{mesh_name}"?',
+            ui_qt.QtLib.StandardButton.Yes | ui_qt.QtLib.StandardButton.No,
+            ui_qt.QtLib.StandardButton.No,
+        )
 
-        if user_choice == QMessageBox.Yes:
+        if user_choice == ui_qt.QtLib.StandardButton.Yes:
             path_dir = self.preferences.get_user_files_dir_path()
-            path_file = os.path.join(path_dir, f'{mesh_name}.obj')
-            path_mtl_file = os.path.join(path_dir, f'{mesh_name}.mtl')
-            path_preview_image = os.path.join(path_dir, f'{mesh_name}.jpg')
-            from gt.utils.data_utils import delete_paths
+            path_file = os.path.join(path_dir, f"{mesh_name}.obj")
+            path_mtl_file = os.path.join(path_dir, f"{mesh_name}.mtl")
+            path_preview_image = os.path.join(path_dir, f"{mesh_name}.jpg")
+            from gt.core.io import delete_paths
+
             delete_paths([path_file, path_mtl_file, path_preview_image])
             self.model.import_user_mesh_library(source_dir=path_dir)
             selected_item = self.view.item_list.currentItem()
@@ -254,20 +262,21 @@ class MeshLibraryController:
             sys.stdout.write(f'Mesh "{mesh_name}" was deleted.\n')
 
     def render_mesh_snapshot(self):
-        """ Saves a snapshot to be used as preview image for a custom user mesh """
+        """Saves a snapshot to be used as preview image for a custom user mesh"""
         mesh = self.get_selected_item_object()
         if not mesh:
-            logger.warning(f'Unable to retrieve mesh object associated to selected item.')
+            logger.warning(f"Unable to retrieve mesh object associated to selected item.")
             return
         mesh_name = mesh.get_name()
         path_dir = self.preferences.get_user_files_dir_path()
-        from gt.utils.playblast_utils import render_viewport_snapshot
+        from gt.core.playblast import render_viewport_snapshot
+
         path_file = render_viewport_snapshot(file_name=mesh_name, target_dir=path_dir)
         if path_file and os.path.exists(path_file):
             sys.stdout.write(f'Snapshot written to: "{path_file}".')
             self.on_item_selection_changed()
         else:
-            logger.warning(f'Unable to save snapshot. Failed to create image file.')
+            logger.warning(f"Unable to save snapshot. Failed to create image file.")
 
     def get_custom_mesh_preview_image(self):
         """
@@ -277,15 +286,15 @@ class MeshLibraryController:
         """
         mesh = self.get_selected_item_object()
         if not mesh:
-            logger.warning(f'Unable to retrieve mesh object associated to selected item.')
+            logger.warning(f"Unable to retrieve mesh object associated to selected item.")
             return
         mesh_name = mesh.get_name()
         path_dir = self.preferences.get_user_files_dir_path()
-        preview_image = os.path.join(path_dir, f'{mesh_name}.jpg')
+        preview_image = os.path.join(path_dir, f"{mesh_name}.jpg")
         if os.path.exists(preview_image):
             return preview_image
         else:
-            return resource_library.Icon.library_missing_file
+            return ui_res_lib.Icon.library_missing_file
 
 
 if __name__ == "__main__":

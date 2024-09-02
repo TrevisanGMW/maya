@@ -1,6 +1,7 @@
 """
 Drag and drop this file into the viewport to run the package installer
 """
+
 import sys
 import os
 
@@ -18,11 +19,15 @@ def onMayaDroppedPythonFile(*args):
         raise ImportError(error)
 
     # Initial Feedback
-    print("_"*40)
+    print("_" * 40)
     print("Initializing Drag-and-Drop Setup...")
 
     # Remove existing loaded modules (So it uses the new one)
-    from gt.utils.setup_utils import remove_package_loaded_modules
+    try:
+        from gt.core.setup import remove_package_loaded_modules
+    except:
+        from gt.utils.setup_utils import remove_package_loaded_modules  # Temporarily to transition into new pattern
+
     removed_modules = remove_package_loaded_modules()
     if removed_modules:
         print("Removing package loaded modules...")
@@ -38,13 +43,15 @@ def onMayaDroppedPythonFile(*args):
     # Import and run installer GUI
     print("Initializing installer GUI...")
     import gt.tools.package_setup as package_setup
+
     package_setup.launcher_entry_point()
 
 
 # Launch Options
 if len(sys.argv) > 1:
     try:
-        from gt.utils import system_utils
-        system_utils.process_launch_options(sys.argv)
+        from gt.utils import system
+
+        system.process_launch_options(sys.argv)
     except Exception as e:
         sys.stdout.write("Failed to process launch option. Issue: " + str(e))

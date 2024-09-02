@@ -17,6 +17,7 @@ Changed "SmoothMesh" to true
 v1.1.0 - 2022-08-08
 Added option to export everything to FBX file
 """
+
 import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
 import maya.mel as mel
@@ -25,12 +26,12 @@ import sys
 
 from gt.tools.biped_rigger_legacy.rigger_utilities import find_joint, find_transform, get_metadata, select_items
 from gt.tools.biped_rigger_legacy.rigger_utilities import get_children
-from gt.utils.iterable_utils import make_flat_list
+from gt.core.iterable import make_flat_list
 from collections import namedtuple
 from functools import partial
 
-SCRIPT_VERSION = '1.1.0'
-SCRIPT_NAME = 'GT Rigger - Game Exporter'
+SCRIPT_VERSION = "1.1.0"
+SCRIPT_NAME = "Rigger - Game Exporter"
 
 logging.basicConfig()
 logger = logging.getLogger("gt_rigger_game_exporter")
@@ -46,11 +47,11 @@ def _get_object_namespaces(object_name):
         namespaces (string): Extracted namespaces combined into a string (without the name of the object)
                              e.g. Input = "One:Two:pSphere" Output = "One:Two:"
     """
-    namespaces_list = object_name.split(':')
-    object_namespace = ''
+    namespaces_list = object_name.split(":")
+    object_namespace = ""
     for namespace in namespaces_list:
         if namespace != namespaces_list[-1]:
-            object_namespace += namespace + ':'
+            object_namespace += namespace + ":"
 
     return object_namespace
 
@@ -102,7 +103,7 @@ class StripNamespace(object):
                     self.original_names[uuid] = api_node.name()
 
                     # Strip namespace by renaming via api, bypassing read-only restrictions
-                    without_namespace = api_node.name().replace(self.namespace, '')
+                    without_namespace = api_node.name().replace(self.namespace, "")
                     api_node.setName(without_namespace)
 
                 except RuntimeError:
@@ -146,10 +147,10 @@ def _export_fbx(file_path, baked_animation_export=True):
     namespace = _get_object_namespaces(pre_roll_data.root)
     if namespace:
         with StripNamespace(namespace) as stripped_nodes:
-            cmds.FBXExport('-file', file_path, '-s')
+            cmds.FBXExport("-file", file_path, "-s")
             logger.debug(stripped_nodes)
     else:
-        cmds.FBXExport('-file', file_path, '-s')
+        cmds.FBXExport("-file", file_path, "-s")
 
     _set_stored_attributes(pre_roll_data.attrs)
     return True
@@ -164,7 +165,7 @@ def export_pre_roll():
             geo: <str> of geo group
             attrs: <dict> of the attrs that were made visible, so we can set them back after
     """
-    pre_roll_data = namedtuple("PrerollData", ['root', 'geo', 'attrs'])
+    pre_roll_data = namedtuple("PrerollData", ["root", "geo", "attrs"])
 
     _root = find_root()
     if _root is None:
@@ -193,17 +194,17 @@ def fbx_plugin_loaded():
     except Exception as e:
         logger.debug(str(e))
         try:
-            cmds.loadPlugin('fbxmaya')
+            cmds.loadPlugin("fbxmaya")
         except Exception as e:
             logger.debug(str(e))
-            sys.stderr.write('ERROR: FBX Export Plug-in was not detected.\n')
+            sys.stderr.write("ERROR: FBX Export Plug-in was not detected.\n")
             return False
     return True
 
 
 def export_baked_animation():
     fbx_plugin_loaded()
-    set_fbx_property('FBXExportBakeComplexAnimation', 'true')
+    set_fbx_property("FBXExportBakeComplexAnimation", "true")
 
 
 def set_fbx_property(name, value):
@@ -241,14 +242,13 @@ def configure_fbx():
         "BlindData": "false",
         "Instances": "false",
         "Triangulate": "false",
-
         "SmoothingGroups": "true",
         "ContainerObjects": "true",
     }
     for _name, _value in _geo_properties.items():
         set_fbx_geometry_property(_name, _value)
 
-    set_fbx_geometry_property("GeometryNurbsSurfaceAs", '\"Interactive Display Mesh\"')
+    set_fbx_geometry_property("GeometryNurbsSurfaceAs", '"Interactive Display Mesh"')
 
     _export_properties = {
         "ReferencedAssetsContent": "false",
@@ -260,7 +260,6 @@ def configure_fbx():
         "SmoothingGroups": "false",
         "SmoothMesh": "false",
         "BakeComplexAnimation": "false",
-
         "UseSceneName": "true",
     }
 
@@ -272,13 +271,13 @@ def configure_fbx():
 def find_root():
     _root_joint = _get_skeleton_root_from_metadata()
     if not _root_joint:
-        _root_joint = 'root_jnt'
+        _root_joint = "root_jnt"
     return find_joint(_root_joint)
 
 
-find_geo_grp = partial(find_transform, name='geometry_grp')
-find_skeleton_grp = partial(find_transform, name='skeleton_grp')
-find_main_ctrl = partial(find_transform, name='main_ctrl')
+find_geo_grp = partial(find_transform, name="geometry_grp")
+find_skeleton_grp = partial(find_transform, name="skeleton_grp")
+find_main_ctrl = partial(find_transform, name="main_ctrl")
 
 
 def _make_visible(*args):
@@ -292,10 +291,10 @@ def _make_visible(*args):
     attr_state_dict = {}
     for obj in obj_list:
         try:
-            attr_state_dict[obj + '.overrideEnabled'] = cmds.getAttr(obj + '.overrideEnabled')
-            attr_state_dict[obj + '.v'] = cmds.getAttr(obj + '.v')
-            cmds.setAttr(obj + '.overrideEnabled', 0)
-            cmds.setAttr(obj + '.v', 1)
+            attr_state_dict[obj + ".overrideEnabled"] = cmds.getAttr(obj + ".overrideEnabled")
+            attr_state_dict[obj + ".v"] = cmds.getAttr(obj + ".v")
+            cmds.setAttr(obj + ".overrideEnabled", 0)
+            cmds.setAttr(obj + ".v", 1)
         except Exception as e:
             logger.debug(str(e))
     return attr_state_dict
@@ -329,7 +328,7 @@ def _validate_scene():
     """Returns true if all necessary elements are present in the scene"""
     _root = find_root()
     if _root is None:
-        cmds.warning("Script couldn't find \"root_jnt\" joint. Make sure you have a valid scene opened.")
+        cmds.warning('Script couldn\'t find "root_jnt" joint. Make sure you have a valid scene opened.')
         return False
 
     _geo = find_geo_grp()
@@ -344,7 +343,7 @@ def _validate_scene():
     return True
 
 
-def _export_fbx_file_dialog(caption_description='Model'):
+def _export_fbx_file_dialog(caption_description="Model"):
     """
     Opens a dialog for exporting fbx files
 
@@ -352,11 +351,15 @@ def _export_fbx_file_dialog(caption_description='Model'):
         string_path (string) : The path to a valid file
     """
     if _validate_scene():
-        file_name = cmds.fileDialog2(fileFilter='FBX File (*.fbx)',
-                                     dialogStyle=2,
-                                     okCaption='Export',
-                                     caption='Exporting ' + caption_description +
-                                             ' (FBX) file for a WideAwake Rig') or []
+        file_name = (
+            cmds.fileDialog2(
+                fileFilter="FBX File (*.fbx)",
+                dialogStyle=2,
+                okCaption="Export",
+                caption="Exporting " + caption_description + " (FBX) file for a WideAwake Rig",
+            )
+            or []
+        )
         if len(file_name) > 0:
             return file_name[0]
 
@@ -370,7 +373,7 @@ def _export_fbx_model(*args):
 
 def _export_fbx_animation(*args):
     logger.debug(str(*args))
-    fbx_path = _export_fbx_file_dialog('Animation')
+    fbx_path = _export_fbx_file_dialog("Animation")
     if fbx_path:
         _export_fbx(fbx_path, baked_animation_export=True)
 
@@ -381,40 +384,43 @@ def build_gui_fbx_exporter():
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name)
 
-    build_gui_world_space_baker = cmds.window(window_name,
-                                              title=SCRIPT_NAME + '  (v' + SCRIPT_VERSION + ')',
-                                              titleBar=True,
-                                              minimizeButton=False,
-                                              maximizeButton=False,
-                                              sizeable=True)
+    build_gui_world_space_baker = cmds.window(
+        window_name,
+        title=SCRIPT_NAME + "  (v" + SCRIPT_VERSION + ")",
+        titleBar=True,
+        minimizeButton=False,
+        maximizeButton=False,
+        sizeable=True,
+    )
 
     cmds.window(window_name, e=True, sizeable=True, widthHeight=[1, 1])
     content_main = cmds.columnLayout(adjustableColumn=True)
 
     # Title Text
-    title_bgc_color = (.4, .4, .4)
-    cmds.separator(h=10, style='none')  # Empty Space
-    cmds.rowColumnLayout(numberOfColumns=1,
-                         columnWidth=[(1, 270)],
-                         columnSpacing=[(1, 10)],
-                         parent=content_main)  # Window Size Adjustment
-    cmds.rowColumnLayout(numberOfColumns=3,
-                         columnWidth=[(1, 10), (2, 200), (3, 50)],
-                         columnSpacing=[(1, 10), (2, 0), (3, 0)],
-                         parent=content_main)  # Title Column
+    title_bgc_color = (0.4, 0.4, 0.4)
+    cmds.separator(h=10, style="none")  # Empty Space
+    cmds.rowColumnLayout(
+        numberOfColumns=1, columnWidth=[(1, 270)], columnSpacing=[(1, 10)], parent=content_main
+    )  # Window Size Adjustment
+    cmds.rowColumnLayout(
+        numberOfColumns=3,
+        columnWidth=[(1, 10), (2, 200), (3, 50)],
+        columnSpacing=[(1, 10), (2, 0), (3, 0)],
+        parent=content_main,
+    )  # Title Column
     cmds.text(" ", backgroundColor=title_bgc_color)  # Tiny Empty Green Space
     cmds.text(SCRIPT_NAME, backgroundColor=title_bgc_color, fn="boldLabelFont", align="left")
     cmds.button(label="Help", backgroundColor=title_bgc_color, c=partial(_open_gt_tools_documentation))
 
     # Buttons
     cmds.rowColumnLayout(numberOfColumns=1, columnWidth=[(1, 240)], columnSpacing=[(1, 20)], parent=content_main)
-    cmds.separator(height=15, style='none')  # Empty Space
-    cmds.button(label="Export Rig FBX File", backgroundColor=(.3, .3, .3), c=partial(_export_fbx_model))
-    cmds.separator(height=15, style='none')  # Empty Space
-    cmds.button(label="Export Animation FBX File", backgroundColor=(.3, .3, .3), c=partial(_export_fbx_animation))
-    cmds.separator(height=15, style='none')  # Empty Space
-    cmds.button(label="Export Everything to FBX File", backgroundColor=(.3, .3, .3), c=partial(_export_fbx_model))
-    cmds.separator(height=15, style='none')  # Empty Space
+    cmds.separator(height=15, style="none")  # Empty Space
+    cmds.button(label="Export Rig FBX File", backgroundColor=(0.3, 0.3, 0.3), c=partial(_export_fbx_model))
+    cmds.separator(height=15, style="none")  # Empty Space
+    cmds.button(label="Export Animation FBX File", backgroundColor=(0.3, 0.3, 0.3), c=partial(_export_fbx_animation))
+    cmds.separator(height=15, style="none")  # Empty Space
+    cmds.button(label="Export Everything to FBX File", backgroundColor=(0.3, 0.3, 0.3), c=partial(_export_fbx_model))
+    cmds.separator(height=15, style="none")  # Empty Space
 
     # Show and Lock Window
     cmds.showWindow(build_gui_world_space_baker)
@@ -422,13 +428,13 @@ def build_gui_fbx_exporter():
 
 
 def _open_gt_tools_documentation(*args):
-    """ Opens a web browser with the auto rigger docs  """
+    """Opens a web browser with the auto rigger docs"""
     logger.debug(str(args))
-    cmds.showHelp('https://github.com/TrevisanGMW/gt-tools/tree/release/docs', absolute=True)
+    cmds.showHelp("https://github.com/TrevisanGMW/gt-tools/tree/release/docs", absolute=True)
 
 
 # Tests
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass
     build_gui_fbx_exporter()
 

@@ -1,14 +1,15 @@
 """
-Package Setup Model - Logic
+Package Setup Model
 Install, uninstall, Run-only calls
 """
-from gt.ui import progress_bar, resource_library
-from PySide2.QtWidgets import QApplication
-from gt.utils import feedback_utils
-from gt.utils import version_utils
-from gt.utils import system_utils
-from gt.utils import setup_utils
-from PySide2 import QtCore
+
+import gt.ui.progress_bar as ui_progress_bar
+import gt.ui.resource_library as ui_res_lib
+import gt.core.version as core_version
+import gt.core.setup as core_setup
+import gt.core.feedback as core_feedback
+import gt.utils.system as utils_system
+import gt.ui.qt_import as ui_qt
 import logging
 import sys
 import os
@@ -16,12 +17,12 @@ import os
 logger = logging.getLogger(__name__)
 
 
-class PackageSetupModel(QtCore.QObject):
-    CloseView = QtCore.Signal()
-    UpdatePath = QtCore.Signal(object)
-    UpdateStatus = QtCore.Signal(object)
-    UpdateVersionSetup = QtCore.Signal(object)  # 1: Current Package Version
-    UpdateVersionInstalled = QtCore.Signal(object)  # 2: Installed Version
+class PackageSetupModel(ui_qt.QtCore.QObject):
+    CloseView = ui_qt.QtCore.Signal()
+    UpdatePath = ui_qt.QtCore.Signal(object)
+    UpdateStatus = ui_qt.QtCore.Signal(object)
+    UpdateVersionSetup = ui_qt.QtCore.Signal(object)  # 1: Current Package Version
+    UpdateVersionInstalled = ui_qt.QtCore.Signal(object)  # 2: Installed Version
 
     def __init__(self, *args, **kwargs):
         """
@@ -32,14 +33,14 @@ class PackageSetupModel(QtCore.QObject):
         """
         super().__init__(*args, **kwargs)
         self.progress_win = None
-        self.package_name_color = resource_library.Color.Hex.turquoise_dark
+        self.package_name_color = ui_res_lib.Color.Hex.turquoise_dark
 
     def install_package(self):
-        """ Installs package """
-        if not QApplication.instance():
-            app = QApplication(sys.argv)
+        """Installs package"""
+        if not ui_qt.QtWidgets.QApplication.instance():
+            app = ui_qt.QtWidgets.QApplication(sys.argv)
 
-        self.progress_win = progress_bar.ProgressBarWindow()
+        self.progress_win = ui_progress_bar.ProgressBarWindow()
         self.progress_win.show()
         self.progress_win.set_progress_bar_name("Installing Script Package...")
         # Create connections
@@ -49,10 +50,11 @@ class PackageSetupModel(QtCore.QObject):
 
         result = None
         try:
-            result = setup_utils.install_package(callbacks=[self.progress_win.add_text_to_output_box,
-                                                            self.progress_win.increase_progress_bar_value])
+            result = core_setup.install_package(
+                callbacks=[self.progress_win.add_text_to_output_box, self.progress_win.increase_progress_bar_value]
+            )
         except Exception as e:
-            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_melon)
+            self.progress_win.add_text_to_output_box(input_string=str(e), color=ui_res_lib.Color.Hex.red_melon)
 
         # Installation Result
         if result:
@@ -60,17 +62,18 @@ class PackageSetupModel(QtCore.QObject):
             self.update_status()
             self.progress_win.set_progress_bar_done()
             self.progress_win.first_button.clicked.connect(self.close_view)  # Closes parent (Package Setup View)
-            self.progress_win.change_last_line_color(resource_library.Color.Hex.green_oxley)
-            feedback = feedback_utils.FeedbackMessage(intro="GT-Tools",
-                                                      style_intro=f"color:{self.package_name_color};"
-                                                                  f"text-decoration:underline;",
-                                                      conclusion="has been installed and is now active.")
+            self.progress_win.change_last_line_color(ui_res_lib.Color.Hex.green_oxley)
+            feedback = core_feedback.FeedbackMessage(
+                intro="GT-Tools",
+                style_intro=f"color:{self.package_name_color};" f"text-decoration:underline;",
+                conclusion="has been installed and is now active.",
+            )
             feedback.print_inview_message(stay_time=4000)
         else:
-            self.progress_win.change_last_line_color(resource_library.Color.Hex.red_melon)
+            self.progress_win.change_last_line_color(ui_res_lib.Color.Hex.red_melon)
 
         # Show window
-        if QApplication.instance():
+        if ui_qt.QtWidgets.QApplication.instance():
             try:
                 sys.exit(app.exec_())
             except Exception as e:
@@ -78,11 +81,11 @@ class PackageSetupModel(QtCore.QObject):
         return self.progress_win
 
     def uninstall_package(self):
-        """ Uninstalls package """
-        if not QApplication.instance():
-            app = QApplication(sys.argv)
+        """Uninstalls package"""
+        if not ui_qt.QtWidgets.QApplication.instance():
+            app = ui_qt.QtWidgets.QApplication(sys.argv)
 
-        self.progress_win = progress_bar.ProgressBarWindow()
+        self.progress_win = ui_progress_bar.ProgressBarWindow()
         self.progress_win.show()
         self.progress_win.set_progress_bar_name("Uninstalling Script Package...")
         # Create connections
@@ -92,27 +95,29 @@ class PackageSetupModel(QtCore.QObject):
 
         result = None
         try:
-            result = setup_utils.uninstall_package(callbacks=[self.progress_win.add_text_to_output_box,
-                                                              self.progress_win.increase_progress_bar_value])
+            result = core_setup.uninstall_package(
+                callbacks=[self.progress_win.add_text_to_output_box, self.progress_win.increase_progress_bar_value]
+            )
         except Exception as e:
-            self.progress_win.add_text_to_output_box(input_string=str(e), color=resource_library.Color.Hex.red_melon)
+            self.progress_win.add_text_to_output_box(input_string=str(e), color=ui_res_lib.Color.Hex.red_melon)
 
         # Uninstallation Result
         if result:
             self.update_version()
             self.update_status()
             self.progress_win.set_progress_bar_done()
-            self.progress_win.change_last_line_color(resource_library.Color.Hex.green_oxley)
-            feedback = feedback_utils.FeedbackMessage(intro="GT-Tools",
-                                                      style_intro=f"color:{self.package_name_color};"
-                                                                  f"text-decoration:underline;",
-                                                      conclusion="has been uninstalled and unloaded.")
+            self.progress_win.change_last_line_color(ui_res_lib.Color.Hex.green_oxley)
+            feedback = core_feedback.FeedbackMessage(
+                intro="GT-Tools",
+                style_intro=f"color:{self.package_name_color};" f"text-decoration:underline;",
+                conclusion="has been uninstalled and unloaded.",
+            )
             feedback.print_inview_message(stay_time=4000)
         else:
-            self.progress_win.change_last_line_color(resource_library.Color.Hex.red_melon)
+            self.progress_win.change_last_line_color(ui_res_lib.Color.Hex.red_melon)
 
         # Show window
-        if QApplication.instance():
+        if ui_qt.QtWidgets.QApplication.instance():
             try:
                 sys.exit(app.exec_())
             except Exception as e:
@@ -123,11 +128,12 @@ class PackageSetupModel(QtCore.QObject):
         """
         Injects the necessary code to import the package from location and create its maya menu. (Do not copy any files)
         """
-        system_utils.process_launch_options(["", "-launch"])
-        feedback = feedback_utils.FeedbackMessage(intro="GT-Tools",
-                                                  style_intro=f"color:{self.package_name_color};"
-                                                              f"text-decoration:underline;",
-                                                  conclusion="menu was initialized in run-only (one time use) mode.")
+        utils_system.process_launch_options(["", "-launch"])
+        feedback = core_feedback.FeedbackMessage(
+            intro="GT-Tools",
+            style_intro=f"color:{self.package_name_color};" f"text-decoration:underline;",
+            conclusion="menu was initialized in run-only (one time use) mode.",
+        )
         feedback.print_inview_message(stay_time=4000)
 
     @staticmethod
@@ -137,8 +143,8 @@ class PackageSetupModel(QtCore.QObject):
         Returns:
             str: Path to the installation folder. e.g. ".../Documents/maya/gt-tools"
         """
-        maya_settings_dir = system_utils.get_maya_preferences_dir(system_utils.get_system())
-        return os.path.normpath(os.path.join(maya_settings_dir, setup_utils.PACKAGE_NAME))
+        maya_settings_dir = utils_system.get_maya_preferences_dir(utils_system.get_system())
+        return os.path.normpath(os.path.join(maya_settings_dir, core_setup.PACKAGE_NAME))
 
     def update_path(self):
         """
@@ -152,18 +158,18 @@ class PackageSetupModel(QtCore.QObject):
             self.UpdatePath.emit(f"Unable to get path. Issue: {str(e)}")
 
     def update_status(self):
-        """ Updates the status label to reflect current state  """
-        setup_version = version_utils.get_package_version()
-        installed_module = os.path.join(self.get_install_target_dir(), setup_utils.PACKAGE_MAIN_MODULE)
-        installed_version = version_utils.get_package_version(package_path=installed_module)
+        """Updates the status label to reflect current state"""
+        setup_version = core_version.get_package_version()
+        installed_module = os.path.join(self.get_install_target_dir(), core_setup.PACKAGE_MAIN_MODULE)
+        installed_version = core_version.get_package_version(package_path=installed_module)
         if not installed_version:
             self.set_status("Not Installed")
             return
-        status = version_utils.compare_versions(installed_version, setup_version)
+        status = core_version.compare_versions(installed_version, setup_version)
 
-        if status == version_utils.VERSION_EQUAL:
+        if status == core_version.VERSION_EQUAL:
             self.set_status("Installed")
-        elif status == version_utils.VERSION_SMALLER:
+        elif status == core_version.VERSION_SMALLER:
             self.set_status("Needs Update")
 
     def set_status(self, new_status=None):
@@ -178,23 +184,23 @@ class PackageSetupModel(QtCore.QObject):
             self.UpdateStatus.emit("Unknown")
 
     def update_version(self):
-        """ Sends signals to update view with the setup and installed versions """
-        setup_version = version_utils.get_package_version()
-        installed_module = os.path.join(self.get_install_target_dir(), setup_utils.PACKAGE_MAIN_MODULE)
-        installed_version = version_utils.get_package_version(package_path=installed_module)
+        """Sends signals to update view with the setup and installed versions"""
+        setup_version = core_version.get_package_version()
+        installed_module = os.path.join(self.get_install_target_dir(), core_setup.PACKAGE_MAIN_MODULE)
+        installed_version = core_version.get_package_version(package_path=installed_module)
         # Attempt to find older version
         try:
             if not installed_version:
                 installed_version = "0.0.0"
-                if version_utils.get_legacy_package_version() and setup_utils.is_legacy_version_install_present():
-                    installed_version = str(version_utils.get_legacy_package_version())
+                if core_version.get_legacy_package_version() and core_setup.is_legacy_version_install_present():
+                    installed_version = str(core_version.get_legacy_package_version())
         except Exception as e:
-            logger.debug(f'Unable to retrieve legacy version. Issue: {str(e)}')
+            logger.debug(f"Unable to retrieve legacy version. Issue: {str(e)}")
         self.UpdateVersionSetup.emit(setup_version)
         self.UpdateVersionInstalled.emit(installed_version)
 
     def close_view(self):
-        """ Sends a signal to close view """
+        """Sends a signal to close view"""
         self.CloseView.emit()
 
 

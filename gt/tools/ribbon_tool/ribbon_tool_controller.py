@@ -1,10 +1,8 @@
 """
 Ribbon Tool Controller
 """
-from gt.utils.iterable_utils import sanitize_maya_list
-from gt.utils.naming_utils import get_short_name
-from gt.utils.feedback_utils import FeedbackMessage
-from gt.utils.surface_utils import Ribbon
+from gt.core.naming import get_short_name
+from gt.core.surface import Ribbon
 import logging
 
 # Logging Setup
@@ -78,7 +76,7 @@ class RibbonToolController:
     @staticmethod
     def open_help():
         """ Opens package docs """
-        from gt.utils.request_utils import open_package_docs_url_in_browser
+        from gt.utils.request import open_package_docs_url_in_browser
         open_package_docs_url_in_browser()
 
     @staticmethod

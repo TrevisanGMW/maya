@@ -1,17 +1,15 @@
 """
 CurveToPythonView View/Window
 """
-from PySide2.QtWidgets import QPushButton, QLabel, QVBoxLayout, QFrame
+
 from gt.ui.syntax_highlighter import PythonSyntaxHighlighter
 from gt.ui.line_text_widget import LineTextWidget
-import gt.ui.resource_library as resource_library
-from gt.ui.qt_utils import MayaWindowMeta
-from PySide2 import QtWidgets, QtCore
-import gt.ui.qt_utils as qt_utils
-from PySide2.QtGui import QIcon
+import gt.ui.resource_library as ui_res_lib
+import gt.ui.qt_utils as ui_qt_utils
+import gt.ui.qt_import as ui_qt
 
 
-class CurveToPythonView(metaclass=MayaWindowMeta):
+class CurveToPythonView(metaclass=ui_qt_utils.MayaWindowMeta):
     def __init__(self, parent=None, controller=None, version=None):
         """
         Initialize the CurveToPythonView.
@@ -28,10 +26,10 @@ class CurveToPythonView(metaclass=MayaWindowMeta):
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
 
         # Window Title
-        self.window_title = "GT Curve to Python"
+        self.window_title = "Curve to Python"
         _window_title = self.window_title
         if version:
-            _window_title += f' - (v{str(version)})'
+            _window_title += f" - (v{str(version)})"
         self.setWindowTitle(_window_title)
 
         # Labels
@@ -49,90 +47,94 @@ class CurveToPythonView(metaclass=MayaWindowMeta):
         self.create_widgets()
         self.create_layout()
 
-        self.setWindowFlags(self.windowFlags() |
-                            QtCore.Qt.WindowMaximizeButtonHint |
-                            QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowIcon(QIcon(resource_library.Icon.tool_attributes_to_python))
+        self.setWindowFlags(
+            self.windowFlags()
+            | ui_qt.QtLib.WindowFlag.WindowMaximizeButtonHint
+            | ui_qt.QtLib.WindowFlag.WindowMinimizeButtonHint
+        )
+        self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.tool_attributes_to_python))
 
-        stylesheet = resource_library.Stylesheet.scroll_bar_base
-        stylesheet += resource_library.Stylesheet.maya_dialog_base
-        stylesheet += resource_library.Stylesheet.list_widget_base
+        stylesheet = ui_res_lib.Stylesheet.scroll_bar_base
+        stylesheet += ui_res_lib.Stylesheet.maya_dialog_base
+        stylesheet += ui_res_lib.Stylesheet.list_widget_base
         self.setStyleSheet(stylesheet)
-        self.extract_crv_python_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
-        self.extract_shape_state_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
-        qt_utils.resize_to_screen(self, percentage=40, width_percentage=55)
-        qt_utils.center_window(self)
+        self.extract_crv_python_btn.setStyleSheet(ui_res_lib.Stylesheet.btn_push_bright)
+        self.extract_shape_state_btn.setStyleSheet(ui_res_lib.Stylesheet.btn_push_bright)
+        ui_qt_utils.resize_to_screen(self, percentage=40, width_percentage=55)
+        ui_qt_utils.center_window(self)
 
     def create_widgets(self):
         """Create the widgets for the window."""
-        self.title_label = QtWidgets.QLabel(self.window_title)
-        self.title_label.setStyleSheet('background-color: rgb(93, 93, 93); border: 0px solid rgb(93, 93, 93); \
-                                        color: rgb(255, 255, 255); padding: 10px; margin-bottom: 0; text-align: left;')
-        self.title_label.setFont(qt_utils.get_font(resource_library.Font.roboto))
-        self.help_btn = QPushButton('Help')
+        self.title_label = ui_qt.QtWidgets.QLabel(self.window_title)
+        self.title_label.setStyleSheet(
+            "background-color: rgb(93, 93, 93); border: 0px solid rgb(93, 93, 93); \
+                                        color: rgb(255, 255, 255); padding: 10px; margin-bottom: 0; text-align: left;"
+        )
+        self.title_label.setFont(ui_qt_utils.get_font(ui_res_lib.Font.roboto))
+        self.help_btn = ui_qt.QtWidgets.QPushButton("Help")
         self.help_btn.setToolTip("Open Help Dialog.")
-        self.help_btn.setStyleSheet('color: rgb(255, 255, 255); padding: 10px; '
-                                    'padding-right: 15px; padding-left: 15px; margin: 0;')
-        self.help_btn.setFont(qt_utils.get_font(resource_library.Font.roboto))
+        self.help_btn.setStyleSheet(
+            "color: rgb(255, 255, 255); padding: 10px; " "padding-right: 15px; padding-left: 15px; margin: 0;"
+        )
+        self.help_btn.setFont(ui_qt_utils.get_font(ui_res_lib.Font.roboto))
 
-        self.output_python_label = QLabel("Output Python Code:")
-        self.output_python_label.setStyleSheet(f"font-weight: bold; font-size: 8; margin-top: 0; "
-                                               f"color: {resource_library.Color.RGB.gray_lighter};")
+        self.output_python_label = ui_qt.QtWidgets.QLabel("Output Python Code:")
+        self.output_python_label.setStyleSheet(
+            f"font-weight: bold; font-size: 8; margin-top: 0; " f"color: {ui_res_lib.Color.RGB.gray_lighter};"
+        )
 
         self.output_python_box = LineTextWidget(self)
 
         self.output_python_box.setMinimumHeight(150)
         PythonSyntaxHighlighter(self.output_python_box.get_text_edit().document())
 
-        self.output_python_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.output_python_label.setFont(qt_utils.get_font(resource_library.Font.roboto))
+        self.output_python_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        self.output_python_label.setFont(ui_qt_utils.get_font(ui_res_lib.Font.roboto))
 
-        self.output_python_box.setSizePolicy(self.output_python_box.sizePolicy().Expanding,
-                                             self.output_python_box.sizePolicy().Expanding)
+        self.output_python_box.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Expanding)
 
-        self.extract_crv_python_btn = QPushButton('Extract Curve to Python')
+        self.extract_crv_python_btn = ui_qt.QtWidgets.QPushButton("Extract Curve to Python")
         self.extract_crv_python_btn.setToolTip("Extracts curves as python code. (New Curve)")
-        self.extract_shape_state_btn = QPushButton("Extract Shape State to Python")
-        self.extract_shape_state_btn.setToolTip('Extracts curve shape state. '
-                                                '(Snapshot of the shape)')
-        self.run_code_btn = QPushButton("Run Code")
+        self.extract_shape_state_btn = ui_qt.QtWidgets.QPushButton("Extract Shape State to Python")
+        self.extract_shape_state_btn.setToolTip("Extracts curve shape state. " "(Snapshot of the shape)")
+        self.run_code_btn = ui_qt.QtWidgets.QPushButton("Run Code")
         self.run_code_btn.setStyleSheet("padding: 10;")
-        self.save_to_shelf_btn = QPushButton("Save to Shelf")
+        self.save_to_shelf_btn = ui_qt.QtWidgets.QPushButton("Save to Shelf")
         self.save_to_shelf_btn.setStyleSheet("padding: 10;")
 
     def create_layout(self):
         """Create the layout for the window."""
 
-        top_buttons_layout = QtWidgets.QVBoxLayout()
-        two_horizontal_btn_layout = QtWidgets.QHBoxLayout()
+        top_buttons_layout = ui_qt.QtWidgets.QVBoxLayout()
+        two_horizontal_btn_layout = ui_qt.QtWidgets.QHBoxLayout()
         two_horizontal_btn_layout.addWidget(self.extract_crv_python_btn)
         two_horizontal_btn_layout.addWidget(self.extract_shape_state_btn)
         top_buttons_layout.addLayout(two_horizontal_btn_layout)
 
-        mid_layout = QVBoxLayout()
+        mid_layout = ui_qt.QtWidgets.QVBoxLayout()
         mid_layout.addWidget(self.output_python_label)
         mid_layout.addWidget(self.output_python_box)
         mid_layout.setContentsMargins(0, 5, 0, 5)  # L-T-R-B
 
-        bottom_buttons_layout = QVBoxLayout()
-        two_horizontal_btn_layout = QtWidgets.QHBoxLayout()
+        bottom_buttons_layout = ui_qt.QtWidgets.QVBoxLayout()
+        two_horizontal_btn_layout = ui_qt.QtWidgets.QHBoxLayout()
         two_horizontal_btn_layout.addWidget(self.run_code_btn)
         two_horizontal_btn_layout.addWidget(self.save_to_shelf_btn)
         bottom_buttons_layout.addLayout(two_horizontal_btn_layout)
 
-        separator = QFrame()
-        separator.setFrameShape(QFrame.HLine)
-        separator.setFrameShadow(QFrame.Sunken)
+        separator = ui_qt.QtWidgets.QFrame()
+        separator.setFrameShape(ui_qt.QtLib.FrameStyle.HLine)
+        separator.setFrameShadow(ui_qt.QtLib.FrameStyle.Sunken)
 
-        title_layout = QtWidgets.QHBoxLayout()
+        title_layout = ui_qt.QtWidgets.QHBoxLayout()
         title_layout.setSpacing(0)
         title_layout.addWidget(self.title_label, 5)
         title_layout.addWidget(self.help_btn)
 
-        main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout = ui_qt.QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
-        top_layout = QtWidgets.QVBoxLayout()
-        bottom_layout = QtWidgets.QVBoxLayout()
+        top_layout = ui_qt.QtWidgets.QVBoxLayout()
+        bottom_layout = ui_qt.QtWidgets.QVBoxLayout()
         top_layout.addLayout(title_layout)
         top_layout.addLayout(top_buttons_layout)
         top_layout.setContentsMargins(15, 15, 15, 15)  # L-T-R-B
@@ -144,7 +146,7 @@ class CurveToPythonView(metaclass=MayaWindowMeta):
         main_layout.addLayout(bottom_layout)
 
     def clear_python_output(self):
-        """ Removes all text from the changelog box """
+        """Removes all text from the changelog box"""
         self.output_python_box.get_text_edit().clear()
 
     def set_python_output_text(self, text):
@@ -166,7 +168,7 @@ class CurveToPythonView(metaclass=MayaWindowMeta):
         return self.output_python_box.get_text_edit().toPlainText()
 
     def close_window(self):
-        """ Closes this window """
+        """Closes this window"""
         self.close()
 
 
@@ -174,7 +176,7 @@ if __name__ == "__main__":
     import inspect
     import sys
 
-    with qt_utils.QtApplicationContext():
+    with ui_qt_utils.QtApplicationContext():
         window = CurveToPythonView(version="1.2.3")  # View
         window.set_python_output_text(text=inspect.getsource(sys.modules[__name__]))
         window.show()

@@ -1,12 +1,12 @@
 """
 Resource Library Model
 """
+
 from gt.ui.resource_library import parse_rgb_numbers
-from gt.utils.system_utils import get_desktop_path
+from gt.utils.system import get_desktop_path
 from gt.ui.qt_utils import create_color_pixmap
-from PySide2.QtCore import QFile, QIODevice
-from PySide2.QtGui import QColor, QIcon
-from gt.ui import resource_library
+import gt.ui.resource_library as ui_res_lib
+import gt.ui.qt_import as ui_qt
 import logging
 import shutil
 import sys
@@ -79,7 +79,7 @@ class ResourceLibraryModel:
             else:
                 a = 255
                 r, g, b = color_tuple
-            color = QColor(r, g, b, a)
+            color = ui_qt.QtGui.QColor(r, g, b, a)
         self.colors_raw[color_key] = color_tuple
         self.colors[color_key] = color
 
@@ -91,7 +91,7 @@ class ResourceLibraryModel:
             icon (QIcon): QIcon representing the icon.
         """
         self.package_icons_raw[icon_key] = icon
-        self.package_icons[icon_key] = QIcon(icon)
+        self.package_icons[icon_key] = ui_qt.QtGui.QIcon(icon)
 
     def add_maya_icon(self, icon_key, icon_str):
         """
@@ -101,50 +101,62 @@ class ResourceLibraryModel:
             icon_str (str): Maya resource string
         """
         self.maya_icons_raw[icon_key] = icon_str
-        icon = QIcon(f':{icon_str}')
+        icon = ui_qt.QtGui.QIcon(f":{icon_str}")
         if icon_str.endswith(".png"):
             try:
                 pixmap = icon.pixmap(icon.actualSize(icon.availableSizes()[0]))
                 scaled_pixmap = pixmap.scaled(pixmap.width() * 10, pixmap.height() * 10)
-                icon = QIcon(scaled_pixmap)
+                icon = ui_qt.QtGui.QIcon(scaled_pixmap)
             except Exception as e:
-                logger.debug(f'Unable to re-scale Maya icon. Issue: {str(e)}')
+                logger.debug(f"Unable to re-scale Maya icon. Issue: {str(e)}")
         self.maya_icons[icon_key] = icon
 
     def import_package_colors(self):
         """
         Imports all control curves found in "control_utils.Controls" to the ResourceLibraryModel controls list
         """
-        class_attributes = vars(resource_library.Color.RGB)
-        attr_keys = [attr for attr in class_attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        class_attributes = vars(ui_res_lib.Color.RGB)
+        attr_keys = [attr for attr in class_attributes if not (attr.startswith("__") and attr.endswith("__"))]
         for attr_key in attr_keys:
-            color_str = getattr(resource_library.Color.RGB, attr_key)
+            color_str = getattr(ui_res_lib.Color.RGB, attr_key)
             self.add_color(color_key=attr_key, color_str=color_str)
 
     def import_package_icons(self):
         """
         Imports all control curves found in "control_utils.Controls" to the ResourceLibraryModel controls list
         """
-        class_attributes = vars(resource_library.Icon)
-        attr_keys = [attr for attr in class_attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        class_attributes = vars(ui_res_lib.Icon)
+        attr_keys = [attr for attr in class_attributes if not (attr.startswith("__") and attr.endswith("__"))]
         for attr_key in attr_keys:
-            icon_path = getattr(resource_library.Icon, attr_key)
+            icon_path = getattr(ui_res_lib.Icon, attr_key)
             self.add_package_icon(icon_key=attr_key, icon=icon_path)
 
     def import_maya_icons(self):
         """
         Imports all control curves found in "control_utils.Controls" to the ResourceLibraryModel controls list
         """
-        undesired_resources = ["ce2_icons", "ce2_python", "ce2_scripts", "qgradient", "qpdf", "qt-project.org",
-                               "qtwebchannel", "sows", "UsdLayerEditor", "images", "ImportDialog",
-                               "characterizationtool"]
+        undesired_resources = [
+            "ce2_icons",
+            "ce2_python",
+            "ce2_scripts",
+            "qgradient",
+            "qpdf",
+            "qt-project.org",
+            "qtwebchannel",
+            "sows",
+            "UsdLayerEditor",
+            "images",
+            "ImportDialog",
+            "characterizationtool",
+        ]
         try:
             import maya.cmds as cmds
+
             for icon in cmds.resourceManager(nameFilter="*"):
                 if icon not in undesired_resources:
                     self.add_maya_icon(icon_key=icon, icon_str=icon)
         except Exception as e:
-            logger.debug(f'Unable to get Maya resources. Issue: {e}')
+            logger.debug(f"Unable to get Maya resources. Issue: {e}")
 
     @staticmethod
     def get_preview_image(item):
@@ -157,11 +169,11 @@ class ResourceLibraryModel:
         Returns:
             str: The path to the preview image, or the path to the default missing file icon if the image is not found.
         """
-        if isinstance(item, QColor):
+        if isinstance(item, ui_qt.QtGui.QColor):
             return create_color_pixmap(item)
-        if isinstance(item, QIcon):
+        if isinstance(item, ui_qt.QtGui.QIcon):
             return item.pixmap(512)
-        return resource_library.Icon.library_missing_file
+        return ui_res_lib.Icon.library_missing_file
 
     def export_resource(self, key, source=None):
         """
@@ -174,88 +186,106 @@ class ResourceLibraryModel:
         if source == "colors":
             item = self.colors.get(key)
             if not item:
-                logger.warning(f'Unable to export color resource. Missing provided key.')
+                logger.warning(f"Unable to export color resource. Missing provided key.")
                 return
             # Save Dialog
             import maya.cmds as cmds
-            starting_dir = os.path.join(get_desktop_path(), f'{key}.png')
-            file_path = cmds.fileDialog2(fileFilter="PNG Image (*.png);;All Files (*)",
-                                         dialogStyle=2,
-                                         okCaption='Export',
-                                         startingDirectory=starting_dir,
-                                         caption='Exporting Color Resource') or []
+
+            starting_dir = os.path.join(get_desktop_path(), f"{key}.png")
+            file_path = (
+                cmds.fileDialog2(
+                    fileFilter="PNG Image (*.png);;All Files (*)",
+                    dialogStyle=2,
+                    okCaption="Export",
+                    startingDirectory=starting_dir,
+                    caption="Exporting Color Resource",
+                )
+                or []
+            )
             if file_path and len(file_path) > 0:
                 file_path = file_path[0]
             else:
-                logger.debug(f'Skipped color resource save operation. Invalid file path.')
+                logger.debug(f"Skipped color resource save operation. Invalid file path.")
                 return
             pixmap = create_color_pixmap(item)
             pixmap.save(file_path)
-            sys.stdout.write(f'Color sample resource exported to: {file_path}')
+            sys.stdout.write(f"Color sample resource exported to: {file_path}")
         # --------------------- Package Icons ---------------------
         if source == "package_icons":
             icon_path = self.package_icons_raw.get(key)
             if not icon_path:
-                logger.warning(f'Unable to export package icon resource. Missing provided key.')
+                logger.warning(f"Unable to export package icon resource. Missing provided key.")
                 return
             if not os.path.exists(icon_path):
-                logger.warning(f'Unable to export package icon resource. Missing source icon.')
+                logger.warning(f"Unable to export package icon resource. Missing source icon.")
                 return
 
             extension = "svg"
             file_name = ""
             try:
                 file_name = os.path.basename(icon_path)
-                extension = file_name.rsplit('.', 1)[-1].lower()
+                extension = file_name.rsplit(".", 1)[-1].lower()
             except Exception as e:
                 logger.debug(f'Unable to parse source extension for file dialog. Using default "SVG". Issue: {str(e)}')
             # Save Dialog
             import maya.cmds as cmds
+
             starting_dir = os.path.join(get_desktop_path(), file_name)
-            file_path = cmds.fileDialog2(fileFilter=f'{extension.upper()} Image (*.{extension});;All Files (*)',
-                                         dialogStyle=2,
-                                         okCaption='Export',
-                                         startingDirectory=starting_dir,
-                                         caption='Exporting Icon Resource') or []
+            file_path = (
+                cmds.fileDialog2(
+                    fileFilter=f"{extension.upper()} Image (*.{extension});;All Files (*)",
+                    dialogStyle=2,
+                    okCaption="Export",
+                    startingDirectory=starting_dir,
+                    caption="Exporting Icon Resource",
+                )
+                or []
+            )
             if file_path and len(file_path) > 0:
                 file_path = file_path[0]
             else:
-                logger.debug(f'Skipped package icon resource save operation. Invalid file path.')
+                logger.debug(f"Skipped package icon resource save operation. Invalid file path.")
                 return
             shutil.copy(icon_path, file_path)
-            sys.stdout.write(f'Package icon resource exported to: {file_path}')
+            sys.stdout.write(f"Package icon resource exported to: {file_path}")
         # --------------------- Maya Icons ---------------------
         if source == "maya_icons":
             icon_str = self.maya_icons_raw.get(key)
             if not icon_str:
-                logger.warning(f'Unable to export Maya resource. Missing provided key.')
+                logger.warning(f"Unable to export Maya resource. Missing provided key.")
                 return
             extension = "png"
             try:
                 file_name = os.path.basename(icon_str)
-                extension = file_name.rsplit('.', 1)[-1].lower()
+                extension = file_name.rsplit(".", 1)[-1].lower()
             except Exception as e:
                 logger.debug(f'Unable to parse source extension for file dialog. Using default "PNG". Issue: {str(e)}')
             # Save Dialog
             import maya.cmds as cmds
+
             starting_dir = os.path.join(get_desktop_path(), icon_str)
-            file_path = cmds.fileDialog2(fileFilter=f'{extension.upper()} Image (*.{extension});;All Files (*)',
-                                         dialogStyle=2,
-                                         okCaption='Export',
-                                         startingDirectory=starting_dir,
-                                         caption='Exporting Icon Resource') or []
+            file_path = (
+                cmds.fileDialog2(
+                    fileFilter=f"{extension.upper()} Image (*.{extension});;All Files (*)",
+                    dialogStyle=2,
+                    okCaption="Export",
+                    startingDirectory=starting_dir,
+                    caption="Exporting Icon Resource",
+                )
+                or []
+            )
             if file_path and len(file_path) > 0:
                 file_path = file_path[0]
             else:
-                logger.debug(f'Skipped Maya resource save operation. Invalid file path.')
+                logger.debug(f"Skipped Maya resource save operation. Invalid file path.")
                 return
 
             # Extract Resource
-            resource_file = QFile(f':{icon_str}')
+            resource_file = ui_qt.QtCore.QFile(f":{icon_str}")
             if not resource_file.exists():
-                logger.debug(f'Skipped Maya resource save operation. Missing resource.')
+                logger.debug(f"Skipped Maya resource save operation. Missing resource.")
                 return
-            if not resource_file.open(QIODevice.ReadOnly):
+            if not resource_file.open(ui_qt.QtLib.OpenModeFlag.ReadOnly):
                 return
             resource_data = resource_file.readAll()
             resource_file.close()
@@ -263,7 +293,7 @@ class ResourceLibraryModel:
             with open(file_path, "wb") as save_file:
                 save_file.write(resource_data)
 
-            sys.stdout.write(f'Maya resource exported to: {file_path}')
+            sys.stdout.write(f"Maya resource exported to: {file_path}")
 
 
 if __name__ == "__main__":

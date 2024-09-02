@@ -1,25 +1,23 @@
 """
-Auto Rigger Digit Modules (Fingers, Toes)
-github.com/TrevisanGMW/gt-tools
+Auto Rigger Digit Modules
 """
-from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, get_meta_purpose_from_dict, find_direction_curve
-from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, get_automation_group
-from gt.utils.transform_utils import Vector3, match_transform, scale_shapes, rotate_shapes, get_directional_position
-from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, set_attr, rescale
-from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
-from gt.utils.data.controls.cluster_driven import create_scalable_two_sides_arrow
-from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
-from gt.utils.math_utils import get_transforms_center_position, dist_path_sum
-from gt.utils.rigging_utils import expose_rotation_order, RiggingConstants
-from gt.utils.hierarchy_utils import add_offset_transform, create_group
-from gt.utils.color_utils import ColorConstants, set_color_viewport
-from gt.utils.naming_utils import NamingConstants
-from gt.utils.curve_utils import get_curve
-from gt.utils.node_utils import Node
-from gt.utils import hierarchy_utils
-from gt.ui import resource_library
+
+import gt.tools.auto_rigger.rig_utils as tools_rig_utils
+import gt.core.transform as core_trans
+import gt.core.attr as core_attr
+import gt.tools.auto_rigger.rig_framework as tools_rig_frm
+import gt.tools.auto_rigger.rig_constants as tools_rig_const
+import gt.core.math as core_math
+import gt.core.hierarchy as core_hrchy
+import gt.core.color as core_color
+import gt.core.naming as core_naming
+import gt.core.curve as core_curve
+import gt.core.str as core_str
+import gt.core as core
+import gt.ui.resource_library as ui_res_lib
 import maya.cmds as cmds
 import logging
+
 
 # Logging Setup
 logging.basicConfig()
@@ -27,279 +25,392 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class ModuleBipedFingers(ModuleGeneric):
-    __version__ = '0.0.3-alpha'
-    icon = resource_library.Icon.rigger_module_biped_fingers
+class ModuleBipedFingers(tools_rig_frm.ModuleGeneric):
+    __version__ = "0.0.3-alpha"
+    icon = ui_res_lib.Icon.rigger_module_biped_fingers
     allow_parenting = True
 
-    # Reference Attributes and Metadata Keys
-    META_THUMB_NAME = "thumbName"  # Metadata key for the thumb digit name
-    META_INDEX_NAME = "indexName"  # Metadata key for the index digit name
-    META_MIDDLE_NAME = "middleName"  # Metadata key for the middle digit name
-    META_RING_NAME = "ringName"  # Metadata key for the ring digit name
-    META_PINKY_NAME = "pinkyName"  # Metadata key for the pinky digit name
-    META_EXTRA_NAME = "extraName"  # Metadata key for the extra digit name
-    # Default Label Values
-    DEFAULT_SETUP_NAME = "fingers"
-    DEFAULT_THUMB = "thumb"
-    DEFAULT_INDEX = "index"
-    DEFAULT_MIDDLE = "middle"
-    DEFAULT_RING = "ring"
-    DEFAULT_PINKY = "pinky"
-    DEFAULT_EXTRA = "extra"
-
-    def __init__(self, name="Fingers", prefix=None, suffix=None):
+    def __init__(
+        self,
+        name="Fingers",
+        prefix=None,
+        suffix=None,
+        meta=True,
+        thumb=True,
+        index=True,
+        middle=True,
+        ring=True,
+        pinky=True,
+        extra=False,
+    ):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
-        _orientation = OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 1, 0), up_dir=(0, 1, 0))
+        _orientation = tools_rig_frm.OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 1, 0), up_dir=(0, 1, 0))
         self.set_orientation(orientation_data=_orientation)
 
+        self.meta = meta
+        self.thumb = thumb
+        self.index = index
+        self.middle = middle
+        self.ring = ring
+        self.pinky = pinky
+        self.extra = extra
+
         # Extra Module Data
-        self.set_meta_setup_name(name=self.DEFAULT_SETUP_NAME)
-        self.add_to_metadata(key=self.META_THUMB_NAME, value=self.DEFAULT_THUMB)
-        self.add_to_metadata(key=self.META_INDEX_NAME, value=self.DEFAULT_INDEX)
-        self.add_to_metadata(key=self.META_MIDDLE_NAME, value=self.DEFAULT_MIDDLE)
-        self.add_to_metadata(key=self.META_RING_NAME, value=self.DEFAULT_RING)
-        self.add_to_metadata(key=self.META_PINKY_NAME, value=self.DEFAULT_PINKY)
-        self.add_to_metadata(key=self.META_EXTRA_NAME, value=self.DEFAULT_EXTRA)
+        self.setup_name = "fingers"
+        self.meta_name = "Meta"
+        self.thumb_name = "thumb"
+        self.index_name = "index"
+        self.middle_name = "middle"
+        self.ring_name = "ring"
+        self.pinky_name = "pinky"
+        self.extra_name = "extra"
 
         # Positions
-        pos_thumb01 = Vector3(x=-4, y=130)
-        pos_thumb02 = pos_thumb01 + Vector3(z=3)
-        pos_thumb03 = pos_thumb02 + Vector3(z=3)
-        pos_thumb04 = pos_thumb03 + Vector3(z=3)
+        pos_meta_index = core_trans.Vector3(x=-2, y=125)
+        pos_meta_middle = core_trans.Vector3(x=0, y=125)
+        pos_meta_ring = core_trans.Vector3(x=-2, y=125)
+        pos_meta_pinky = core_trans.Vector3(x=-4, y=125)
+        pos_meta_extra = core_trans.Vector3(x=-6, y=125)
 
-        pos_index01 = Vector3(x=-2, y=130)
-        pos_index02 = pos_index01 + Vector3(z=3)
-        pos_index03 = pos_index02 + Vector3(z=3)
-        pos_index04 = pos_index03 + Vector3(z=3)
+        pos_thumb01 = core_trans.Vector3(x=-4, y=130)
+        pos_thumb02 = pos_thumb01 + core_trans.Vector3(z=3)
+        pos_thumb03 = pos_thumb02 + core_trans.Vector3(z=3)
+        pos_thumb04 = pos_thumb03 + core_trans.Vector3(z=3)
 
-        pos_middle01 = Vector3(x=0, y=130)
-        pos_middle02 = pos_middle01 + Vector3(z=3)
-        pos_middle03 = pos_middle02 + Vector3(z=3)
-        pos_middle04 = pos_middle03 + Vector3(z=3)
+        pos_index01 = core_trans.Vector3(x=-2, y=130)
+        pos_index02 = pos_index01 + core_trans.Vector3(z=3)
+        pos_index03 = pos_index02 + core_trans.Vector3(z=3)
+        pos_index04 = pos_index03 + core_trans.Vector3(z=3)
 
-        pos_ring01 = Vector3(x=2, y=130)
-        pos_ring02 = pos_ring01 + Vector3(z=3)
-        pos_ring03 = pos_ring02 + Vector3(z=3)
-        pos_ring04 = pos_ring03 + Vector3(z=3)
+        pos_middle01 = core_trans.Vector3(x=0, y=130)
+        pos_middle02 = pos_middle01 + core_trans.Vector3(z=3)
+        pos_middle03 = pos_middle02 + core_trans.Vector3(z=3)
+        pos_middle04 = pos_middle03 + core_trans.Vector3(z=3)
 
-        pos_pinky01 = Vector3(x=4, y=130)
-        pos_pinky02 = pos_pinky01 + Vector3(z=3)
-        pos_pinky03 = pos_pinky02 + Vector3(z=3)
-        pos_pinky04 = pos_pinky03 + Vector3(z=3)
+        pos_ring01 = core_trans.Vector3(x=2, y=130)
+        pos_ring02 = pos_ring01 + core_trans.Vector3(z=3)
+        pos_ring03 = pos_ring02 + core_trans.Vector3(z=3)
+        pos_ring04 = pos_ring03 + core_trans.Vector3(z=3)
 
-        pos_extra01 = Vector3(x=6, y=130)
-        pos_extra02 = pos_extra01 + Vector3(z=3)
-        pos_extra03 = pos_extra02 + Vector3(z=3)
-        pos_extra04 = pos_extra03 + Vector3(z=3)
+        pos_pinky01 = core_trans.Vector3(x=4, y=130)
+        pos_pinky02 = pos_pinky01 + core_trans.Vector3(z=3)
+        pos_pinky03 = pos_pinky02 + core_trans.Vector3(z=3)
+        pos_pinky04 = pos_pinky03 + core_trans.Vector3(z=3)
 
-        loc_scale = .8
-        loc_scale_end = .4
+        pos_extra01 = core_trans.Vector3(x=6, y=130)
+        pos_extra02 = pos_extra01 + core_trans.Vector3(z=3)
+        pos_extra03 = pos_extra02 + core_trans.Vector3(z=3)
+        pos_extra04 = pos_extra03 + core_trans.Vector3(z=3)
+
+        loc_scale = 0.8
+        loc_scale_end = 0.4
+
+        # Meta -------------------------------------------------------------------------------------
+        if self.meta:
+            self.meta_digits = []
+            if self.index:
+                self.meta_index_proxy = tools_rig_frm.Proxy(name=f"index{self.meta_name}")
+                self.meta_index_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+                self.meta_index_proxy.set_initial_position(xyz=pos_meta_index)
+                self.meta_index_proxy.set_locator_scale(scale=loc_scale)
+                self.meta_index_proxy.set_meta_purpose(value=self.meta_index_proxy.get_name())
+                self.meta_index_proxy.add_driver_type(
+                    driver_type=[tools_rig_const.RiggerDriverTypes.GENERIC, tools_rig_const.RiggerDriverTypes.FK]
+                )
+                self.meta_digits.append(self.meta_index_proxy)
+            if self.middle:
+                self.meta_middle_proxy = tools_rig_frm.Proxy(name=f"middle{self.meta_name}")
+                self.meta_middle_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+                self.meta_middle_proxy.set_initial_position(xyz=pos_meta_middle)
+                self.meta_middle_proxy.set_locator_scale(scale=loc_scale)
+                self.meta_middle_proxy.set_meta_purpose(value=self.meta_middle_proxy.get_name())
+                self.meta_middle_proxy.add_driver_type(
+                    driver_type=[tools_rig_const.RiggerDriverTypes.GENERIC, tools_rig_const.RiggerDriverTypes.FK]
+                )
+                self.meta_digits.append(self.meta_middle_proxy)
+            if self.ring:
+                self.meta_ring_proxy = tools_rig_frm.Proxy(name=f"ring{self.meta_name}")
+                self.meta_ring_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+                self.meta_ring_proxy.set_initial_position(xyz=pos_meta_ring)
+                self.meta_ring_proxy.set_locator_scale(scale=loc_scale)
+                self.meta_ring_proxy.set_meta_purpose(value=self.meta_ring_proxy.get_name())
+                self.meta_ring_proxy.add_driver_type(
+                    driver_type=[tools_rig_const.RiggerDriverTypes.GENERIC, tools_rig_const.RiggerDriverTypes.FK]
+                )
+                self.meta_digits.append(self.meta_ring_proxy)
+            if self.pinky:
+                self.meta_pinky_proxy = tools_rig_frm.Proxy(name=f"pinky{self.meta_name}")
+                self.meta_pinky_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+                self.meta_pinky_proxy.set_initial_position(xyz=pos_meta_pinky)
+                self.meta_pinky_proxy.set_locator_scale(scale=loc_scale)
+                self.meta_pinky_proxy.set_meta_purpose(value=self.meta_pinky_proxy.get_name())
+                self.meta_pinky_proxy.add_driver_type(
+                    driver_type=[tools_rig_const.RiggerDriverTypes.GENERIC, tools_rig_const.RiggerDriverTypes.FK]
+                )
+                self.meta_digits.append(self.meta_pinky_proxy)
+            if self.extra:
+                self.meta_extra_proxy = tools_rig_frm.Proxy(name=f"extra{self.meta_name}")
+                self.meta_extra_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+                self.meta_extra_proxy.set_initial_position(xyz=pos_meta_extra)
+                self.meta_extra_proxy.set_locator_scale(scale=loc_scale)
+                self.meta_extra_proxy.set_meta_purpose(value=self.meta_extra_proxy.get_name())
+                self.meta_extra_proxy.add_driver_type(
+                    driver_type=[tools_rig_const.RiggerDriverTypes.GENERIC, tools_rig_const.RiggerDriverTypes.FK]
+                )
+                self.meta_digits.append(self.meta_extra_proxy)
 
         # Thumb -------------------------------------------------------------------------------------
-        self.thumb_digits = []
-        self.thumb01 = Proxy(name=f"{self.DEFAULT_THUMB}01")
-        self.thumb01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.thumb01.set_initial_position(xyz=pos_thumb01)
-        self.thumb01.set_locator_scale(scale=loc_scale)
-        self.thumb01.set_meta_purpose(value=self.thumb01.get_name())
+        if self.thumb:
+            self.thumb_digits = []
+            self.thumb01_proxy = tools_rig_frm.Proxy(name=f"{self.thumb_name}01")
+            self.thumb01_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.thumb01_proxy.set_initial_position(xyz=pos_thumb01)
+            self.thumb01_proxy.set_locator_scale(scale=loc_scale)
+            self.thumb01_proxy.set_meta_purpose(value=self.thumb01_proxy.get_name())
+            self.thumb01_proxy.add_driver_type(
+                driver_type=[tools_rig_const.RiggerDriverTypes.GENERIC, tools_rig_const.RiggerDriverTypes.FK]
+            )
 
-        self.thumb02 = Proxy(name=f"{self.DEFAULT_THUMB}02")
-        self.thumb02.set_parent_uuid(self.thumb01.get_uuid())
-        self.thumb02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.thumb02.set_initial_position(xyz=pos_thumb02)
-        self.thumb02.set_locator_scale(scale=loc_scale)
-        self.thumb02.set_meta_purpose(value=self.thumb02.get_name())
+            self.thumb02_proxy = tools_rig_frm.Proxy(name=f"{self.thumb_name}02")
+            self.thumb02_proxy.set_parent_uuid(self.thumb01_proxy.get_uuid())
+            self.thumb02_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.thumb02_proxy.set_initial_position(xyz=pos_thumb02)
+            self.thumb02_proxy.set_locator_scale(scale=loc_scale)
+            self.thumb02_proxy.set_meta_purpose(value=self.thumb02_proxy.get_name())
+            self.thumb02_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.thumb03 = Proxy(name=f"{self.DEFAULT_THUMB}03")
-        self.thumb03.set_parent_uuid(self.thumb02.get_uuid())
-        self.thumb03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.thumb03.set_initial_position(xyz=pos_thumb03)
-        self.thumb03.set_locator_scale(scale=loc_scale)
-        self.thumb03.set_meta_purpose(value=self.thumb03.get_name())
+            self.thumb03_proxy = tools_rig_frm.Proxy(name=f"{self.thumb_name}03")
+            self.thumb03_proxy.set_parent_uuid(self.thumb02_proxy.get_uuid())
+            self.thumb03_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.thumb03_proxy.set_initial_position(xyz=pos_thumb03)
+            self.thumb03_proxy.set_locator_scale(scale=loc_scale)
+            self.thumb03_proxy.set_meta_purpose(value=self.thumb03_proxy.get_name())
+            self.thumb03_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.thumb04 = Proxy(name=f"{self.DEFAULT_THUMB}End")
-        self.thumb04.set_parent_uuid(self.thumb03.get_uuid())
-        self.thumb04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.thumb04.set_initial_position(xyz=pos_thumb04)
-        self.thumb04.set_locator_scale(scale=loc_scale_end)
-        self.thumb04.set_meta_purpose(value=self.thumb04.get_name())
-        self.thumb04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
-        self.thumb_digits = [self.thumb01, self.thumb02, self.thumb03, self.thumb04]
+            self.thumb04_proxy = tools_rig_frm.Proxy(name=f"{self.thumb_name}End")
+            self.thumb04_proxy.set_parent_uuid(self.thumb03_proxy.get_uuid())
+            self.thumb04_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.thumb04_proxy.set_initial_position(xyz=pos_thumb04)
+            self.thumb04_proxy.set_locator_scale(scale=loc_scale_end)
+            self.thumb04_proxy.set_meta_purpose(value=self.thumb04_proxy.get_name())
+            self.thumb04_proxy.add_color(rgb_color=core_color.ColorConstants.RigProxy.FOLLOWER)
+            self.thumb_digits = [self.thumb01_proxy, self.thumb02_proxy, self.thumb03_proxy, self.thumb04_proxy]
 
-        # Index -------------------------------------------------------------------------------------
-        self.index_digits = []
-        self.index01 = Proxy(name=f"{self.DEFAULT_INDEX}01")
-        self.index01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.index01.set_initial_position(xyz=pos_index01)
-        self.index01.set_locator_scale(scale=loc_scale)
-        self.index01.set_meta_purpose(value=self.index01.get_name())
+        # Index -------------------------------------------------------------------------------------\
+        if self.index:
+            self.index_digits = []
+            self.index01_proxy = tools_rig_frm.Proxy(name=f"{self.index_name}01")
+            if self.meta:
+                self.index01_proxy.set_parent_uuid(self.meta_index_proxy.get_uuid())
+            self.index01_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.index01_proxy.set_initial_position(xyz=pos_index01)
+            self.index01_proxy.set_locator_scale(scale=loc_scale)
+            self.index01_proxy.set_meta_purpose(value=self.index01_proxy.get_name())
+            self.index01_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.index02 = Proxy(name=f"{self.DEFAULT_INDEX}02")
-        self.index02.set_parent_uuid(self.index01.get_uuid())
-        self.index02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.index02.set_initial_position(xyz=pos_index02)
-        self.index02.set_locator_scale(scale=loc_scale)
-        self.index02.set_meta_purpose(value=self.index02.get_name())
+            self.index02_proxy = tools_rig_frm.Proxy(name=f"{self.index_name}02")
+            self.index02_proxy.set_parent_uuid(self.index01_proxy.get_uuid())
+            self.index02_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.index02_proxy.set_initial_position(xyz=pos_index02)
+            self.index02_proxy.set_locator_scale(scale=loc_scale)
+            self.index02_proxy.set_meta_purpose(value=self.index02_proxy.get_name())
+            self.index02_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.index03 = Proxy(name=f"{self.DEFAULT_INDEX}03")
-        self.index03.set_parent_uuid(self.index02.get_uuid())
-        self.index03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.index03.set_initial_position(xyz=pos_index03)
-        self.index03.set_locator_scale(scale=loc_scale)
-        self.index03.set_meta_purpose(value=self.index03.get_name())
+            self.index03_proxy = tools_rig_frm.Proxy(name=f"{self.index_name}03")
+            self.index03_proxy.set_parent_uuid(self.index02_proxy.get_uuid())
+            self.index03_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.index03_proxy.set_initial_position(xyz=pos_index03)
+            self.index03_proxy.set_locator_scale(scale=loc_scale)
+            self.index03_proxy.set_meta_purpose(value=self.index03_proxy.get_name())
+            self.index03_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.index04 = Proxy(name=f"{self.DEFAULT_INDEX}End")
-        self.index04.set_parent_uuid(self.index03.get_uuid())
-        self.index04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.index04.set_initial_position(xyz=pos_index04)
-        self.index04.set_locator_scale(scale=loc_scale_end)
-        self.index04.set_meta_purpose(value=self.index04.get_name())
-        self.index04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
-        self.index_digits = [self.index01, self.index02, self.index03, self.index04]
+            self.index04_proxy = tools_rig_frm.Proxy(name=f"{self.index_name}End")
+            self.index04_proxy.set_parent_uuid(self.index03_proxy.get_uuid())
+            self.index04_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.index04_proxy.set_initial_position(xyz=pos_index04)
+            self.index04_proxy.set_locator_scale(scale=loc_scale_end)
+            self.index04_proxy.set_meta_purpose(value=self.index04_proxy.get_name())
+            self.index04_proxy.add_color(rgb_color=core_color.ColorConstants.RigProxy.FOLLOWER)
+            self.index_digits = [self.index01_proxy, self.index02_proxy, self.index03_proxy, self.index04_proxy]
 
         # Middle -------------------------------------------------------------------------------------
-        self.middle_digits = []
-        self.middle01 = Proxy(name=f"{self.DEFAULT_MIDDLE}01")
-        self.middle01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.middle01.set_initial_position(xyz=pos_middle01)
-        self.middle01.set_locator_scale(scale=loc_scale)
-        self.middle01.set_meta_purpose(value=self.middle01.get_name())
+        if self.middle:
+            self.middle_digits = []
+            self.middle01_proxy = tools_rig_frm.Proxy(name=f"{self.middle_name}01")
+            if self.meta:
+                self.middle01_proxy.set_parent_uuid(self.meta_middle_proxy.get_uuid())
+            self.middle01_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.middle01_proxy.set_initial_position(xyz=pos_middle01)
+            self.middle01_proxy.set_locator_scale(scale=loc_scale)
+            self.middle01_proxy.set_meta_purpose(value=self.middle01_proxy.get_name())
+            self.middle01_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.middle02 = Proxy(name=f"{self.DEFAULT_MIDDLE}02")
-        self.middle02.set_parent_uuid(self.middle01.get_uuid())
-        self.middle02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.middle02.set_initial_position(xyz=pos_middle02)
-        self.middle02.set_locator_scale(scale=loc_scale)
-        self.middle02.set_meta_purpose(value=self.middle02.get_name())
+            self.middle02_proxy = tools_rig_frm.Proxy(name=f"{self.middle_name}02")
+            self.middle02_proxy.set_parent_uuid(self.middle01_proxy.get_uuid())
+            self.middle02_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.middle02_proxy.set_initial_position(xyz=pos_middle02)
+            self.middle02_proxy.set_locator_scale(scale=loc_scale)
+            self.middle02_proxy.set_meta_purpose(value=self.middle02_proxy.get_name())
+            self.middle02_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.middle03 = Proxy(name=f"{self.DEFAULT_MIDDLE}03")
-        self.middle03.set_parent_uuid(self.middle02.get_uuid())
-        self.middle03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.middle03.set_initial_position(xyz=pos_middle03)
-        self.middle03.set_locator_scale(scale=loc_scale)
-        self.middle03.set_meta_purpose(value=self.middle03.get_name())
+            self.middle03_proxy = tools_rig_frm.Proxy(name=f"{self.middle_name}03")
+            self.middle03_proxy.set_parent_uuid(self.middle02_proxy.get_uuid())
+            self.middle03_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.middle03_proxy.set_initial_position(xyz=pos_middle03)
+            self.middle03_proxy.set_locator_scale(scale=loc_scale)
+            self.middle03_proxy.set_meta_purpose(value=self.middle03_proxy.get_name())
+            self.middle03_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.middle04 = Proxy(name=f"{self.DEFAULT_MIDDLE}End")
-        self.middle04.set_parent_uuid(self.middle03.get_uuid())
-        self.middle04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.middle04.set_initial_position(xyz=pos_middle04)
-        self.middle04.set_locator_scale(scale=loc_scale_end)
-        self.middle04.set_meta_purpose(value=self.middle04.get_name())
-        self.middle04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
-        self.middle_digits = [self.middle01, self.middle02, self.middle03, self.middle04]
+            self.middle04_proxy = tools_rig_frm.Proxy(name=f"{self.middle_name}End")
+            self.middle04_proxy.set_parent_uuid(self.middle03_proxy.get_uuid())
+            self.middle04_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.middle04_proxy.set_initial_position(xyz=pos_middle04)
+            self.middle04_proxy.set_locator_scale(scale=loc_scale_end)
+            self.middle04_proxy.set_meta_purpose(value=self.middle04_proxy.get_name())
+            self.middle04_proxy.add_color(rgb_color=core_color.ColorConstants.RigProxy.FOLLOWER)
+            self.middle_digits = [
+                self.middle01_proxy,
+                self.middle02_proxy,
+                self.middle03_proxy,
+                self.middle04_proxy,
+            ]
 
         # Ring -------------------------------------------------------------------------------------
-        self.ring_digits = []
-        self.ring01 = Proxy(name=f"{self.DEFAULT_RING}01")
-        self.ring01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.ring01.set_initial_position(xyz=pos_ring01)
-        self.ring01.set_locator_scale(scale=loc_scale)
-        self.ring01.set_meta_purpose(value=self.ring01.get_name())
+        if self.ring:
+            self.ring_digits = []
+            self.ring01_proxy = tools_rig_frm.Proxy(name=f"{self.ring_name}01")
+            if self.meta:
+                self.ring01_proxy.set_parent_uuid(self.meta_ring_proxy.get_uuid())
+            self.ring01_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.ring01_proxy.set_initial_position(xyz=pos_ring01)
+            self.ring01_proxy.set_locator_scale(scale=loc_scale)
+            self.ring01_proxy.set_meta_purpose(value=self.ring01_proxy.get_name())
+            self.ring01_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.ring02 = Proxy(name=f"{self.DEFAULT_RING}02")
-        self.ring02.set_parent_uuid(self.ring01.get_uuid())
-        self.ring02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.ring02.set_initial_position(xyz=pos_ring02)
-        self.ring02.set_locator_scale(scale=loc_scale)
-        self.ring02.set_meta_purpose(value=self.ring02.get_name())
+            self.ring02_proxy = tools_rig_frm.Proxy(name=f"{self.ring_name}02")
+            self.ring02_proxy.set_parent_uuid(self.ring01_proxy.get_uuid())
+            self.ring02_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.ring02_proxy.set_initial_position(xyz=pos_ring02)
+            self.ring02_proxy.set_locator_scale(scale=loc_scale)
+            self.ring02_proxy.set_meta_purpose(value=self.ring02_proxy.get_name())
+            self.ring02_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.ring03 = Proxy(name=f"{self.DEFAULT_RING}03")
-        self.ring03.set_parent_uuid(self.ring02.get_uuid())
-        self.ring03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.ring03.set_initial_position(xyz=pos_ring03)
-        self.ring03.set_locator_scale(scale=loc_scale)
-        self.ring03.set_meta_purpose(value=self.ring03.get_name())
+            self.ring03_proxy = tools_rig_frm.Proxy(name=f"{self.ring_name}03")
+            self.ring03_proxy.set_parent_uuid(self.ring02_proxy.get_uuid())
+            self.ring03_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.ring03_proxy.set_initial_position(xyz=pos_ring03)
+            self.ring03_proxy.set_locator_scale(scale=loc_scale)
+            self.ring03_proxy.set_meta_purpose(value=self.ring03_proxy.get_name())
+            self.ring03_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.ring04 = Proxy(name=f"{self.DEFAULT_RING}End")
-        self.ring04.set_parent_uuid(self.ring03.get_uuid())
-        self.ring04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.ring04.set_initial_position(xyz=pos_ring04)
-        self.ring04.set_locator_scale(scale=loc_scale_end)
-        self.ring04.set_meta_purpose(value=self.ring04.get_name())
-        self.ring04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
-        self.ring_digits = [self.ring01, self.ring02, self.ring03, self.ring04]
+            self.ring04_proxy = tools_rig_frm.Proxy(name=f"{self.ring_name}End")
+            self.ring04_proxy.set_parent_uuid(self.ring03_proxy.get_uuid())
+            self.ring04_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.ring04_proxy.set_initial_position(xyz=pos_ring04)
+            self.ring04_proxy.set_locator_scale(scale=loc_scale_end)
+            self.ring04_proxy.set_meta_purpose(value=self.ring04_proxy.get_name())
+            self.ring04_proxy.add_color(rgb_color=core_color.ColorConstants.RigProxy.FOLLOWER)
+            self.ring_digits = [self.ring01_proxy, self.ring02_proxy, self.ring03_proxy, self.ring04_proxy]
 
         # Pinky -------------------------------------------------------------------------------------
-        self.pinky_digits = []
-        self.pinky01 = Proxy(name=f"{self.DEFAULT_PINKY}01")
-        self.pinky01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.pinky01.set_initial_position(xyz=pos_pinky01)
-        self.pinky01.set_locator_scale(scale=loc_scale)
-        self.pinky01.set_meta_purpose(value=self.pinky01.get_name())
+        if self.pinky:
+            self.pinky_digits = []
+            self.pinky01_proxy = tools_rig_frm.Proxy(name=f"{self.pinky_name}01")
+            if self.meta:
+                self.pinky01_proxy.set_parent_uuid(self.meta_pinky_proxy.get_uuid())
+            self.pinky01_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.pinky01_proxy.set_initial_position(xyz=pos_pinky01)
+            self.pinky01_proxy.set_locator_scale(scale=loc_scale)
+            self.pinky01_proxy.set_meta_purpose(value=self.pinky01_proxy.get_name())
+            self.pinky01_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.pinky02 = Proxy(name=f"{self.DEFAULT_PINKY}02")
-        self.pinky02.set_parent_uuid(self.pinky01.get_uuid())
-        self.pinky02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.pinky02.set_initial_position(xyz=pos_pinky02)
-        self.pinky02.set_locator_scale(scale=loc_scale)
-        self.pinky02.set_meta_purpose(value=self.pinky02.get_name())
+            self.pinky02_proxy = tools_rig_frm.Proxy(name=f"{self.pinky_name}02")
+            self.pinky02_proxy.set_parent_uuid(self.pinky01_proxy.get_uuid())
+            self.pinky02_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.pinky02_proxy.set_initial_position(xyz=pos_pinky02)
+            self.pinky02_proxy.set_locator_scale(scale=loc_scale)
+            self.pinky02_proxy.set_meta_purpose(value=self.pinky02_proxy.get_name())
+            self.pinky02_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.pinky03 = Proxy(name=f"{self.DEFAULT_PINKY}03")
-        self.pinky03.set_parent_uuid(self.pinky02.get_uuid())
-        self.pinky03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.pinky03.set_initial_position(xyz=pos_pinky03)
-        self.pinky03.set_locator_scale(scale=loc_scale)
-        self.pinky03.set_meta_purpose(value=self.pinky03.get_name())
+            self.pinky03_proxy = tools_rig_frm.Proxy(name=f"{self.pinky_name}03")
+            self.pinky03_proxy.set_parent_uuid(self.pinky02_proxy.get_uuid())
+            self.pinky03_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.pinky03_proxy.set_initial_position(xyz=pos_pinky03)
+            self.pinky03_proxy.set_locator_scale(scale=loc_scale)
+            self.pinky03_proxy.set_meta_purpose(value=self.pinky03_proxy.get_name())
+            self.pinky03_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.pinky04 = Proxy(name=f"{self.DEFAULT_PINKY}End")
-        self.pinky04.set_parent_uuid(self.pinky03.get_uuid())
-        self.pinky04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.pinky04.set_initial_position(xyz=pos_pinky04)
-        self.pinky04.set_locator_scale(scale=loc_scale_end)
-        self.pinky04.set_meta_purpose(value=self.pinky04.get_name())
-        self.pinky04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
-        self.pinky_digits = [self.pinky01, self.pinky02, self.pinky03, self.pinky04]
+            self.pinky04_proxy = tools_rig_frm.Proxy(name=f"{self.pinky_name}End")
+            self.pinky04_proxy.set_parent_uuid(self.pinky03_proxy.get_uuid())
+            self.pinky04_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.pinky04_proxy.set_initial_position(xyz=pos_pinky04)
+            self.pinky04_proxy.set_locator_scale(scale=loc_scale_end)
+            self.pinky04_proxy.set_meta_purpose(value=self.pinky04_proxy.get_name())
+            self.pinky04_proxy.add_color(rgb_color=core_color.ColorConstants.RigProxy.FOLLOWER)
+            self.pinky_digits = [self.pinky01_proxy, self.pinky02_proxy, self.pinky03_proxy, self.pinky04_proxy]
 
         # Extra -------------------------------------------------------------------------------------
-        self.extra_digits = []
-        self.extra01 = Proxy(name=f"{self.DEFAULT_EXTRA}01")
-        self.extra01.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.extra01.set_initial_position(xyz=pos_extra01)
-        self.extra01.set_locator_scale(scale=loc_scale)
-        self.extra01.set_meta_purpose(value=self.extra01.get_name())
+        if self.extra:
+            self.extra_digits = []
+            self.extra01_proxy = tools_rig_frm.Proxy(name=f"{self.extra_name}01")
+            if self.meta:
+                self.extra01_proxy.set_parent_uuid(self.meta_extra_proxy.get_uuid())
+            self.extra01_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.extra01_proxy.set_initial_position(xyz=pos_extra01)
+            self.extra01_proxy.set_locator_scale(scale=loc_scale)
+            self.extra01_proxy.set_meta_purpose(value=self.extra01_proxy.get_name())
+            self.extra01_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.extra02 = Proxy(name=f"{self.DEFAULT_EXTRA}02")
-        self.extra02.set_parent_uuid(self.extra01.get_uuid())
-        self.extra02.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.extra02.set_initial_position(xyz=pos_extra02)
-        self.extra02.set_locator_scale(scale=loc_scale)
-        self.extra02.set_meta_purpose(value=self.extra02.get_name())
+            self.extra02_proxy = tools_rig_frm.Proxy(name=f"{self.extra_name}02")
+            self.extra02_proxy.set_parent_uuid(self.extra01_proxy.get_uuid())
+            self.extra02_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.extra02_proxy.set_initial_position(xyz=pos_extra02)
+            self.extra02_proxy.set_locator_scale(scale=loc_scale)
+            self.extra02_proxy.set_meta_purpose(value=self.extra02_proxy.get_name())
+            self.extra02_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.extra03 = Proxy(name=f"{self.DEFAULT_EXTRA}03")
-        self.extra03.set_parent_uuid(self.extra02.get_uuid())
-        self.extra03.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.extra03.set_initial_position(xyz=pos_extra03)
-        self.extra03.set_locator_scale(scale=loc_scale)
-        self.extra03.set_meta_purpose(value=self.extra03.get_name())
+            self.extra03_proxy = tools_rig_frm.Proxy(name=f"{self.extra_name}03")
+            self.extra03_proxy.set_parent_uuid(self.extra02_proxy.get_uuid())
+            self.extra03_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.extra03_proxy.set_initial_position(xyz=pos_extra03)
+            self.extra03_proxy.set_locator_scale(scale=loc_scale)
+            self.extra03_proxy.set_meta_purpose(value=self.extra03_proxy.get_name())
+            self.extra03_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
-        self.extra04 = Proxy(name=f"{self.DEFAULT_EXTRA}End")
-        self.extra04.set_parent_uuid(self.extra03.get_uuid())
-        self.extra04.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
-        self.extra04.set_initial_position(xyz=pos_extra04)
-        self.extra04.set_locator_scale(scale=loc_scale_end)
-        self.extra04.set_meta_purpose(value=self.extra04.get_name())
-        self.extra04.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
-        self.extra_digits = [self.extra01, self.extra02, self.extra03, self.extra04]
+            self.extra04_proxy = tools_rig_frm.Proxy(name=f"{self.extra_name}End")
+            self.extra04_proxy.set_parent_uuid(self.extra03_proxy.get_uuid())
+            self.extra04_proxy.set_curve(curve=core_curve.get_curve("_proxy_joint_dir_pos_y"))
+            self.extra04_proxy.set_initial_position(xyz=pos_extra04)
+            self.extra04_proxy.set_locator_scale(scale=loc_scale_end)
+            self.extra04_proxy.set_meta_purpose(value=self.extra04_proxy.get_name())
+            self.extra04_proxy.add_color(rgb_color=core_color.ColorConstants.RigProxy.FOLLOWER)
+            self.extra_digits = [
+                self.extra01_proxy,
+                self.extra02_proxy,
+                self.extra03_proxy,
+                self.extra04_proxy,
+            ]
         self.refresh_proxies_list()
 
-    def refresh_proxies_list(self, thumb=True, index=True, middle=True, ring=True, pinky=True, extra=False):
+    def refresh_proxies_list(self):
         """
         Refreshes the main proxies list used by the module during build
         """
         self.proxies = []
-        if thumb:
+        if self.meta:
+            self.proxies.extend(self.meta_digits)
+        if self.thumb:
             self.proxies.extend(self.thumb_digits)
-        if index:
+        if self.index:
             self.proxies.extend(self.index_digits)
-        if middle:
+        if self.middle:
             self.proxies.extend(self.middle_digits)
-        if ring:
+        if self.ring:
             self.proxies.extend(self.ring_digits)
-        if pinky:
+        if self.pinky:
             self.proxies.extend(self.pinky_digits)
-        if extra:
+        if self.extra:
             self.proxies.extend(self.extra_digits)
 
     def get_module_as_dict(self, **kwargs):
@@ -320,9 +431,10 @@ class ModuleBipedFingers(ModuleGeneric):
                                "<description>" being the output of the operation "proxy.get_proxy_as_dict()".
         """
         if not proxy_dict or not isinstance(proxy_dict, dict):
-            logger.debug(f'Unable to read proxies from dictionary. Input must be a dictionary.')
+            logger.debug(f"Unable to read proxies from dictionary. Input must be a dictionary.")
             return
         # Determine Digit Activation
+        _meta = False
         _thumb = False
         _index = False
         _middle = False
@@ -332,21 +444,22 @@ class ModuleBipedFingers(ModuleGeneric):
         for uuid, description in proxy_dict.items():
             metadata = description.get("metadata")
             if metadata:
-                meta_type = metadata.get(RiggerConstants.META_PROXY_PURPOSE)
-                if meta_type and self.DEFAULT_THUMB in meta_type:
+                meta_type = metadata.get(tools_rig_const.RiggerConstants.META_PROXY_PURPOSE)
+                if meta_type and self.meta_name in meta_type:
+                    _meta = True
+                if meta_type and self.thumb_name in meta_type:
                     _thumb = True
-                elif meta_type and self.DEFAULT_INDEX in meta_type:
+                elif meta_type and self.index_name in meta_type:
                     _index = True
-                elif meta_type and self.DEFAULT_MIDDLE in meta_type:
+                elif meta_type and self.middle_name in meta_type:
                     _middle = True
-                elif meta_type and self.DEFAULT_RING in meta_type:
+                elif meta_type and self.ring_name in meta_type:
                     _ring = True
-                elif meta_type and self.DEFAULT_PINKY in meta_type:
+                elif meta_type and self.pinky_name in meta_type:
                     _pinky = True
-                elif meta_type and self.DEFAULT_EXTRA in meta_type:
+                elif meta_type and self.extra_name in meta_type:
                     _extra = True
-        self.refresh_proxies_list(thumb=_thumb, index=_index, middle=_middle,
-                                  ring=_ring, pinky=_pinky, extra=_extra)
+        self.refresh_proxies_list()
         self.read_purpose_matching_proxy_from_dict(proxy_dict)
 
     # --------------------------------------------------- Misc ---------------------------------------------------
@@ -366,18 +479,30 @@ class ModuleBipedFingers(ModuleGeneric):
             list: A list of ProxyData objects. These objects describe the created proxy elements.
         """
         if self.parent_uuid:
-            if self.thumb01:
-                self.thumb01.set_parent_uuid(self.parent_uuid)
-            if self.index01:
-                self.index01.set_parent_uuid(self.parent_uuid)
-            if self.middle01:
-                self.middle01.set_parent_uuid(self.parent_uuid)
-            if self.ring01:
-                self.ring01.set_parent_uuid(self.parent_uuid)
-            if self.pinky01:
-                self.pinky01.set_parent_uuid(self.parent_uuid)
-            if self.extra01:
-                self.extra01.set_parent_uuid(self.parent_uuid)
+            if self.thumb:
+                self.thumb01_proxy.set_parent_uuid(self.parent_uuid)
+            if self.meta:
+                if self.index:
+                    self.meta_index_proxy.set_parent_uuid(self.parent_uuid)
+                if self.middle:
+                    self.meta_middle_proxy.set_parent_uuid(self.parent_uuid)
+                if self.ring:
+                    self.meta_ring_proxy.set_parent_uuid(self.parent_uuid)
+                if self.pinky:
+                    self.meta_pinky_proxy.set_parent_uuid(self.parent_uuid)
+                if self.extra:
+                    self.meta_extra_proxy.set_parent_uuid(self.parent_uuid)
+            else:
+                if self.index:
+                    self.index01_proxy.set_parent_uuid(self.parent_uuid)
+                if self.middle:
+                    self.middle01_proxy.set_parent_uuid(self.parent_uuid)
+                if self.ring:
+                    self.ring01_proxy.set_parent_uuid(self.parent_uuid)
+                if self.pinky:
+                    self.pinky01_proxy.set_parent_uuid(self.parent_uuid)
+                if self.extra:
+                    self.extra01_proxy.set_parent_uuid(self.parent_uuid)
         proxy = super().build_proxy(**kwargs)  # Passthrough
         return proxy
 
@@ -400,82 +525,213 @@ class ModuleBipedFingers(ModuleGeneric):
         Runs post rig script.
         """
         # Get Elements -----------------------------------------------------------------------------------------
-        _proxy_joint_map = {}  # Key = Joint, Value = Proxy
-        _thumb_joints = []
-        _index_joints = []
-        _middle_joints = []
-        _ring_joints = []
-        _pinky_joints = []
-        _extra_joints = []
-        _end_joints = []  # Only the last joints of every digit
-        # Get Joints
-        for proxy in self.proxies:
-            finger_jnt = find_joint_from_uuid(proxy.get_uuid())
-            meta_type = get_meta_purpose_from_dict(proxy.get_metadata())
-            if not finger_jnt:
-                continue  # Skipped finger
-            if not meta_type:
-                continue  # Unexpected Proxy
-            _proxy_joint_map[finger_jnt] = proxy  # Add to map
-            # Store Joints In Lists/Dict
-            if self.DEFAULT_THUMB in meta_type:
-                _thumb_joints.append(finger_jnt)
-            elif self.DEFAULT_INDEX in meta_type:
-                _index_joints.append(finger_jnt)
-            elif self.DEFAULT_MIDDLE in meta_type:
-                _middle_joints.append(finger_jnt)
-            elif self.DEFAULT_RING in meta_type:
-                _ring_joints.append(finger_jnt)
-            elif self.DEFAULT_PINKY in meta_type:
-                _pinky_joints.append(finger_jnt)
-            elif self.DEFAULT_EXTRA in meta_type:
-                _extra_joints.append(finger_jnt)
-            # End Joints
-            if meta_type and str(meta_type).endswith("End"):
-                _end_joints.append(finger_jnt)
+        (
+            meta_joints,
+            thumb_joints,
+            index_joints,
+            middle_joints,
+            ring_joints,
+            pinky_joints,
+            extra_joints,
+            end_joints,
+        ) = self.get_joints()
+
+        proxy_joint_map = self.get_proxy_joint_map()
+
         # Helpful Lists
-        _unfiltered_finger_lists = [_thumb_joints, _index_joints, _middle_joints,
-                                    _ring_joints, _pinky_joints, _extra_joints]
-        _finger_lists = [sublist for sublist in _unfiltered_finger_lists if sublist]  # Only non-empty
-        _joints_no_end = list(set(_proxy_joint_map.keys()) - set(_end_joints))  # Remove ends
-        _joints_base_only = [sublist[0] for sublist in _finger_lists if sublist]  # Only first element of each list
-        _end_joints_no_thumb = list(set(_end_joints) - set(_thumb_joints))
+        unfiltered_finger_lists = [
+            thumb_joints,
+            index_joints,
+            middle_joints,
+            ring_joints,
+            pinky_joints,
+            extra_joints,
+        ]
+        finger_lists = [sublist for sublist in unfiltered_finger_lists if sublist]  # Only non-empty
+        joints_no_end = list(set(proxy_joint_map.keys()) - set(end_joints))  # Remove ends
+        joints_base_only = [sublist[0] for sublist in finger_lists if sublist]  # Only first element of each list
+        end_joints_no_thumb = list(set(end_joints) - set(thumb_joints))
 
         # Get Formatted Prefix
-        _prefix = ''
-        setup_name = self.get_meta_setup_name()
+        _prefix = ""
+        setup_name = self.setup_name
         if self.prefix:
-            _prefix = f'{self.prefix}_'
+            _prefix = f"{self.prefix}_"
         prefixed_setup_name = setup_name
         if _prefix:
-            prefixed_setup_name = f'{_prefix}{setup_name}'
+            prefixed_setup_name = f"{_prefix}{setup_name}"
 
         # Get Parent Elements
-        direction_crv = find_direction_curve()
-        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
-        fingers_automation_grp = get_automation_group(f'{setup_name}Automation_{NamingConstants.Suffix.GRP}')
-        ik_handles_grp = create_group(f"{prefixed_setup_name}_ikHandles_{NamingConstants.Suffix.GRP}")
-        hierarchy_utils.parent(source_objects=ik_handles_grp, target_parent=fingers_automation_grp)
+        direction_crv = tools_rig_utils.find_ctrl_global_offset()
+        module_parent_jnt = tools_rig_utils.find_joint_from_uuid(self.get_parent_uuid())
+        fingers_automation_grp = tools_rig_utils.get_automation_group(f"{setup_name}Automation")
+        ik_handles_grp = core_hrchy.create_group(
+            f"{prefixed_setup_name}_ikHandles_{core_naming.NamingConstants.Suffix.GRP}"
+        )
+        core.hierarchy.parent(source_objects=ik_handles_grp, target_parent=fingers_automation_grp)
 
         # Set Joint Colors ------------------------------------------------------------------------------------
-        for jnt in _joints_no_end:
-            set_color_viewport(obj_list=jnt, rgb_color=ColorConstants.RigJoint.OFFSET)
-        for jnt in _end_joints:
-            set_color_viewport(obj_list=jnt, rgb_color=ColorConstants.RigJoint.END)
+        for jnt in joints_no_end:
+            core_color.set_color_viewport(obj_list=jnt, rgb_color=core_color.ColorConstants.RigJoint.OFFSET)
+        for jnt in end_joints:
+            core_color.set_color_viewport(obj_list=jnt, rgb_color=core_color.ColorConstants.RigJoint.END)
 
         # Control Parent (Main System Driver) ------------------------------------------------------------------
-        wrist_grp = self._assemble_new_node_name(name=f"fingers_{NamingConstants.Suffix.DRIVEN}",
-                                                 project_prefix=project_prefix)
-        wrist_grp = create_group(name=wrist_grp)
+        wrist_grp = core_hrchy.create_group(name=f"{_prefix}fingers_{core_naming.NamingConstants.Suffix.DRIVEN}")
         if module_parent_jnt:
-            match_transform(source=module_parent_jnt, target_list=wrist_grp)
+            cmds.matchTransform(wrist_grp, module_parent_jnt)
         else:  # No parent, average the position of the fingers group
-            base_center_pos = get_transforms_center_position(transform_list=_joints_base_only)
+            base_center_pos = core_math.get_transforms_center_position(transform_list=joints_base_only)
             cmds.xform(wrist_grp, translation=base_center_pos, worldSpace=True)
-        hierarchy_utils.parent(source_objects=wrist_grp, target_parent=direction_crv)
+        core.hierarchy.parent(source_objects=wrist_grp, target_parent=direction_crv)
+
+        # Fingers System Ctrl ---------------------------------------------------------------------------------
+        # Find Position and Scale
+        end_center_pos = core_math.get_transforms_center_position(transform_list=end_joints_no_thumb)
+        if module_parent_jnt:  # Has Parent
+            distance_from_wrist = core_math.dist_path_sum(input_list=[module_parent_jnt, end_center_pos])
+        else:
+            base_center_pos = core_math.get_transforms_center_position(transform_list=joints_base_only)
+            distance_from_wrist = core_math.dist_path_sum(input_list=[base_center_pos, end_center_pos])
+        # No fingers case
+        if not end_joints_no_thumb:
+            distance_from_wrist = 19.279
+        wrist_directional_pos = core_trans.get_directional_position(object_name=wrist_grp, tolerance=0)  # 0 = No Center
+        is_right_side = wrist_directional_pos == -1  # Right Side?
+        fingers_ctrl_scale = distance_from_wrist * 0.1
+        if self.prefix == core_naming.NamingConstants.Prefix.LEFT:
+            ctrl_color = core_color.ColorConstants.RigControl.LEFT
+        elif self.prefix == core_naming.NamingConstants.Prefix.RIGHT:
+            ctrl_color = core_color.ColorConstants.RigControl.RIGHT
+        else:
+            ctrl_color = core_color.ColorConstants.RigControl.CENTER
+
+        # Finger Control (Main)
+        fingers_ctrl, fingers_ctrl_grps = self.create_rig_control(
+            control_base_name=setup_name,
+            parent_obj=wrist_grp,
+            curve_file_name="target_squared",
+            match_obj=wrist_grp,
+            shape_rot_offset=(90, 0, 90),
+            shape_scale=fingers_ctrl_scale,
+            color=ctrl_color,
+        )[:2]
+
+        # Determine Side Orientation
+        if is_right_side:
+            cmds.rotate(180, fingers_ctrl_grps[0], rotateY=True, relative=True, objectSpace=True)
+            cmds.rotate(180, fingers_ctrl_grps[0], rotateX=True, relative=True, objectSpace=True)
+        # Position
+        fingers_move_offset = 23
+        # fingers_move_offset = distance_from_wrist * 1.2 - Commenting for normalization
+        cmds.move(
+            fingers_move_offset,
+            fingers_ctrl_grps[0],
+            moveX=True,
+            relative=True,
+            objectSpace=True,
+        )
+
+        # Fingers Visibility (Attributes)
+        cmds.addAttr(
+            fingers_ctrl,
+            ln="showFkFingerCtrls",
+            at="bool",
+            k=True,
+            niceName="Show FK Finger Ctrls",
+        )
+
+        # Add Custom Attributes
+        finger_spread = {
+            self.index_name: {"spread": 18, "status": self.index},
+            self.middle_name: {"spread": 1.2, "status": self.middle},
+            self.ring_name: {"spread": 12, "status": self.ring},
+            self.pinky_name: {"spread": 41, "status": self.pinky},
+            self.thumb_name: {"spread": 6, "status": self.thumb},
+            self.extra_name: {"spread": 50, "status": self.extra},
+        }
+        core_attr.add_separator_attr(target_object=fingers_ctrl, attr_name="fingerPoses")
+        if self.thumb:
+            core_attr.add_attr(
+                obj_list=fingers_ctrl, attributes="fistPoseLimitThumb", attr_type="float", is_keyable=False, default=-20
+            )
+            core_attr.add_attr(
+                obj_list=fingers_ctrl, attributes="rotMultiplierThumb", attr_type="float", is_keyable=False, default=0.3
+            )
+        core_attr.add_attr(obj_list=fingers_ctrl, attributes="curl", attr_type="float")
+        for meta, values in finger_spread.items():
+            if values["status"]:
+                core_attr.add_attr(obj_list=fingers_ctrl, attributes=f"{meta}Curl", attr_type="float")
+        core_attr.add_attr(obj_list=fingers_ctrl, attributes="spread", attr_type="float", minimum=-10, maximum=10)
+        core_attr.add_separator_attr(target_object=fingers_ctrl, attr_name="fingersAttributes")
+        left_fingers_minz_scale = 1
+        left_fingers_maxz_scale = 5
+
+        cmds.setAttr(f"{fingers_ctrl}.minScaleZLimit", left_fingers_minz_scale)
+        cmds.setAttr(f"{fingers_ctrl}.maxScaleZLimit", left_fingers_maxz_scale)
+        cmds.setAttr(f"{fingers_ctrl}.minScaleZLimitEnable", 1)
+        cmds.setAttr(f"{fingers_ctrl}.maxScaleZLimitEnable", 1)
+
+        # Global Spread & Curl System
+
+        global_rot_rev = cmds.createNode("multiplyDivide", n=f"{_prefix}{setup_name}_global_rot_rev")
+        cmds.setAttr(f"{global_rot_rev}.input2X", -1)
+        cmds.connectAttr(f"{fingers_ctrl}.curl", f"{global_rot_rev}.input1X")
+        cmds.connectAttr(f"{fingers_ctrl}.spread", f"{global_rot_rev}.input1Y")
+
+        for meta, values in finger_spread.items():
+            if values["status"]:
+                curl_plus_minus = cmds.createNode("plusMinusAverage", n=f"{_prefix}{meta}_sum")
+                curl_clamp = cmds.createNode("clamp", n=f"{_prefix}{meta}_curl_clamp")
+                meta_curl_rev = cmds.createNode("multiplyDivide", n=f"{_prefix}{meta}_global_curl_rev")
+                cmds.setAttr(f"{meta_curl_rev}.input2X", -1)
+                cmds.connectAttr(f"{fingers_ctrl}.{meta}Curl", f"{meta_curl_rev}.input1X")
+                cmds.connectAttr(f"{meta_curl_rev}.outputX", f"{curl_plus_minus}.input2D[0].input2Dx")
+                cmds.connectAttr(f"{global_rot_rev}.outputX", f"{curl_plus_minus}.input2D[1].input2Dx")
+                if meta == "thumb":
+                    cmds.setAttr(f"{curl_clamp}.maxR", 20)
+                    curl_mult = cmds.createNode("multiplyDivide", n=f"{_prefix}{meta}_rot_mult")
+                    cmds.connectAttr(f"{curl_plus_minus}.output2Dx", f"{curl_mult}.input1X")
+                    cmds.connectAttr(f"{fingers_ctrl}.fistPoseLimitThumb", f"{curl_clamp}.minR")
+                    cmds.connectAttr(f"{fingers_ctrl}.rotMultiplierThumb", f"{curl_mult}.input2X")
+                    cmds.connectAttr(f"{curl_mult}.outputX", f"{curl_clamp}.inputR")
+
+                else:
+                    cmds.setAttr(f"{curl_clamp}.maxR", 40)
+                    cmds.setAttr(f"{curl_clamp}.minR", -90)
+                    cmds.connectAttr(f"{curl_plus_minus}.output2Dx", f"{curl_clamp}.inputR")
+
+        core_attr.hide_lock_default_attrs(
+            obj_list=fingers_ctrl, translate=True, rotate=True, scale=True, visibility=True
+        )
 
         # Create Controls -------------------------------------------------------------------------------------
-        for finger_list in _finger_lists:
+        # Meta
+        for meta_jnt in meta_joints:
+            meta_proxy = proxy_joint_map.get(meta_jnt)
+            ctrl_color = core_color.get_directional_color(object_name=meta_jnt)
+            meta_ctrl, meta_ctrl_grps = self.create_rig_control(
+                control_base_name=meta_proxy.get_name(),
+                parent_obj=wrist_grp,
+                curve_file_name="circle",
+                extra_parent_groups=["driver"],
+                match_obj=meta_jnt,
+                shape_rot_offset=(180, 180, -90),
+                shape_scale=1,
+                color=ctrl_color,
+            )[:2]
+            if self.meta:
+                cmds.connectAttr(f"{fingers_ctrl}.showFkFingerCtrls", f"{meta_ctrl_grps[0]}.visibility")
+            self._add_driver_uuid_attr(
+                target_driver=meta_ctrl,
+                driver_type=tools_rig_const.RiggerDriverTypes.GENERIC,
+                proxy_purpose=meta_proxy,
+            )
+            core_attr.hide_lock_default_attrs(obj_list=meta_ctrl, translate=True, scale=True, visibility=True)
+            cmds.parentConstraint(meta_ctrl, meta_jnt)
+
+        # Fingers
+        for finger_list in finger_lists:
             if not finger_list:
                 continue  # Ignore skipped fingers
             # Unpack elements
@@ -484,202 +740,215 @@ class ModuleBipedFingers(ModuleGeneric):
             digit_tip = finger_list[2]
             digit_tip_end = finger_list[3]
             # Determine finger scale
-            finger_scale = dist_path_sum([digit_base, digit_middle, digit_tip, digit_tip_end])
+            finger_scale = core_math.dist_path_sum([digit_base, digit_middle, digit_tip, digit_tip_end]) * 0.08
             # Create FK Controls
             last_ctrl = None
+            main_driver = None
             for finger_jnt in finger_list:
-                finger_proxy = _proxy_joint_map.get(finger_jnt)
-                meta_type = get_meta_purpose_from_dict(finger_proxy.get_metadata())
+                finger_proxy = proxy_joint_map.get(finger_jnt)
+                meta_type = tools_rig_utils.get_meta_purpose_from_dict(finger_proxy.get_metadata())
+                finger_type = core_str.remove_digits(meta_type)
                 if meta_type and str(meta_type).endswith("End"):
                     continue  # Skip end joints
-                ctrl = self._assemble_ctrl_name(name=finger_proxy.get_name())
-                ctrl = create_ctrl_curve(name=ctrl, curve_file_name="_pin_pos_y")
-                self._add_driver_uuid_attr(target_driver=ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=finger_proxy)
-                offset = add_offset_transform(target_list=ctrl)[0]
-                match_transform(source=finger_jnt, target_list=offset)
-                scale_shapes(obj_transform=ctrl, offset=finger_scale*.1)
-                hierarchy_utils.parent(source_objects=offset, target_parent=wrist_grp)
-                add_separator_attr(target_object=ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
-                hide_lock_default_attrs(obj_list=ctrl, scale=True, visibility=True)
-                expose_rotation_order(target=ctrl)
+                ctrl_color = core_color.get_directional_color(object_name=finger_jnt)
+                ctrl, finger_ctrl_grps = self.create_rig_control(
+                    control_base_name=finger_proxy.get_name(),
+                    parent_obj=wrist_grp,
+                    curve_file_name="circle",
+                    extra_parent_groups=["dataCurl", "driver"],
+                    match_obj=finger_jnt,
+                    shape_rot_offset=(180, 180, -90),
+                    shape_scale=finger_scale,
+                    color=ctrl_color,
+                )[:2]
+                if "01" in str(meta_type):
+                    main_driver = finger_ctrl_grps[1]
+                    if "thumb" in str(meta_type):
+                        self._add_driver_uuid_attr(
+                            target_driver=ctrl,
+                            driver_type=tools_rig_const.RiggerDriverTypes.GENERIC,
+                            proxy_purpose=finger_proxy,
+                        )
+                        cmds.connectAttr(f"{fingers_ctrl}.showFkFingerCtrls", f"{main_driver}.visibility")
+                    else:
+                        self._add_driver_uuid_attr(
+                            target_driver=ctrl,
+                            driver_type=tools_rig_const.RiggerDriverTypes.FK,
+                            proxy_purpose=finger_proxy,
+                        )
+                        last_ctrl = f"{_prefix}{finger_type}{self.meta_name}_CTRL"
+                        if not self.meta:
+                            cmds.connectAttr(f"{fingers_ctrl}.showFkFingerCtrls", f"{main_driver}.visibility")
+                else:
+                    self._add_driver_uuid_attr(
+                        target_driver=ctrl,
+                        driver_type=tools_rig_const.RiggerDriverTypes.FK,
+                        proxy_purpose=finger_proxy,
+                    )
+                core_attr.hide_lock_default_attrs(obj_list=ctrl, translate=True, scale=True, visibility=True)
+                cmds.parentConstraint(ctrl, finger_jnt)
                 # Create FK Hierarchy
                 if last_ctrl:
-                    hierarchy_utils.parent(source_objects=offset, target_parent=last_ctrl)
+                    core.hierarchy.parent(source_objects=finger_ctrl_grps[0], target_parent=last_ctrl)
                 last_ctrl = ctrl
 
-        # Fingers System Ctrl ---------------------------------------------------------------------------------
-        # Find Position and Scale
-        end_center_pos = get_transforms_center_position(transform_list=_end_joints_no_thumb)
-        if module_parent_jnt:  # Has Parent
-            distance_from_wrist = dist_path_sum(input_list=[module_parent_jnt, end_center_pos])
-        else:
-            base_center_pos = get_transforms_center_position(transform_list=_joints_base_only)
-            distance_from_wrist = dist_path_sum(input_list=[base_center_pos, end_center_pos])
-        wrist_directional_pos = get_directional_position(object_name=wrist_grp, tolerance=0)  # 0 = No Center
-        is_right_side = wrist_directional_pos == -1  # Right Side?
-        fingers_ctrl_scale = distance_from_wrist*.07
-        # Finger Control (Main)
-        fingers_ctrl = self._assemble_ctrl_name(name=setup_name)
-        fingers_ctrl = create_ctrl_curve(name=fingers_ctrl, curve_file_name="_sphere_half_double_arrows")
-        # self.add_driver_uuid_attr(target=fingers_ctrl,
-        #                           driver_type=RiggerDriverTypes.ROLL,
-        #                           proxy_purpose=self.ankle)  # TODO Add to every finger as automation? @@@
-        fingers_offset = add_offset_transform(target_list=fingers_ctrl)[0]
-        # Shape Scale Inverse Offset
-        shape_scale_offset_name = self._assemble_ctrl_name(name=setup_name, overwrite_suffix=f'shapeScaleOffset')
-        shape_scale_offset = add_offset_transform(target_list=fingers_ctrl)[0]
-        shape_scale_offset.rename(shape_scale_offset_name)
-        # Abduction Feedback Shape
-        abduction_crv_data = self._assemble_ctrl_name(name=setup_name,
-                                                      overwrite_suffix=f'abduction_{NamingConstants.Suffix.CRV}')
-        abduction_crv_data = create_scalable_two_sides_arrow(name=abduction_crv_data)  # Returns ControlData
-        abduction_crv = abduction_crv_data.get_name()
-        abduction_driver = abduction_crv_data.get_drivers()[0]
-        abduction_setup = abduction_crv_data.get_setup()
+                # Create Curl Connection
+                if "01" in str(meta_type):
+                    if "thumb" not in str(meta_type):
+                        if self.meta:
+                            core_attr.add_attr(
+                                obj_list=fingers_ctrl, attributes=f"{finger_type}Meta", attr_type="float"
+                            )
+                            meta_curl_rev = cmds.createNode(
+                                "multiplyDivide", n=f"{_prefix}{finger_proxy.get_name()}_meta_curl_rev"
+                            )
+                            cmds.setAttr(f"{meta_curl_rev}.input2X", -1)
+                            cmds.connectAttr(f"{fingers_ctrl}.{finger_type}Meta", f"{meta_curl_rev}.input1X")
+                            cmds.connectAttr(f"{meta_curl_rev}.outputX", f"{_prefix}{finger_type}Meta_driver.rotateZ")
+                core_attr.add_attr(obj_list=fingers_ctrl, attributes=finger_proxy.get_name(), attr_type="float")
+                curl_rev = cmds.createNode("multiplyDivide", n=f"{_prefix}{finger_proxy.get_name()}_curl_rev")
+                cmds.setAttr(f"{curl_rev}.input2X", -1)
+                cmds.connectAttr(f"{fingers_ctrl}.{finger_proxy.get_name()}", f"{curl_rev}.input1X")
+                cmds.connectAttr(f"{curl_rev}.outputX", f"{finger_ctrl_grps[2]}.rotateZ")
 
-        # Set Position and Attributes
-        rotate_shapes(obj_transform=fingers_ctrl, offset=(0, 90, 0))
-        set_attr(obj_list=abduction_crv, attr_list=["overrideEnabled", "overrideDisplayType"], value=1)
-        hierarchy_utils.parent(source_objects=abduction_crv, target_parent=fingers_ctrl)
-        hierarchy_utils.parent(source_objects=abduction_setup, target_parent=fingers_automation_grp)
-        match_transform(source=wrist_grp, target_list=fingers_offset)
-        hierarchy_utils.parent(source_objects=fingers_offset, target_parent=wrist_grp)
+                if "03" in str(meta_type):
+                    core_attr.add_attr(obj_list=fingers_ctrl, attributes=f"{finger_type}Spread", attr_type="float")
+                    cmds.connectAttr(f"{fingers_ctrl}.{finger_type}Spread", f"{main_driver}.rotateY")
+                    core_attr.add_attr(obj_list=fingers_ctrl, attributes=f"{finger_type}Twist", attr_type="float")
+                    cmds.connectAttr(f"{fingers_ctrl}.{finger_type}Twist", f"{main_driver}.rotateX")
 
-        # Determine Side Orientation
-        cmds.rotate(90, fingers_offset, rotateX=True, relative=True, objectSpace=True)
-        if is_right_side:
-            cmds.rotate(180, fingers_offset, rotateY=True, relative=True, objectSpace=True)
-            cmds.rotate(180, fingers_offset, rotateX=True, relative=True, objectSpace=True)
-        # Position
-        fingers_move_offset = (distance_from_wrist*1.2)
-        cmds.move(fingers_move_offset, fingers_offset, moveX=True, relative=True, objectSpace=True)
-        rescale(obj=fingers_offset, scale=fingers_ctrl_scale, freeze=False)
-
-        # Fingers Visibility (Attributes)
-        add_separator_attr(target_object=fingers_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
-        cmds.addAttr(fingers_ctrl, ln='showCurlControls', at='bool', k=True)
-        cmds.addAttr(fingers_ctrl, ln='showFkFingerCtrls', at='bool', k=True, niceName='Show FK Finger Ctrls')
-
-        # Fingers Limits (Attributes)
-        cmds.addAttr(fingers_ctrl, ln='maximumRotationZ', at='double', k=True)
-        cmds.setAttr(f'{fingers_ctrl}.maximumRotationZ', 10)
-        cmds.addAttr(fingers_ctrl, ln='minimumRotationZ', at='double', k=True)
-        cmds.setAttr(f'{fingers_ctrl}.minimumRotationZ', -130)
-
-        cmds.addAttr(fingers_ctrl, ln='rotateShape', at='bool', k=True)
-        cmds.setAttr(f'{fingers_ctrl}.rotateShape', 1)
-
-        cmds.setAttr(f'{fingers_ctrl}.maxRotZLimitEnable', 1)
-        cmds.setAttr(f'{fingers_ctrl}.minRotZLimitEnable', 1)
-
-        # Curl Controls ------------------------------------------------------------------------------------
-        thumb_curl_ctrl = None
-        index_curl_ctrl = None
-        middle_curl_ctrl = None
-        ring_curl_ctrl = None
-        pinky_curl_ctrl = None
-        extra_curl_ctrl = None
-        curl_ctrls = []
-        dist_offset_curl = 2*wrist_directional_pos
-        if _thumb_joints:
-            thumb_name = self.get_metadata_value(key=self.META_THUMB_NAME)
-            thumb_curl_ctrl = self._assemble_ctrl_name(name=thumb_name,
-                                                       overwrite_suffix=NamingConstants.Control.CURL_CTRL)
-            thumb_curl_ctrl = create_ctrl_curve(name=thumb_curl_ctrl, curve_file_name="_sphere_half_arrow")
-            self._add_driver_uuid_attr(target_driver=thumb_curl_ctrl,
-                                       driver_type=RiggerDriverTypes.CURL,
-                                       proxy_purpose=self.thumb01)  # TODO @@@ Apply to other finger controls too?
-            thumb_curl_offset = add_offset_transform(target_list=thumb_curl_ctrl)[0]
-            rotate_shapes(obj_transform=thumb_curl_ctrl, offset=(0, 90, 0))
-            scale_shapes(obj_transform=thumb_curl_ctrl, offset=fingers_ctrl_scale*.5)
-            match_transform(source=fingers_ctrl, target_list=thumb_curl_offset)
-            hierarchy_utils.parent(source_objects=thumb_curl_offset, target_parent=fingers_offset)
-            cmds.rotate(-90, thumb_curl_offset, rotateY=True, relative=True, objectSpace=True)
-            cmds.move(-distance_from_wrist*.15, thumb_curl_offset, z=True, relative=True, objectSpace=True)
-            cmds.move(dist_offset_curl*2, thumb_curl_offset, x=True, relative=True, objectSpace=True)
-            if is_right_side:
-                cmds.rotate(180, thumb_curl_offset, rotateY=True, relative=True, objectSpace=True)
-            curl_ctrls.append(thumb_curl_ctrl)
-        if _index_joints:
-            index_name = self.get_metadata_value(key=self.META_INDEX_NAME)
-            index_curl_ctrl = self._assemble_ctrl_name(name=index_name,
-                                                       overwrite_suffix=NamingConstants.Control.CURL_CTRL)
-            index_curl_ctrl = create_ctrl_curve(name=index_curl_ctrl, curve_file_name="_sphere_half_arrow")
-            index_curl_offset = add_offset_transform(target_list=index_curl_ctrl)[0]
-            scale_shapes(obj_transform=index_curl_ctrl, offset=fingers_ctrl_scale * .5)
-            match_transform(source=fingers_ctrl, target_list=index_curl_offset)
-            rotate_shapes(obj_transform=index_curl_ctrl, offset=(0, 90, 0))
-            hierarchy_utils.parent(source_objects=index_curl_offset, target_parent=fingers_offset)
-            cmds.move(distance_from_wrist * .15, index_curl_offset, x=True, relative=True, objectSpace=True)
-            cmds.move(dist_offset_curl, index_curl_offset, z=True, relative=True, objectSpace=True)
-            curl_ctrls.append(index_curl_ctrl)
-        if _middle_joints:
-            middle_name = self.get_metadata_value(key=self.META_MIDDLE_NAME)
-            middle_curl_ctrl = self._assemble_ctrl_name(name=middle_name,
-                                                        overwrite_suffix=NamingConstants.Control.CURL_CTRL)
-            middle_curl_ctrl = create_ctrl_curve(name=middle_curl_ctrl, curve_file_name="_sphere_half_arrow")
-            middle_curl_offset = add_offset_transform(target_list=middle_curl_ctrl)[0]
-            scale_shapes(obj_transform=middle_curl_ctrl, offset=fingers_ctrl_scale * .5)
-            match_transform(source=fingers_ctrl, target_list=middle_curl_offset)
-            rotate_shapes(obj_transform=middle_curl_ctrl, offset=(0, 90, 0))
-            hierarchy_utils.parent(source_objects=middle_curl_offset, target_parent=fingers_offset)
-            cmds.move(distance_from_wrist * .15, middle_curl_offset, x=True, relative=True, objectSpace=True)
-            curl_ctrls.append(middle_curl_ctrl)
-        if _ring_joints:
-            ring_name = self.get_metadata_value(key=self.META_RING_NAME)
-            ring_curl_ctrl = self._assemble_ctrl_name(name=ring_name,
-                                                      overwrite_suffix=NamingConstants.Control.CURL_CTRL)
-            ring_curl_ctrl = create_ctrl_curve(name=ring_curl_ctrl, curve_file_name="_sphere_half_arrow")
-            ring_curl_offset = add_offset_transform(target_list=ring_curl_ctrl)[0]
-            scale_shapes(obj_transform=ring_curl_ctrl, offset=fingers_ctrl_scale * .5)
-            match_transform(source=fingers_ctrl, target_list=ring_curl_offset)
-            rotate_shapes(obj_transform=ring_curl_ctrl, offset=(0, 90, 0))
-            hierarchy_utils.parent(source_objects=ring_curl_offset, target_parent=fingers_offset)
-            cmds.move(distance_from_wrist * .15, ring_curl_offset, x=True, relative=True, objectSpace=True)
-            cmds.move(dist_offset_curl*-1, ring_curl_offset, z=True, relative=True, objectSpace=True)
-            curl_ctrls.append(ring_curl_ctrl)
-        if _pinky_joints:
-            pinky_name = self.get_metadata_value(key=self.META_PINKY_NAME)
-            pinky_curl_ctrl = self._assemble_ctrl_name(name=pinky_name,
-                                                       overwrite_suffix=NamingConstants.Control.CURL_CTRL)
-            pinky_curl_ctrl = create_ctrl_curve(name=pinky_curl_ctrl, curve_file_name="_sphere_half_arrow")
-            pinky_curl_offset = add_offset_transform(target_list=pinky_curl_ctrl)[0]
-            scale_shapes(obj_transform=pinky_curl_ctrl, offset=fingers_ctrl_scale * .5)
-            match_transform(source=fingers_ctrl, target_list=pinky_curl_offset)
-            rotate_shapes(obj_transform=pinky_curl_ctrl, offset=(0, 90, 0))
-            hierarchy_utils.parent(source_objects=pinky_curl_offset, target_parent=fingers_offset)
-            cmds.move(distance_from_wrist * .15, pinky_curl_offset, x=True, relative=True, objectSpace=True)
-            cmds.move(dist_offset_curl*-2, pinky_curl_offset, z=True, relative=True, objectSpace=True)
-            curl_ctrls.append(pinky_curl_ctrl)
-        if _extra_joints:
-            extra_name = self.get_metadata_value(key=self.META_EXTRA_NAME)
-            extra_curl_ctrl = self._assemble_ctrl_name(name=extra_name,
-                                                       overwrite_suffix=NamingConstants.Control.CURL_CTRL)
-            extra_curl_ctrl = create_ctrl_curve(name=extra_curl_ctrl, curve_file_name="_sphere_half_arrow")
-            extra_curl_offset = add_offset_transform(target_list=extra_curl_ctrl)[0]
-            scale_shapes(obj_transform=extra_curl_ctrl, offset=fingers_ctrl_scale * .5)
-            match_transform(source=fingers_ctrl, target_list=extra_curl_offset)
-            rotate_shapes(obj_transform=extra_curl_ctrl, offset=(0, 90, 0))
-            hierarchy_utils.parent(source_objects=extra_curl_offset, target_parent=fingers_offset)
-            cmds.move(distance_from_wrist * .15, extra_curl_offset, x=True, relative=True, objectSpace=True)
-            cmds.move(dist_offset_curl*-3, extra_curl_offset, z=True, relative=True, objectSpace=True)
-            curl_ctrls.append(extra_curl_ctrl)
-
-        # Lock and Hide Unnecessary Attributes
-        for ctrl in curl_ctrls:
-            hide_lock_default_attrs(obj_list=ctrl, translate=True, scale=True, visibility=True)
-            cmds.setAttr(f'{ctrl}.rx', lock=True, keyable=False)
-            cmds.setAttr(f'{ctrl}.ry', lock=True, keyable=False)
-
-        # Add Custom Attributes
-        add_separator_attr(target_object=fingers_ctrl, attr_name="fingersAutomation")
-        cmds.addAttr(fingers_ctrl, ln='autoRotation', at='bool', keyable=True)
-        cmds.setAttr(f'{fingers_ctrl}.autoRotation', 1)
-        cmds.setAttr(f'{fingers_ctrl}.sx', lock=True, keyable=False, channelBox=False)
-        cmds.setAttr(f'{fingers_ctrl}.sy', lock=True, keyable=False, channelBox=False)
+                # Global Spread & Curl System Connection
+                cmds.connectAttr(f"{_prefix}{finger_type}_curl_clamp.outputR", f"{finger_ctrl_grps[1]}.rotateZ")
+                if "01" in str(meta_type):
+                    mult_spread = cmds.createNode("multiplyDivide", n=f"{_prefix}{finger_type}_spread_mult")
+                    if "thumb" in finger_type or "index" in finger_type:
+                        cmds.setAttr(f"{mult_spread}.input2X", -(finger_spread[finger_type]["spread"] / 10))
+                        cmds.connectAttr(f"{fingers_ctrl}.spread", f"{mult_spread}.input1X")
+                        cmds.connectAttr(f"{mult_spread}.outputX", f"{finger_ctrl_grps[2]}.rotateY")
+                    else:
+                        cmds.setAttr(f"{mult_spread}.input2X", finger_spread[finger_type]["spread"] / 10)
+                        cmds.connectAttr(f"{fingers_ctrl}.spread", f"{mult_spread}.input1X")
+                        cmds.connectAttr(f"{mult_spread}.outputX", f"{finger_ctrl_grps[2]}.rotateY")
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [wrist_grp]
+
+    def build_rig_post(self):
+        """
+        Runs post rig creation script.
+        This step runs after the execution of "build_rig" is complete in all modules.
+        Used to define automation or connections that require external elements to exist.
+        """
+        joints_to_delete = []
+        if self.index:
+            index_end_jnt = tools_rig_utils.find_joint_from_uuid(self.index04_proxy.get_uuid())
+            joints_to_delete.append(index_end_jnt)
+        if self.middle:
+            middle_end_jnt = tools_rig_utils.find_joint_from_uuid(self.middle04_proxy.get_uuid())
+            joints_to_delete.append(middle_end_jnt)
+        if self.ring:
+            ring_end_jnt = tools_rig_utils.find_joint_from_uuid(self.ring04_proxy.get_uuid())
+            joints_to_delete.append(ring_end_jnt)
+        if self.pinky:
+            pinky_end_jnt = tools_rig_utils.find_joint_from_uuid(self.pinky04_proxy.get_uuid())
+            joints_to_delete.append(pinky_end_jnt)
+        if self.thumb:
+            thumb_end = tools_rig_utils.find_joint_from_uuid(self.thumb04_proxy.get_uuid())
+            joints_to_delete.append(thumb_end)
+        if self.extra:
+            extra_end = tools_rig_utils.find_joint_from_uuid(self.extra04_proxy.get_uuid())
+            joints_to_delete.append(extra_end)
+
+        for jnt in joints_to_delete:
+            if jnt and cmds.objExists(jnt):
+                cmds.delete(jnt)
+
+        self._parent_module_children_drivers()
+
+    # ------------------------------------------- Helpers -------------------------------------------
+    def get_joints(self):
+        """
+        Gets the fingers joints.
+
+        Returns:
+            meta_joints (list)
+            thumb_joints (list)
+            index_joints (list)
+            middle_joints (list)
+            ring_joints (list)
+            pinky_joints (list)
+            extra_joints (list): all the joints without a known base name
+            end_joints (list): the last joints of every digit
+        """
+
+        meta_joints = []
+        thumb_joints = []
+        index_joints = []
+        middle_joints = []
+        ring_joints = []
+        pinky_joints = []
+        extra_joints = []
+        end_joints = []
+
+        # Get Joints
+        for proxy in self.proxies:
+
+            finger_jnt = tools_rig_utils.find_joint_from_uuid(proxy.get_uuid())
+            meta_type = tools_rig_utils.get_meta_purpose_from_dict(proxy.get_metadata())
+            if not finger_jnt:
+                continue  # Skipped finger
+            if not meta_type:
+                continue  # Unexpected Proxy
+
+            # Store Joints In Lists/Dict
+            if self.thumb_name in meta_type:
+                thumb_joints.append(finger_jnt)
+            elif self.index_name in meta_type and self.meta_name not in meta_type:
+                index_joints.append(finger_jnt)
+            elif self.middle_name in meta_type and self.meta_name not in meta_type:
+                middle_joints.append(finger_jnt)
+            elif self.ring_name in meta_type and self.meta_name not in meta_type:
+                ring_joints.append(finger_jnt)
+            elif self.pinky_name in meta_type and self.meta_name not in meta_type:
+                pinky_joints.append(finger_jnt)
+            elif self.extra_name in meta_type and self.meta_name not in meta_type:
+                extra_joints.append(finger_jnt)
+            elif self.meta_name in meta_type:
+                meta_joints.append(finger_jnt)
+            # End Joints
+            if meta_type and str(meta_type).endswith("End"):
+                end_joints.append(finger_jnt)
+
+        return (
+            meta_joints,
+            thumb_joints,
+            index_joints,
+            middle_joints,
+            ring_joints,
+            pinky_joints,
+            extra_joints,
+            end_joints,
+        )
+
+    def get_proxy_joint_map(self):
+        """
+        Gets the proxy-joint map.
+
+        Returns:
+            proxy_joint_map (dict): key is joint, value is proxy
+        """
+        proxy_joint_map = {}  # Key = Joint, Value = Proxy
+
+        for proxy in self.proxies:
+            finger_jnt = tools_rig_utils.find_joint_from_uuid(proxy.get_uuid())
+            meta_type = tools_rig_utils.get_meta_purpose_from_dict(proxy.get_metadata())
+            if not finger_jnt:
+                continue  # Skipped finger
+            if not meta_type:
+                continue  # Unexpected Proxy
+            proxy_joint_map[finger_jnt] = proxy  # Add to map
+
+        return proxy_joint_map
 
     # ------------------------------------------- Extra Module Setters -------------------------------------------
     def set_thumb_name(self, name):
@@ -688,10 +957,7 @@ class ModuleBipedFingers(ModuleGeneric):
         Args:
             name (str): New name thumb digit name. If empty the default "thumb" is used instead.
         """
-        if name:
-            self.add_to_metadata(self.META_THUMB_NAME, value=name)
-        else:
-            self.add_to_metadata(self.META_THUMB_NAME, value=self.DEFAULT_THUMB)
+        self.thumb_name = name
 
     def set_index_name(self, name):
         """
@@ -699,10 +965,7 @@ class ModuleBipedFingers(ModuleGeneric):
         Args:
             name (str): New name index digit name. If empty the default "index" is used instead.
         """
-        if name:
-            self.add_to_metadata(self.META_INDEX_NAME, value=name)
-        else:
-            self.add_to_metadata(self.META_INDEX_NAME, value=self.DEFAULT_INDEX)
+        self.index_name = name
 
     def set_middle_name(self, name):
         """
@@ -710,10 +973,7 @@ class ModuleBipedFingers(ModuleGeneric):
         Args:
             name (str): New name middle digit name. If empty the default "middle" is used instead.
         """
-        if name:
-            self.add_to_metadata(self.META_MIDDLE_NAME, value=name)
-        else:
-            self.add_to_metadata(self.META_MIDDLE_NAME, value=self.DEFAULT_MIDDLE)
+        self.middle_name = name
 
     def set_ring_name(self, name):
         """
@@ -721,10 +981,7 @@ class ModuleBipedFingers(ModuleGeneric):
         Args:
             name (str): New name ring digit name. If empty the default "ring" is used instead.
         """
-        if name:
-            self.add_to_metadata(self.META_RING_NAME, value=name)
-        else:
-            self.add_to_metadata(self.META_RING_NAME, value=self.DEFAULT_RING)
+        self.ring_name = name
 
     def set_pinky_name(self, name):
         """
@@ -732,10 +989,7 @@ class ModuleBipedFingers(ModuleGeneric):
         Args:
             name (str): New name pinky digit name. If empty the default "pinky" is used instead.
         """
-        if name:
-            self.add_to_metadata(self.META_PINKY_NAME, value=name)
-        else:
-            self.add_to_metadata(self.META_PINKY_NAME, value=self.DEFAULT_PINKY)
+        self.pinky_name = name
 
     def set_extra_name(self, name):
         """
@@ -743,184 +997,266 @@ class ModuleBipedFingers(ModuleGeneric):
         Args:
             name (str): New name extra digit name. If empty the default "extra" is used instead.
         """
-        if name:
-            self.add_to_metadata(self.META_EXTRA_NAME, value=name)
-        else:
-            self.add_to_metadata(self.META_EXTRA_NAME, value=self.DEFAULT_EXTRA)
+        self.extra_name = name
 
 
 class ModuleBipedFingersLeft(ModuleBipedFingers):
-    def __init__(self, name="Left Fingers", prefix=NamingConstants.Prefix.LEFT, suffix=None):
-        super().__init__(name=name, prefix=prefix, suffix=suffix)
+    def __init__(
+        self,
+        name="Left Fingers",
+        prefix=core_naming.NamingConstants.Prefix.LEFT,
+        suffix=None,
+        meta=True,
+        thumb=True,
+        index=True,
+        middle=True,
+        ring=True,
+        pinky=True,
+        extra=False,
+    ):
+        super().__init__(
+            name=name,
+            prefix=prefix,
+            suffix=suffix,
+            meta=meta,
+            thumb=thumb,
+            index=index,
+            middle=middle,
+            ring=ring,
+            pinky=pinky,
+            extra=extra,
+        )
 
         # Describe Positions
-        pos_thumb01 = Vector3(x=60.8, y=130.4, z=2.9)
-        pos_thumb02 = pos_thumb01 + Vector3(z=4.4)
-        pos_thumb03 = pos_thumb02 + Vector3(z=4.4)
-        pos_thumb04 = pos_thumb03 + Vector3(z=4.6)
-
-        pos_index01 = Vector3(x=66.9, y=130.4, z=3.5)
-        pos_index02 = pos_index01 + Vector3(x=3.2)
-        pos_index03 = pos_index02 + Vector3(x=4.1)
-        pos_index04 = pos_index03 + Vector3(x=3.3)
-
-        pos_middle01 = Vector3(x=66.9, y=130.4, z=1.1)
-        pos_middle02 = pos_middle01 + Vector3(x=3.8)
-        pos_middle03 = pos_middle02 + Vector3(x=3.7)
-        pos_middle04 = pos_middle03 + Vector3(x=3.6)
-
-        pos_ring01 = Vector3(x=66.9, y=130.4, z=-1.1)
-        pos_ring02 = pos_ring01 + Vector3(x=3.5)
-        pos_ring03 = pos_ring02 + Vector3(x=3.6)
-        pos_ring04 = pos_ring03 + Vector3(x=3.5)
-
-        pos_pinky01 = Vector3(x=66.9, y=130.4, z=-3.2)
-        pos_pinky02 = pos_pinky01 + Vector3(x=3.3)
-        pos_pinky03 = pos_pinky02 + Vector3(x=3.2)
-        pos_pinky04 = pos_pinky03 + Vector3(x=3.5)
-
-        pos_extra01 = Vector3(x=66.9, y=130.4, z=-5.3)
-        pos_extra02 = pos_extra01 + Vector3(x=3)
-        pos_extra03 = pos_extra02 + Vector3(x=3)
-        pos_extra04 = pos_extra03 + Vector3(x=3.3)
-
-        # Set Positions
-        self.thumb01.set_initial_position(xyz=pos_thumb01)
-        self.thumb02.set_initial_position(xyz=pos_thumb02)
-        self.thumb03.set_initial_position(xyz=pos_thumb03)
-        self.thumb04.set_initial_position(xyz=pos_thumb04)
-
-        self.index01.set_initial_position(xyz=pos_index01)
-        self.index02.set_initial_position(xyz=pos_index02)
-        self.index03.set_initial_position(xyz=pos_index03)
-        self.index04.set_initial_position(xyz=pos_index04)
-
-        self.middle01.set_initial_position(xyz=pos_middle01)
-        self.middle02.set_initial_position(xyz=pos_middle02)
-        self.middle03.set_initial_position(xyz=pos_middle03)
-        self.middle04.set_initial_position(xyz=pos_middle04)
-
-        self.ring01.set_initial_position(xyz=pos_ring01)
-        self.ring02.set_initial_position(xyz=pos_ring02)
-        self.ring03.set_initial_position(xyz=pos_ring03)
-        self.ring04.set_initial_position(xyz=pos_ring04)
-
-        self.pinky01.set_initial_position(xyz=pos_pinky01)
-        self.pinky02.set_initial_position(xyz=pos_pinky02)
-        self.pinky03.set_initial_position(xyz=pos_pinky03)
-        self.pinky04.set_initial_position(xyz=pos_pinky04)
-
-        self.extra01.set_initial_position(xyz=pos_extra01)
-        self.extra02.set_initial_position(xyz=pos_extra02)
-        self.extra03.set_initial_position(xyz=pos_extra03)
-        self.extra04.set_initial_position(xyz=pos_extra04)
+        if self.meta:
+            if self.index:
+                pos_meta_index = core_trans.Vector3(x=63, y=130.4, z=3.5)
+                self.meta_index_proxy.set_initial_position(xyz=pos_meta_index)
+            if self.middle:
+                pos_meta_middle = core_trans.Vector3(x=63, y=130.4, z=1.1)
+                self.meta_middle_proxy.set_initial_position(xyz=pos_meta_middle)
+            if self.ring:
+                pos_meta_ring = core_trans.Vector3(x=63, y=130.4, z=-1.1)
+                self.meta_ring_proxy.set_initial_position(xyz=pos_meta_ring)
+            if self.pinky:
+                pos_meta_pinky = core_trans.Vector3(x=63, y=130.4, z=-3.2)
+                self.meta_pinky_proxy.set_initial_position(xyz=pos_meta_pinky)
+            if self.extra:
+                pos_meta_extra = core_trans.Vector3(x=63, y=130.4, z=-5.3)
+                self.meta_extra_proxy.set_initial_position(xyz=pos_meta_extra)
+        if self.thumb:
+            pos_thumb01 = core_trans.Vector3(x=60.8, y=130.4, z=2.9)
+            pos_thumb02 = pos_thumb01 + core_trans.Vector3(z=4.4)
+            pos_thumb03 = pos_thumb02 + core_trans.Vector3(z=4.4)
+            pos_thumb04 = pos_thumb03 + core_trans.Vector3(z=4.6)
+            self.thumb01_proxy.set_initial_position(xyz=pos_thumb01)
+            self.thumb02_proxy.set_initial_position(xyz=pos_thumb02)
+            self.thumb03_proxy.set_initial_position(xyz=pos_thumb03)
+            self.thumb04_proxy.set_initial_position(xyz=pos_thumb04)
+        if self.index:
+            pos_index01 = core_trans.Vector3(x=66.9, y=130.4, z=3.5)
+            pos_index02 = pos_index01 + core_trans.Vector3(x=3.2)
+            pos_index03 = pos_index02 + core_trans.Vector3(x=4.1)
+            pos_index04 = pos_index03 + core_trans.Vector3(x=3.3)
+            self.index01_proxy.set_initial_position(xyz=pos_index01)
+            self.index02_proxy.set_initial_position(xyz=pos_index02)
+            self.index03_proxy.set_initial_position(xyz=pos_index03)
+            self.index04_proxy.set_initial_position(xyz=pos_index04)
+        if self.middle:
+            pos_middle01 = core_trans.Vector3(x=66.9, y=130.4, z=1.1)
+            pos_middle02 = pos_middle01 + core_trans.Vector3(x=3.8)
+            pos_middle03 = pos_middle02 + core_trans.Vector3(x=3.7)
+            pos_middle04 = pos_middle03 + core_trans.Vector3(x=3.6)
+            self.middle01_proxy.set_initial_position(xyz=pos_middle01)
+            self.middle02_proxy.set_initial_position(xyz=pos_middle02)
+            self.middle03_proxy.set_initial_position(xyz=pos_middle03)
+            self.middle04_proxy.set_initial_position(xyz=pos_middle04)
+        if self.ring:
+            pos_ring01 = core_trans.Vector3(x=66.9, y=130.4, z=-1.1)
+            pos_ring02 = pos_ring01 + core_trans.Vector3(x=3.5)
+            pos_ring03 = pos_ring02 + core_trans.Vector3(x=3.6)
+            pos_ring04 = pos_ring03 + core_trans.Vector3(x=3.5)
+            self.ring01_proxy.set_initial_position(xyz=pos_ring01)
+            self.ring02_proxy.set_initial_position(xyz=pos_ring02)
+            self.ring03_proxy.set_initial_position(xyz=pos_ring03)
+            self.ring04_proxy.set_initial_position(xyz=pos_ring04)
+        if self.pinky:
+            pos_pinky01 = core_trans.Vector3(x=66.9, y=130.4, z=-3.2)
+            pos_pinky02 = pos_pinky01 + core_trans.Vector3(x=3.3)
+            pos_pinky03 = pos_pinky02 + core_trans.Vector3(x=3.2)
+            pos_pinky04 = pos_pinky03 + core_trans.Vector3(x=3.5)
+            self.pinky01_proxy.set_initial_position(xyz=pos_pinky01)
+            self.pinky02_proxy.set_initial_position(xyz=pos_pinky02)
+            self.pinky03_proxy.set_initial_position(xyz=pos_pinky03)
+            self.pinky04_proxy.set_initial_position(xyz=pos_pinky04)
+        if self.extra:
+            pos_extra01 = core_trans.Vector3(x=66.9, y=130.4, z=-5.3)
+            pos_extra02 = pos_extra01 + core_trans.Vector3(x=3)
+            pos_extra03 = pos_extra02 + core_trans.Vector3(x=3)
+            pos_extra04 = pos_extra03 + core_trans.Vector3(x=3.3)
+            self.extra01_proxy.set_initial_position(xyz=pos_extra01)
+            self.extra02_proxy.set_initial_position(xyz=pos_extra02)
+            self.extra03_proxy.set_initial_position(xyz=pos_extra03)
+            self.extra04_proxy.set_initial_position(xyz=pos_extra04)
 
 
 class ModuleBipedFingersRight(ModuleBipedFingers):
-    def __init__(self, name="Right Fingers", prefix=NamingConstants.Prefix.RIGHT, suffix=None):
-        super().__init__(name=name, prefix=prefix, suffix=suffix)
+    def __init__(
+        self,
+        name="Right Fingers",
+        prefix=core_naming.NamingConstants.Prefix.RIGHT,
+        suffix=None,
+        meta=True,
+        thumb=True,
+        index=True,
+        middle=True,
+        ring=True,
+        pinky=True,
+        extra=False,
+    ):
+        super().__init__(
+            name=name,
+            prefix=prefix,
+            suffix=suffix,
+            meta=meta,
+            thumb=thumb,
+            index=index,
+            middle=middle,
+            ring=ring,
+            pinky=pinky,
+            extra=extra,
+        )
 
         # Describe Positions
-        pos_thumb01 = Vector3(x=-60.8, y=130.4, z=2.9)
-        pos_thumb02 = pos_thumb01 + Vector3(z=4.4)
-        pos_thumb03 = pos_thumb02 + Vector3(z=4.4)
-        pos_thumb04 = pos_thumb03 + Vector3(z=4.6)
-
-        pos_index01 = Vector3(x=-66.9, y=130.4, z=3.5)
-        pos_index02 = pos_index01 + Vector3(x=-3.2)
-        pos_index03 = pos_index02 + Vector3(x=-4.1)
-        pos_index04 = pos_index03 + Vector3(x=-3.3)
-
-        pos_middle01 = Vector3(x=-66.9, y=130.4, z=1.1)
-        pos_middle02 = pos_middle01 + Vector3(x=-3.8)
-        pos_middle03 = pos_middle02 + Vector3(x=-3.7)
-        pos_middle04 = pos_middle03 + Vector3(x=-3.6)
-
-        pos_ring01 = Vector3(x=-66.9, y=130.4, z=-1.1)
-        pos_ring02 = pos_ring01 + Vector3(x=-3.5)
-        pos_ring03 = pos_ring02 + Vector3(x=-3.6)
-        pos_ring04 = pos_ring03 + Vector3(x=-3.5)
-
-        pos_pinky01 = Vector3(x=-66.9, y=130.4, z=-3.2)
-        pos_pinky02 = pos_pinky01 + Vector3(x=-3.3)
-        pos_pinky03 = pos_pinky02 + Vector3(x=-3.2)
-        pos_pinky04 = pos_pinky03 + Vector3(x=-3.5)
-
-        pos_extra01 = Vector3(x=-66.9, y=130.4, z=-5.3)
-        pos_extra02 = pos_extra01 + Vector3(x=-3)
-        pos_extra03 = pos_extra02 + Vector3(x=-3)
-        pos_extra04 = pos_extra03 + Vector3(x=-3.3)
-
-        # Set Positions
-        self.thumb01.set_initial_position(xyz=pos_thumb01)
-        self.thumb02.set_initial_position(xyz=pos_thumb02)
-        self.thumb03.set_initial_position(xyz=pos_thumb03)
-        self.thumb04.set_initial_position(xyz=pos_thumb04)
-
-        self.index01.set_initial_position(xyz=pos_index01)
-        self.index02.set_initial_position(xyz=pos_index02)
-        self.index03.set_initial_position(xyz=pos_index03)
-        self.index04.set_initial_position(xyz=pos_index04)
-
-        self.middle01.set_initial_position(xyz=pos_middle01)
-        self.middle02.set_initial_position(xyz=pos_middle02)
-        self.middle03.set_initial_position(xyz=pos_middle03)
-        self.middle04.set_initial_position(xyz=pos_middle04)
-
-        self.ring01.set_initial_position(xyz=pos_ring01)
-        self.ring02.set_initial_position(xyz=pos_ring02)
-        self.ring03.set_initial_position(xyz=pos_ring03)
-        self.ring04.set_initial_position(xyz=pos_ring04)
-
-        self.pinky01.set_initial_position(xyz=pos_pinky01)
-        self.pinky02.set_initial_position(xyz=pos_pinky02)
-        self.pinky03.set_initial_position(xyz=pos_pinky03)
-        self.pinky04.set_initial_position(xyz=pos_pinky04)
-
-        self.extra01.set_initial_position(xyz=pos_extra01)
-        self.extra02.set_initial_position(xyz=pos_extra02)
-        self.extra03.set_initial_position(xyz=pos_extra03)
-        self.extra04.set_initial_position(xyz=pos_extra04)
+        if self.meta:
+            if self.index:
+                pos_meta_index = core_trans.Vector3(x=-63, y=130.4, z=3.5)
+                self.meta_index_proxy.set_initial_position(xyz=pos_meta_index)
+            if self.middle:
+                pos_meta_middle = core_trans.Vector3(x=-63, y=130.4, z=1.1)
+                self.meta_middle_proxy.set_initial_position(xyz=pos_meta_middle)
+            if self.ring:
+                pos_meta_ring = core_trans.Vector3(x=-63, y=130.4, z=-1.1)
+                self.meta_ring_proxy.set_initial_position(xyz=pos_meta_ring)
+            if self.pinky:
+                pos_meta_pinky = core_trans.Vector3(x=-63, y=130.4, z=-3.2)
+                self.meta_pinky_proxy.set_initial_position(xyz=pos_meta_pinky)
+            if self.extra:
+                pos_meta_extra = core_trans.Vector3(x=-63, y=130.4, z=-5.3)
+                self.meta_extra_proxy.set_initial_position(xyz=pos_meta_extra)
+        if self.thumb:
+            pos_thumb01 = core_trans.Vector3(x=-60.8, y=130.4, z=2.9)
+            pos_thumb02 = pos_thumb01 + core_trans.Vector3(z=4.4)
+            pos_thumb03 = pos_thumb02 + core_trans.Vector3(z=4.4)
+            pos_thumb04 = pos_thumb03 + core_trans.Vector3(z=4.6)
+            self.thumb01_proxy.set_initial_position(xyz=pos_thumb01)
+            self.thumb02_proxy.set_initial_position(xyz=pos_thumb02)
+            self.thumb03_proxy.set_initial_position(xyz=pos_thumb03)
+            self.thumb04_proxy.set_initial_position(xyz=pos_thumb04)
+        if self.index:
+            pos_index01 = core_trans.Vector3(x=-66.9, y=130.4, z=3.5)
+            pos_index02 = pos_index01 + core_trans.Vector3(x=-3.2)
+            pos_index03 = pos_index02 + core_trans.Vector3(x=-4.1)
+            pos_index04 = pos_index03 + core_trans.Vector3(x=-3.3)
+            self.index01_proxy.set_initial_position(xyz=pos_index01)
+            self.index02_proxy.set_initial_position(xyz=pos_index02)
+            self.index03_proxy.set_initial_position(xyz=pos_index03)
+            self.index04_proxy.set_initial_position(xyz=pos_index04)
+        if self.middle:
+            pos_middle01 = core_trans.Vector3(x=-66.9, y=130.4, z=1.1)
+            pos_middle02 = pos_middle01 + core_trans.Vector3(x=-3.8)
+            pos_middle03 = pos_middle02 + core_trans.Vector3(x=-3.7)
+            pos_middle04 = pos_middle03 + core_trans.Vector3(x=-3.6)
+            self.middle01_proxy.set_initial_position(xyz=pos_middle01)
+            self.middle02_proxy.set_initial_position(xyz=pos_middle02)
+            self.middle03_proxy.set_initial_position(xyz=pos_middle03)
+            self.middle04_proxy.set_initial_position(xyz=pos_middle04)
+        if self.ring:
+            pos_ring01 = core_trans.Vector3(x=-66.9, y=130.4, z=-1.1)
+            pos_ring02 = pos_ring01 + core_trans.Vector3(x=-3.5)
+            pos_ring03 = pos_ring02 + core_trans.Vector3(x=-3.6)
+            pos_ring04 = pos_ring03 + core_trans.Vector3(x=-3.5)
+            self.ring01_proxy.set_initial_position(xyz=pos_ring01)
+            self.ring02_proxy.set_initial_position(xyz=pos_ring02)
+            self.ring03_proxy.set_initial_position(xyz=pos_ring03)
+            self.ring04_proxy.set_initial_position(xyz=pos_ring04)
+        if self.pinky:
+            pos_pinky01 = core_trans.Vector3(x=-66.9, y=130.4, z=-3.2)
+            pos_pinky02 = pos_pinky01 + core_trans.Vector3(x=-3.3)
+            pos_pinky03 = pos_pinky02 + core_trans.Vector3(x=-3.2)
+            pos_pinky04 = pos_pinky03 + core_trans.Vector3(x=-3.5)
+            self.pinky01_proxy.set_initial_position(xyz=pos_pinky01)
+            self.pinky02_proxy.set_initial_position(xyz=pos_pinky02)
+            self.pinky03_proxy.set_initial_position(xyz=pos_pinky03)
+            self.pinky04_proxy.set_initial_position(xyz=pos_pinky04)
+        if self.extra:
+            pos_extra01 = core_trans.Vector3(x=-66.9, y=130.4, z=-5.3)
+            pos_extra02 = pos_extra01 + core_trans.Vector3(x=-3)
+            pos_extra03 = pos_extra02 + core_trans.Vector3(x=-3)
+            pos_extra04 = pos_extra03 + core_trans.Vector3(x=-3.3)
+            self.extra01_proxy.set_initial_position(xyz=pos_extra01)
+            self.extra02_proxy.set_initial_position(xyz=pos_extra02)
+            self.extra03_proxy.set_initial_position(xyz=pos_extra03)
+            self.extra04_proxy.set_initial_position(xyz=pos_extra04)
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
     # Auto Reload Script - Must have been initialized using "Run-Only" mode.
-    from gt.utils.session_utils import remove_modules_startswith
+    from gt.core.session import remove_modules_startswith
+
     remove_modules_startswith("gt.tools.auto_rigger.module")
     remove_modules_startswith("gt.tools.auto_rigger.rig")
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rig_framework import RigProject
     from gt.tools.auto_rigger.module_spine import ModuleSpine
-    from gt.tools.auto_rigger.module_biped_arm import ModuleBipedArmLeft, ModuleBipedArmRight
+    from gt.tools.auto_rigger.module_biped_arm import ModuleBipedArmLeft
+    from gt.tools.auto_rigger.module_biped_arm import ModuleBipedArmRight
+    import gt.tools.auto_rigger.module_root as tools_rig_mod_root
 
+    a_root = tools_rig_mod_root.ModuleRoot()
     a_spine = ModuleSpine()
-    a_lt_arm = ModuleBipedArmLeft()
-    a_rt_arm = ModuleBipedArmRight()
+    a_arm_lf = ModuleBipedArmLeft()
+    a_arm_rt = ModuleBipedArmRight()
     a_lt_fingers_mod = ModuleBipedFingersLeft()
     a_rt_fingers_mod = ModuleBipedFingersRight()
     # a_fingers_mod = ModuleBipedFingers()
 
     a_project = RigProject()
-    # a_project.add_to_modules(a_fingers_mod)
+
+    root_uuid = a_root.root_proxy.get_uuid()
+    spine_chest_uuid = a_spine.chest_proxy.get_uuid()
+    lf_hand_uuid = a_arm_lf.hand_proxy.get_uuid()
+    rt_hand_uuid = a_arm_rt.hand_proxy.get_uuid()
+    a_spine.set_parent_uuid(root_uuid)
+    a_arm_lf.set_parent_uuid(spine_chest_uuid)
+    a_arm_rt.set_parent_uuid(spine_chest_uuid)
+    a_lt_fingers_mod.set_parent_uuid(lf_hand_uuid)
+    a_rt_fingers_mod.set_parent_uuid(rt_hand_uuid)
+
+    a_project.add_to_modules(a_root)
     a_project.add_to_modules(a_spine)
-    a_project.add_to_modules(a_lt_arm)
-    a_project.add_to_modules(a_rt_arm)
+    a_project.add_to_modules(a_arm_lf)
+    a_project.add_to_modules(a_arm_rt)
     a_project.add_to_modules(a_lt_fingers_mod)
     a_project.add_to_modules(a_rt_fingers_mod)
-    a_lt_arm.set_parent_uuid(uuid=a_spine.chest.get_uuid())
-    a_rt_arm.set_parent_uuid(uuid=a_spine.chest.get_uuid())
-    a_lt_fingers_mod.set_parent_uuid(uuid=a_lt_arm.wrist.get_uuid())
-    a_rt_fingers_mod.set_parent_uuid(uuid=a_rt_arm.wrist.get_uuid())
+    # a_project.add_to_modules(a_fingers_mod)
 
     a_project.build_proxy()
+    # cmds.setAttr("L_lowerArm.tz", -8)
+    # cmds.setAttr("L_hand.ty", -30)
+    # cmds.setAttr("L_hand.rz", -45)
+    # cmds.setAttr("R_lowerArm.tz", -8)
+    # cmds.setAttr("R_hand.ty", -30)
+    # cmds.setAttr("R_hand.rz", 45)
+    # a_project.build_skeleton()
     a_project.build_rig()
 
-    # cmds.setAttr(f'lf_thumb02.rx', 30)
-    # cmds.setAttr(f'lf_ring02.rz', -45)
-    # # cmds.setAttr(f'rt_thumb02.rx', 30)
+    # cmds.setAttr(f"lf_thumb02.rx", 30)
+    # cmds.setAttr(f"lf_ring02.rz", -45)
+    # # cmds.setAttr(f"rt_thumb02.rx", 30)
 
     # a_project.read_data_from_scene()
     # dictionary = a_project.get_project_as_dict()
@@ -934,5 +1270,5 @@ if __name__ == "__main__":
 
     # Frame elements
     cmds.viewFit(all=True)
-    cmds.viewFit(["lf_thumbEnd", "lf_pinkyEnd"])  # Left
+    # cmds.viewFit(["lf_thumbEnd", "lf_pinkyEnd"])  # Left
     # cmds.viewFit(["rt_thumbEnd", "rt_pinkyEnd"])  # Right

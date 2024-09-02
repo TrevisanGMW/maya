@@ -1,19 +1,15 @@
 """
 Auto Rigger View
 """
-from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction, QMenu
-from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout, QPushButton, QGroupBox, QLineEdit
-from gt.utils.session_utils import is_script_in_interactive_maya
-from gt.ui.tree_widget_enhanced import QTreeEnhanced
-import gt.ui.resource_library as resource_library
-from gt.ui.qt_utils import MayaWindowMeta
-from PySide2.QtGui import QIcon, QFont
-import gt.ui.qt_utils as qt_utils
-from PySide2.QtCore import Qt
-from PySide2 import QtCore
+
+import gt.ui.tree_widget_enhanced as ui_tree_enhanced
+import gt.ui.resource_library as ui_res_lib
+import gt.core.session as core_session
+import gt.ui.qt_utils as ui_qt_utils
+import gt.ui.qt_import as ui_qt
 
 
-class RiggerView(metaclass=MayaWindowMeta):
+class RiggerView(metaclass=ui_qt_utils.MayaWindowMeta):
     def __init__(self, parent=None, controller=None, version=None):
         """
         Initialize the RiggerView (Auto Rigger View)
@@ -41,90 +37,91 @@ class RiggerView(metaclass=MayaWindowMeta):
         self.grp_box_logger = None
         self.logger_txt_field = None
 
-        window_title = "GT Auto Rigger"
+        window_title = "Auto Rigger"
         if version:
-            window_title += f' - (v{str(version)})'
+            window_title += f" - (v{str(version)})"
         self.setWindowTitle(window_title)
         self.setGeometry(100, 100, 400, 300)
-        self.setWindowFlags(self.windowFlags() |
-                            QtCore.Qt.WindowMaximizeButtonHint |
-                            QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowIcon(QIcon(resource_library.Icon.tool_auto_rigger))
+        self.setWindowFlags(
+            self.windowFlags()
+            | ui_qt.QtLib.WindowFlag.WindowMaximizeButtonHint
+            | ui_qt.QtLib.WindowFlag.WindowMinimizeButtonHint
+        )
+        self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.tool_auto_rigger))
 
         # Create Widgets and Layout
         self.create_widgets()
         self.create_layout()
 
         # Style Window
-        stylesheet = resource_library.Stylesheet.scroll_bar_base
-        stylesheet += resource_library.Stylesheet.maya_dialog_base
-        stylesheet += resource_library.Stylesheet.combobox_base
-        stylesheet += resource_library.Stylesheet.tree_widget_base
-        stylesheet += resource_library.Stylesheet.table_widget_base
-        stylesheet += resource_library.Stylesheet.checkbox_base
-        stylesheet += resource_library.Stylesheet.line_edit_base
-        if not is_script_in_interactive_maya():
-            stylesheet += resource_library.Stylesheet.menu_base
+        stylesheet = ui_res_lib.Stylesheet.scroll_bar_base
+        stylesheet += ui_res_lib.Stylesheet.maya_dialog_base
+        stylesheet += ui_res_lib.Stylesheet.combobox_base
+        stylesheet += ui_res_lib.Stylesheet.tree_widget_base
+        stylesheet += ui_res_lib.Stylesheet.table_widget_base
+        stylesheet += ui_res_lib.Stylesheet.checkbox_base
+        stylesheet += ui_res_lib.Stylesheet.line_edit_base
+        stylesheet += ui_res_lib.Stylesheet.spin_box_base
+        if not core_session.is_script_in_interactive_maya():
+            stylesheet += ui_res_lib.Stylesheet.menu_base
         self.setStyleSheet(stylesheet)
         self.splitter.setStyleSheet("QSplitter::handle {margin: 5;}")
-        self.grp_box_buttons.setStyleSheet(resource_library.Stylesheet.group_box_base)
-        self.grp_box_logger.setStyleSheet(resource_library.Stylesheet.group_box_base)
-        self.module_attr_area.setStyleSheet(resource_library.Stylesheet.scroll_area_base)
+        self.grp_box_buttons.setStyleSheet(ui_res_lib.Stylesheet.group_box_base)
+        self.grp_box_logger.setStyleSheet(ui_res_lib.Stylesheet.group_box_base)
+        self.module_attr_area.setStyleSheet(ui_res_lib.Stylesheet.scroll_area_base)
 
         # Final Adjustments
-        qt_utils.resize_to_screen(self, percentage=30)
-        qt_utils.center_window(self)
+        ui_qt_utils.resize_to_screen(self, percentage=30)
+        ui_qt_utils.center_window(self)
 
         self.resize_splitter_to_screen()
 
     def create_widgets(self):
         """Create the widgets for the window."""
-        self.menu_top = QMenuBar(self)
+        self.menu_top = ui_qt.QtWidgets.QMenuBar(self)
 
-        self.splitter = QSplitter(self)
+        self.splitter = ui_qt.QtWidgets.QSplitter(self)
         self.splitter.setHandleWidth(5)
         self.splitter.setChildrenCollapsible(False)
 
-        self.module_tree = QTreeEnhanced()
+        self.module_tree = ui_tree_enhanced.QTreeEnhanced()
         self.module_tree.set_one_root_mode(state=True)
         self.module_tree.setHeaderHidden(True)  # Hide the header
-        self.module_tree.setDragDropMode(QTreeWidget.InternalMove)
-        self.module_tree.setSelectionMode(QTreeWidget.SingleSelection)
+        self.module_tree.setDragDropMode(ui_qt.QtLib.DragDropMode.InternalMove)
+        self.module_tree.setSelectionMode(ui_qt.QtLib.SelectionMode.SingleSelection)
 
-        font = QFont()
+        font = ui_qt.QtGui.QFont()
         font.setPointSize(14)
         self.module_tree.setFont(font)
         icon_size = 32
-        self.module_tree.setIconSize(QtCore.QSize(icon_size, icon_size))
+        self.module_tree.setIconSize(ui_qt.QtCore.QSize(icon_size, icon_size))
 
-        self.build_proxy_btn = QPushButton("Build Proxy")
-        self.build_rig_btn = QPushButton("Build Rig")
+        self.build_proxy_btn = ui_qt.QtWidgets.QPushButton("Build Proxy")
+        self.build_rig_btn = ui_qt.QtWidgets.QPushButton("Build Rig")
 
-        self.module_attr_area = QScrollArea()
+        self.module_attr_area = ui_qt.QtWidgets.QScrollArea()
         self.module_attr_area.setWidgetResizable(True)
-        self.module_attr_area.setAlignment(Qt.AlignTop)
+        self.module_attr_area.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignTop)
 
-        self.logger_txt_field = QLineEdit()
+        self.logger_txt_field = ui_qt.QtWidgets.QLineEdit()
         self.logger_txt_field.setReadOnly(True)
 
     def create_layout(self):
         """Create the layout for the window."""
         # Main Layout
-        main_layout = QVBoxLayout()
+        main_layout = ui_qt.QtWidgets.QVBoxLayout()
         main_layout.setMenuBar(self.menu_top)  # Set the menu bar at the top
-        self.menu_top.setStyleSheet("QMenuBar {"
-                                    "padding-top: 10; "
-                                    "padding-right: 0; "
-                                    "padding-bottom: 0; "
-                                    "padding-left: 15;}")
+        self.menu_top.setStyleSheet(
+            "QMenuBar {" "padding-top: 10; " "padding-right: 0; " "padding-bottom: 0; " "padding-left: 15;}"
+        )
         # Left Widget
-        left_widget = QWidget()
-        left_layout = QVBoxLayout(left_widget)
+        left_widget = ui_qt.QtWidgets.QWidget()
+        left_layout = ui_qt.QtWidgets.QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.addWidget(self.module_tree)
 
-        self.grp_box_buttons = QGroupBox()
-        layout_buttons = QHBoxLayout()
+        self.grp_box_buttons = ui_qt.QtWidgets.QGroupBox()
+        layout_buttons = ui_qt.QtWidgets.QHBoxLayout()
         self.grp_box_buttons.setLayout(layout_buttons)
         layout_buttons.addWidget(self.build_rig_btn)
         layout_buttons.addWidget(self.build_proxy_btn)
@@ -132,22 +129,21 @@ class RiggerView(metaclass=MayaWindowMeta):
         left_layout.addWidget(self.grp_box_buttons)
 
         # Right Widget
-        right_widget = QWidget()
-        right_layout = QVBoxLayout(right_widget)
+        right_widget = ui_qt.QtWidgets.QWidget()
+        right_layout = ui_qt.QtWidgets.QVBoxLayout(right_widget)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.addWidget(self.module_attr_area)
-        self.grp_box_logger = QGroupBox()
-        layout_logger = QHBoxLayout()
+        self.grp_box_logger = ui_qt.QtWidgets.QGroupBox()
+        layout_logger = ui_qt.QtWidgets.QHBoxLayout()
         self.grp_box_logger.setLayout(layout_logger)
         layout_logger.addWidget(self.logger_txt_field)
-        # right_layout.addWidget(self.grp_box_logger)
 
         # Splitter
         self.splitter.addWidget(left_widget)
         self.splitter.addWidget(right_widget)
 
         # Body (Below Menu Bar)
-        body_layout = QHBoxLayout()
+        body_layout = ui_qt.QtWidgets.QHBoxLayout()
         body_layout.addWidget(self.splitter)
         main_layout.setContentsMargins(15, 0, 15, 15)  # Adjust the values as needed
         main_layout.addLayout(body_layout)
@@ -166,12 +162,16 @@ class RiggerView(metaclass=MayaWindowMeta):
         """
         if not 0 <= percentage <= 100:
             raise ValueError("Percentage should be between 0 and 100")
-        screen_geometry = QDesktopWidget().availableGeometry(self)
+        if ui_qt.IS_PYSIDE6:
+            screen = ui_qt.QtGui.QGuiApplication.primaryScreen()
+            screen_geometry = screen.availableGeometry()
+        else:
+            screen_geometry = ui_qt.QtWidgets.QDesktopWidget().availableGeometry(self)
         width = screen_geometry.width() * percentage / 100
-        self.splitter.setSizes([width * .2, width * .60])
+        self.splitter.setSizes([width * 0.2, width * 0.60])
 
     def clear_module_widget(self):
-        self.module_attr_area.setWidget(QWidget())
+        self.module_attr_area.setWidget(ui_qt.QtWidgets.QWidget())
 
     def set_module_widget(self, widget):
         self.module_attr_area.setWidget(widget)
@@ -219,44 +219,46 @@ class RiggerView(metaclass=MayaWindowMeta):
         params = {}
         if icon:
             params["icon"] = icon
-        submenu = QMenu(submenu_name, **params)
+        submenu = ui_qt.QtWidgets.QMenu(submenu_name, **params)
         parent_menu.addMenu(submenu)
         return submenu
 
 
 if __name__ == "__main__":
-    with qt_utils.QtApplicationContext():
+    with ui_qt_utils.QtApplicationContext():
         window = RiggerView()
 
         from gt.tools.auto_rigger.rig_framework import ModuleGeneric
+
         a_generic_module = ModuleGeneric(name="my module")
 
         # Test Adding Menubar Item
         file_menu = window.add_menu_parent("Project")
 
         # Add an "Exit" action to the menu
-        exit_action = QAction("Exit", icon=QIcon(resource_library.Icon.dev_chainsaw))
+
+        exit_action = ui_qt.QtLib.QtGui.QAction("Exit", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.dev_chainsaw))
         exit_action.triggered.connect(window.close)
         file_menu.addAction(exit_action)
 
         # Test Adding Modules to Tree
-        item1 = QTreeWidgetItem(["Item 1"])
-        item2 = QTreeWidgetItem(["Item 2"])
+        item1 = ui_qt.QtWidgets.QTreeWidgetItem(["Item 1"])
+        item2 = ui_qt.QtWidgets.QTreeWidgetItem(["Item 2"])
 
-        item1.setIcon(0, QIcon(resource_library.Icon.dev_code))  # Set the icon for the first column (0)
-        item2.setIcon(0, QIcon(resource_library.Icon.dev_ruler))  # Set the icon for the first column (0)
+        item1.setIcon(0, ui_qt.QtGui.QIcon(ui_res_lib.Icon.dev_code))  # Set the icon for the first column (0)
+        item2.setIcon(0, ui_qt.QtGui.QIcon(ui_res_lib.Icon.dev_ruler))  # Set the icon for the first column (0)
 
         item1.addChild(item2)
         window.add_item_to_module_tree(item1)
         window.expand_all_module_tree_items()
 
         # Test Widget Side
-        a_widget = QWidget()
-        a_layout = QHBoxLayout()
+        a_widget = ui_qt.QtWidgets.QWidget()
+        a_layout = ui_qt.QtWidgets.QHBoxLayout()
         a_widget.setLayout(a_layout)
-        a_layout.addWidget(QLabel("A long name.............................................."))
-        a_layout.addWidget(QPushButton("Button"))
-        a_layout.setAlignment(Qt.AlignTop)
+        a_layout.addWidget(ui_qt.QtWidgets.QLabel("A long name.............................................."))
+        a_layout.addWidget(ui_qt.QtWidgets.QPushButton("Button"))
+        a_layout.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignTop)
 
         window.set_module_widget(a_widget)
 

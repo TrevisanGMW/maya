@@ -1,19 +1,18 @@
 """
 Auto Rigger Controller
 """
-from gt.tools.auto_rigger.rig_utils import find_proxy_root_group, find_rig_root_group
-from PySide2.QtWidgets import QTreeWidgetItem, QAction, QMessageBox
-from gt.utils.string_utils import camel_case_split, remove_prefix
-from gt.tools.auto_rigger.rig_constants import RiggerConstants
-from gt.tools.auto_rigger.rig_templates import RigTemplates
-from gt.ui.tree_widget_enhanced import QTreeItemEnhanced
-from gt.tools.auto_rigger.rig_modules import RigModules
-from gt.tools.auto_rigger import rigger_attr_widget
-from gt.tools.auto_rigger import rig_framework
-from gt.ui.file_dialog import file_dialog
-from gt.ui import resource_library
-from PySide2.QtGui import QIcon, QColor
-from PySide2.QtCore import Qt
+
+import gt.tools.auto_rigger.rigger_attr_widget as tools_rig_attr_widget
+import gt.tools.auto_rigger.rig_templates as tools_rig_templates
+import gt.tools.auto_rigger.rig_constants as tools_rig_const
+import gt.tools.auto_rigger.rig_modules as tools_rig_modules
+import gt.tools.auto_rigger.rig_framework as tools_rig_frm
+import gt.tools.auto_rigger.rig_utils as tools_rig_utils
+import gt.ui.tree_widget_enhanced as ui_tree_enhanced
+import gt.ui.resource_library as ui_res_lib
+import gt.ui.file_dialog as ui_file_dialog
+import gt.ui.qt_import as ui_qt
+import gt.core.str as core_str
 from functools import partial
 import logging
 
@@ -29,14 +28,16 @@ def get_module_attr_widgets(module):
     Returns:
         ModuleAttrWidget: Widget used to populate the attribute editor of the rigger window.
     """
-    if type(module) is RigModules.ModuleGeneric:
-        return rigger_attr_widget.ModuleGenericAttrWidget
-    if isinstance(module, RigModules.ModuleSpine):
-        return rigger_attr_widget.ModuleSpineAttrWidget
-    if isinstance(module, RigModules.ModuleBipedLeg):
-        return rigger_attr_widget.ModuleSpineAttrWidget  # TODO TEMP @@@
+    if type(module) is tools_rig_modules.RigModules.ModuleGeneric:
+        return tools_rig_attr_widget.AttrWidgetModuleGeneric
+    if isinstance(module, tools_rig_modules.RigModules.ModuleSpine):
+        return tools_rig_attr_widget.AttrWidgetModuleSpine
+    if isinstance(module, tools_rig_modules.RigModules.ModuleBipedArm):
+        return tools_rig_attr_widget.AttrWidgetModuleBipedArm
+    if isinstance(module, tools_rig_modules.RigModules.ModuleBipedFingers):
+        return tools_rig_attr_widget.AttrWidgetModuleBipedFinger
     else:
-        return rigger_attr_widget.ModuleSpineAttrWidget  # TODO TEMP @@@
+        return tools_rig_attr_widget.AttrWidgetCommon
 
 
 class RiggerController:
@@ -73,13 +74,13 @@ class RiggerController:
         Adds a menu bar to the view
         """
         menu_file = self.view.add_menu_parent("File")
-        action_new = QAction("New Project", icon=QIcon(resource_library.Icon.ui_new))
+        action_new = ui_qt.QtLib.QtGui.QAction("New Project", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_new))
         action_new.triggered.connect(self.initialize_new_project)
 
-        action_open = QAction("Open Project", icon=QIcon(resource_library.Icon.ui_open))
+        action_open = ui_qt.QtLib.QtGui.QAction("Open Project", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open))
         action_open.triggered.connect(self.load_project_from_file)
 
-        action_save = QAction("Save Project", icon=QIcon(resource_library.Icon.ui_save))
+        action_save = ui_qt.QtLib.QtGui.QAction("Save Project", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_save))
         action_save.triggered.connect(self.save_project_to_file)
 
         # Menu Assembly -------------------------------------------------------------------------------------
@@ -87,12 +88,14 @@ class RiggerController:
         self.view.add_menu_action(parent_menu=menu_file, action=action_open)
         self.view.add_menu_action(parent_menu=menu_file, action=action_save)
         # Templates
-        menu_templates = self.view.add_menu_submenu(parent_menu=menu_file,
-                                                    submenu_name="Templates",
-                                                    icon=QIcon(resource_library.Icon.ui_templates))
-        for name, template_func in RigTemplates.get_dict_templates().items():
-            formatted_name = " ".join(camel_case_split(name))
-            action_template = QAction(formatted_name, icon=QIcon(resource_library.Icon.rigger_template_biped))
+        menu_templates = self.view.add_menu_submenu(
+            parent_menu=menu_file, submenu_name="Templates", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_templates)
+        )
+        for name, template_func in tools_rig_templates.RigTemplates.get_dict_templates().items():
+            formatted_name = " ".join(core_str.camel_case_split(name))
+            action_template = ui_qt.QtLib.QtGui.QAction(
+                formatted_name, icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_template_biped)
+            )
             item_func = partial(self.replace_project, project=template_func)
             action_template.triggered.connect(item_func)
             self.view.add_menu_action(parent_menu=menu_templates, action=action_template)
@@ -102,22 +105,23 @@ class RiggerController:
         Adds a menu bar to the view
         """
         from gt.tools.auto_rigger.rig_modules import RigModulesCategories
+
         menu_modules = self.view.add_menu_parent("Modules")
         known_categories = RigModulesCategories.known_categories
         for name, module_name in RigModulesCategories.categories.items():
             _icon_path = known_categories.get(name, None)
 
-            menu_templates = self.view.add_menu_submenu(parent_menu=menu_modules,
-                                                        submenu_name=name,
-                                                        icon=QIcon(_icon_path))
+            menu_templates = self.view.add_menu_submenu(
+                parent_menu=menu_modules, submenu_name=name, icon=ui_qt.QtGui.QIcon(_icon_path)
+            )
             if isinstance(module_name, list):
                 for unique_mod in module_name:
                     module_list = RigModulesCategories.unique_modules.get(unique_mod)
-                    formatted_name = " ".join(camel_case_split(unique_mod))
-                    action_mod = QAction(formatted_name, icon=QIcon(module_list[0].icon))
-                    item_func = partial(self.add_module_to_project_from_list,
-                                        module_name=formatted_name,
-                                        module_list=module_list)
+                    formatted_name = " ".join(core_str.camel_case_split(unique_mod))
+                    action_mod = ui_qt.QtLib.QtGui.QAction(formatted_name, icon=ui_qt.QtGui.QIcon(module_list[0].icon))
+                    item_func = partial(
+                        self.add_module_to_project_from_list, module_name=formatted_name, module_list=module_list
+                    )
                     action_mod.triggered.connect(item_func)
                     self.view.add_menu_action(parent_menu=menu_templates, action=action_mod)
 
@@ -140,23 +144,23 @@ class RiggerController:
         """
         # Not a list or missing module
         if not module_list or not isinstance(module_list, list):
-            logger.debug(f'Unable to create module choice dialog')
+            logger.debug(f"Unable to create module choice dialog")
             return
         # One Module
         if len(module_list) == 1:
             self.add_module_to_project(module=module_list[0])
             return
         # Multiple Options
-        message_box = QMessageBox(self.view)
+        message_box = ui_qt.QtWidgets.QMessageBox(self.view)
         message_box.setWindowTitle(f'Which "{str(module_name)}" Module?')
         message_box.setText(f'Which variation of "{str(module_name)}"\nwould like to add?')
 
-        question_icon = QIcon(module_list[0].icon)
+        question_icon = ui_qt.QtGui.QIcon(module_list[0].icon)
         message_box.setIconPixmap(question_icon.pixmap(64, 64))
         for mod in module_list:
-            formatted_name = remove_prefix(input_string=str(mod.__name__), prefix="Module")
-            formatted_name = " ".join(camel_case_split(formatted_name))
-            message_box.addButton(formatted_name, QMessageBox.ActionRole)
+            formatted_name = core_str.remove_prefix(input_string=str(mod.__name__), prefix="Module")
+            formatted_name = " ".join(core_str.camel_case_split(formatted_name))
+            message_box.addButton(formatted_name, ui_qt.QtLib.ButtonRoles.ActionRole)
         result = message_box.exec_()
         self.add_module_to_project(module=module_list[result])
 
@@ -171,12 +175,14 @@ class RiggerController:
         """
         Shows a save file dialog offering to save the current project to a file. (JSON formatted)
         """
-        file_path = file_dialog(caption="Save Rig Project",
-                                write_mode=True,
-                                starting_directory=None,
-                                file_filter=RiggerConstants.FILE_FILTER,
-                                ok_caption="Save Project",
-                                cancel_caption="Cancel")
+        file_path = ui_file_dialog.file_dialog(
+            caption="Save Rig Project",
+            write_mode=True,
+            starting_directory=None,
+            file_filter=tools_rig_const.RiggerConstants.FILE_FILTER,
+            ok_caption="Save Project",
+            cancel_caption="Cancel",
+        )
         if file_path:
             self.model.save_project_to_file(path=file_path)
 
@@ -184,12 +190,14 @@ class RiggerController:
         """
         Shows an open file dialog offering to load a new project from a file. (JSON formatted)
         """
-        file_path = file_dialog(caption="Open Rig Project",
-                                write_mode=False,
-                                starting_directory=None,
-                                file_filter=RiggerConstants.FILE_FILTER,
-                                ok_caption="Open Project",
-                                cancel_caption="Cancel")
+        file_path = ui_file_dialog.file_dialog(
+            caption="Open Rig Project",
+            write_mode=False,
+            starting_directory=None,
+            file_filter=tools_rig_const.RiggerConstants.FILE_FILTER,
+            ok_caption="Open Project",
+            cancel_caption="Cancel",
+        )
         if file_path:
             self.model.load_project_from_file(path=file_path)
             self.refresh_widgets()
@@ -213,27 +221,27 @@ class RiggerController:
         self.view.clear_module_tree()
 
         project = self.model.get_project()
-        icon_project = QIcon(project.icon)
-        project_item = QTreeItemEnhanced([project.get_name()])
+        icon_project = ui_qt.QtGui.QIcon(project.icon)
+        project_item = ui_tree_enhanced.QTreeItemEnhanced([project.get_name()])
         project_item.setIcon(0, icon_project)
         project_item.setData(1, 0, project)
-        project_item.setFlags(project_item.flags() & ~Qt.ItemIsDragEnabled)
+        project_item.setFlags(project_item.flags() & ~ui_qt.QtLib.ItemFlag.ItemIsDragEnabled)
         self.view.add_item_to_module_tree(project_item)
         self.view.module_tree.set_drop_callback(self.on_drop_tree_module_item)
 
         modules = self.model.get_modules()
         tree_item_dict = {}
         for module in modules:
-            icon = QIcon(module.icon)
+            icon = ui_qt.QtGui.QIcon(module.icon)
             module_type = module.get_description_name()
-            tree_item = QTreeItemEnhanced([module_type])
+            tree_item = ui_tree_enhanced.QTreeItemEnhanced([module_type])
             tree_item.setIcon(0, icon)
             tree_item.setData(1, 0, module)
             project_item.addChild(tree_item)
             tree_item_dict[module] = tree_item
             tree_item.set_allow_parenting(state=module.allow_parenting)
             if not module.is_active():
-                tree_item.setForeground(0, QColor(resource_library.Color.Hex.gray_dim))
+                tree_item.setForeground(0, ui_qt.QtGui.QColor(ui_res_lib.Color.Hex.gray_dim))
 
         # Create Hierarchy
         for module, tree_item in reversed(list(tree_item_dict.items())):
@@ -256,7 +264,7 @@ class RiggerController:
         Updates the module order by matching the order of the QTreeWidget items in the project modules list
         """
         tree_items = self.view.module_tree.get_all_items()
-        modules = [item.data(1, 0) for item in tree_items if isinstance(item.data(1, 0), rig_framework.ModuleGeneric)]
+        modules = [item.data(1, 0) for item in tree_items if isinstance(item.data(1, 0), tools_rig_frm.ModuleGeneric)]
         self.model.get_project().set_modules(modules)
 
     def update_module_parent(self):
@@ -278,7 +286,7 @@ class RiggerController:
 
         target_module = target_item.data(1, 0)
         target_proxies = []
-        if target_module and hasattr(target_module, 'get_proxies'):  # Is proxy
+        if target_module and hasattr(target_module, "get_proxies"):  # Is proxy
             target_proxies = target_module.get_proxies()
         if len(target_proxies) > 0:
             source_module.set_parent_uuid(target_proxies[0].get_uuid())
@@ -309,18 +317,19 @@ class RiggerController:
         """
         data_obj = item.data(1, 0)
         # Modules ---------------------------------------------------------------
-        if isinstance(data_obj, rig_framework.ModuleGeneric):
+        if isinstance(data_obj, tools_rig_frm.ModuleGeneric):
             widget_class = get_module_attr_widgets(module=data_obj)
             if widget_class:
-                widget_object = widget_class(module=data_obj,
-                                             project=self.model.get_project(),
-                                             refresh_parent_func=self.refresh_widgets)
+                widget_object = widget_class(
+                    module=data_obj, project=self.model.get_project(), refresh_parent_func=self.refresh_widgets
+                )
                 self.view.set_module_widget(widget_object)
                 return
         # Project ---------------------------------------------------------------
-        if isinstance(data_obj, rig_framework.RigProject):
-            widget_object = rigger_attr_widget.ProjectAttrWidget(project=data_obj,
-                                                                 refresh_parent_func=self.refresh_widgets)
+        if isinstance(data_obj, tools_rig_frm.RigProject):
+            widget_object = tools_rig_attr_widget.AttrWidgetProject(
+                project=data_obj, refresh_parent_func=self.refresh_widgets
+            )
             self.view.set_module_widget(widget_object)
             return
         # Unknown ---------------------------------------------------------------
@@ -334,47 +343,49 @@ class RiggerController:
                   False if operation is ready to proceed.
         """
         # Existing Proxy ------------------------------------------------------------------------
-        proxy_grp = find_proxy_root_group()
+        proxy_grp = tools_rig_utils.find_root_group_proxy()
         if proxy_grp:
-            message_box = QMessageBox(self.view)
-            message_box.setWindowTitle(f'Proxy detected in the scene.')
-            message_box.setText(f'A pre-existing proxy was detected in the scene. \n'
-                                f'How would you like to proceed?')
+            message_box = ui_qt.QtWidgets.QMessageBox(self.view)
+            message_box.setWindowTitle(f"Proxy detected in the scene.")
+            message_box.setText(f"A pre-existing proxy was detected in the scene. \n" f"How would you like to proceed?")
 
-            message_box.addButton("Ignore Changes and Rebuild", QMessageBox.ActionRole)
-            message_box.addButton("Read Changes and Rebuild", QMessageBox.ActionRole)
-            message_box.addButton("Cancel", QMessageBox.RejectRole)
-            question_icon = QIcon(resource_library.Icon.ui_exclamation)
+            message_box.addButton("Ignore Changes and Rebuild", ui_qt.QtLib.ButtonRoles.ActionRole)
+            message_box.addButton("Read Changes and Rebuild", ui_qt.QtLib.ButtonRoles.ActionRole)
+            message_box.addButton("Cancel", ui_qt.QtLib.ButtonRoles.RejectRole)
+            question_icon = ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_exclamation)
             message_box.setIconPixmap(question_icon.pixmap(64, 64))
             result = message_box.exec_()
             if result == 0:
                 import maya.cmds as cmds
+
                 cmds.delete(proxy_grp)
             elif result == 1:
                 import maya.cmds as cmds
+
                 self.model.get_project().read_data_from_scene()
                 cmds.delete(proxy_grp)
             else:
                 return True
         # Existing Rig -------------------------------------------------------------------------
-        rig_grp = find_rig_root_group()
+        rig_grp = tools_rig_utils.find_root_group_rig()
         if rig_grp:
-            message_box = QMessageBox(self.view)
-            message_box.setWindowTitle(f'Existing rig detected in the scene.')
-            message_box.setText(f'A pre-existing rig was detected in the scene. \n'
-                                f'How would you like to proceed?')
+            message_box = ui_qt.QtWidgets.QMessageBox(self.view)
+            message_box.setWindowTitle(f"Existing rig detected in the scene.")
+            message_box.setText(f"A pre-existing rig was detected in the scene. \n" f"How would you like to proceed?")
 
-            message_box.addButton("Delete Current and Rebuild", QMessageBox.ActionRole)
-            message_box.addButton("Unpack Geometries and Rebuild", QMessageBox.ActionRole)
-            message_box.addButton("Cancel", QMessageBox.ActionRole)
-            question_icon = QIcon(resource_library.Icon.ui_exclamation)
+            message_box.addButton("Delete Current and Rebuild", ui_qt.QtLib.ButtonRoles.ActionRole)
+            message_box.addButton("Unpack Geometries and Rebuild", ui_qt.QtLib.ButtonRoles.ActionRole)
+            message_box.addButton("Cancel", ui_qt.QtLib.ButtonRoles.ActionRole)
+            question_icon = ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_exclamation)
             message_box.setIconPixmap(question_icon.pixmap(64, 64))
             result = message_box.exec_()
             if result == 0:
                 import maya.cmds as cmds
+
                 cmds.delete(rig_grp)
             elif result == 1:
                 import maya.cmds as cmds
+
                 print("unpack here")  # TODO @@@
                 cmds.delete(rig_grp)
             else:

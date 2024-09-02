@@ -1,10 +1,10 @@
 import sys
 
 # Package Variables
-__version_tuple__ = (3, 3, 2)
-__version_suffix__ = ''
-__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
-__authors__ = ['Guilherme Trevisan']
+__version_tuple__ = (3, 4, 0)
+__version_suffix__ = ""
+__version__ = ".".join(str(n) for n in __version_tuple__) + __version_suffix__
+__authors__ = ["Guilherme Trevisan"]
 
 # Python Version Dependency
 if sys.version_info.major < 3:

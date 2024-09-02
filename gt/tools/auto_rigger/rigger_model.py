@@ -2,7 +2,7 @@
 Auto Rigger Model
 """
 from gt.tools.auto_rigger.template_biped import create_template_biped
-from gt.utils.data_utils import write_json, read_json_dict
+from gt.core.io import write_json, read_json_dict
 from gt.tools.auto_rigger.rig_framework import RigProject
 import logging
 
