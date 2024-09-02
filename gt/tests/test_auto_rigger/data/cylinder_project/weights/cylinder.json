@@ -1,0 +1,613 @@
+{
+    "mesh": "cylinder",
+    "weights": {
+        "0": {
+            "first_JNT": 1.0
+        },
+        "1": {
+            "first_JNT": 1.0
+        },
+        "2": {
+            "first_JNT": 1.0
+        },
+        "3": {
+            "first_JNT": 1.0
+        },
+        "4": {
+            "first_JNT": 1.0
+        },
+        "5": {
+            "first_JNT": 1.0
+        },
+        "6": {
+            "first_JNT": 1.0
+        },
+        "7": {
+            "first_JNT": 1.0
+        },
+        "8": {
+            "first_JNT": 1.0
+        },
+        "9": {
+            "first_JNT": 1.0
+        },
+        "10": {
+            "first_JNT": 1.0
+        },
+        "11": {
+            "first_JNT": 1.0
+        },
+        "12": {
+            "first_JNT": 1.0
+        },
+        "13": {
+            "first_JNT": 1.0
+        },
+        "14": {
+            "first_JNT": 1.0
+        },
+        "15": {
+            "first_JNT": 1.0
+        },
+        "16": {
+            "first_JNT": 1.0
+        },
+        "17": {
+            "first_JNT": 1.0
+        },
+        "18": {
+            "first_JNT": 1.0
+        },
+        "19": {
+            "first_JNT": 1.0
+        },
+        "20": {
+            "second_JNT": 1.0
+        },
+        "21": {
+            "second_JNT": 1.0
+        },
+        "22": {
+            "second_JNT": 1.0
+        },
+        "23": {
+            "second_JNT": 1.0
+        },
+        "24": {
+            "second_JNT": 1.0
+        },
+        "25": {
+            "second_JNT": 1.0
+        },
+        "26": {
+            "second_JNT": 1.0
+        },
+        "27": {
+            "second_JNT": 1.0
+        },
+        "28": {
+            "second_JNT": 1.0
+        },
+        "29": {
+            "second_JNT": 1.0
+        },
+        "30": {
+            "second_JNT": 1.0
+        },
+        "31": {
+            "second_JNT": 1.0
+        },
+        "32": {
+            "second_JNT": 1.0
+        },
+        "33": {
+            "second_JNT": 1.0
+        },
+        "34": {
+            "second_JNT": 1.0
+        },
+        "35": {
+            "second_JNT": 1.0
+        },
+        "36": {
+            "second_JNT": 1.0
+        },
+        "37": {
+            "second_JNT": 1.0
+        },
+        "38": {
+            "second_JNT": 1.0
+        },
+        "39": {
+            "second_JNT": 1.0
+        },
+        "40": {
+            "first_JNT": 1.0
+        },
+        "41": {
+            "second_JNT": 1.0
+        },
+        "42": {
+            "second_JNT": 1.0
+        },
+        "43": {
+            "second_JNT": 1.0
+        },
+        "44": {
+            "second_JNT": 1.0
+        },
+        "45": {
+            "second_JNT": 1.0
+        },
+        "46": {
+            "second_JNT": 1.0
+        },
+        "47": {
+            "second_JNT": 1.0
+        },
+        "48": {
+            "second_JNT": 1.0
+        },
+        "49": {
+            "second_JNT": 1.0
+        },
+        "50": {
+            "second_JNT": 1.0
+        },
+        "51": {
+            "second_JNT": 1.0
+        },
+        "52": {
+            "second_JNT": 1.0
+        },
+        "53": {
+            "second_JNT": 1.0
+        },
+        "54": {
+            "second_JNT": 1.0
+        },
+        "55": {
+            "second_JNT": 1.0
+        },
+        "56": {
+            "second_JNT": 1.0
+        },
+        "57": {
+            "first_JNT": 0.233820605,
+            "second_JNT": 0.766179395
+        },
+        "58": {
+            "first_JNT": 0.288817236,
+            "second_JNT": 0.711182764
+        },
+        "59": {
+            "first_JNT": 0.233820614,
+            "second_JNT": 0.766179386
+        },
+        "60": {
+            "second_JNT": 1.0
+        },
+        "61": {
+            "second_JNT": 1.0
+        },
+        "62": {
+            "second_JNT": 1.0
+        },
+        "63": {
+            "second_JNT": 1.0
+        },
+        "64": {
+            "second_JNT": 1.0
+        },
+        "65": {
+            "second_JNT": 1.0
+        },
+        "66": {
+            "second_JNT": 1.0
+        },
+        "67": {
+            "second_JNT": 1.0
+        },
+        "68": {
+            "second_JNT": 1.0
+        },
+        "69": {
+            "second_JNT": 1.0
+        },
+        "70": {
+            "second_JNT": 1.0
+        },
+        "71": {
+            "second_JNT": 1.0
+        },
+        "72": {
+            "second_JNT": 1.0
+        },
+        "73": {
+            "second_JNT": 1.0
+        },
+        "74": {
+            "second_JNT": 1.0
+        },
+        "75": {
+            "second_JNT": 1.0
+        },
+        "76": {
+            "second_JNT": 1.0
+        },
+        "77": {
+            "second_JNT": 1.0
+        },
+        "78": {
+            "second_JNT": 1.0
+        },
+        "79": {
+            "second_JNT": 1.0
+        },
+        "80": {
+            "second_JNT": 1.0
+        },
+        "81": {
+            "second_JNT": 1.0
+        },
+        "82": {
+            "first_JNT": 0.863390429,
+            "second_JNT": 0.136609571
+        },
+        "83": {
+            "first_JNT": 0.863215288,
+            "second_JNT": 0.136784712
+        },
+        "84": {
+            "first_JNT": 0.863192981,
+            "second_JNT": 0.136807019
+        },
+        "85": {
+            "first_JNT": 0.863190848,
+            "second_JNT": 0.136809152
+        },
+        "86": {
+            "first_JNT": 0.863190706,
+            "second_JNT": 0.136809294
+        },
+        "87": {
+            "first_JNT": 0.863190703,
+            "second_JNT": 0.136809297
+        },
+        "88": {
+            "first_JNT": 0.863190692,
+            "second_JNT": 0.136809308
+        },
+        "89": {
+            "first_JNT": 0.863190696,
+            "second_JNT": 0.136809304
+        },
+        "90": {
+            "first_JNT": 0.8631907,
+            "second_JNT": 0.1368093
+        },
+        "91": {
+            "first_JNT": 0.863190848,
+            "second_JNT": 0.136809152
+        },
+        "92": {
+            "first_JNT": 0.863192978,
+            "second_JNT": 0.136807022
+        },
+        "93": {
+            "first_JNT": 0.863215283,
+            "second_JNT": 0.136784717
+        },
+        "94": {
+            "first_JNT": 0.863390439,
+            "second_JNT": 0.136609561
+        },
+        "95": {
+            "first_JNT": 0.8644143910000001,
+            "second_JNT": 0.135585609
+        },
+        "96": {
+            "first_JNT": 0.868723979,
+            "second_JNT": 0.131276021
+        },
+        "97": {
+            "first_JNT": 0.880195359,
+            "second_JNT": 0.119804641
+        },
+        "98": {
+            "first_JNT": 0.884692497,
+            "second_JNT": 0.115307503
+        },
+        "99": {
+            "first_JNT": 0.88019535,
+            "second_JNT": 0.11980465
+        },
+        "100": {
+            "first_JNT": 0.86872396,
+            "second_JNT": 0.13127604
+        },
+        "101": {
+            "first_JNT": 0.864414368,
+            "second_JNT": 0.135585632
+        },
+        "102": {
+            "first_JNT": 0.549365715,
+            "second_JNT": 0.450634285
+        },
+        "103": {
+            "first_JNT": 0.548917579,
+            "second_JNT": 0.451082421
+        },
+        "104": {
+            "first_JNT": 0.548859721,
+            "second_JNT": 0.451140279
+        },
+        "105": {
+            "first_JNT": 0.548853834,
+            "second_JNT": 0.451146166
+        },
+        "106": {
+            "first_JNT": 0.548853379,
+            "second_JNT": 0.451146621
+        },
+        "107": {
+            "first_JNT": 0.5488533560000001,
+            "second_JNT": 0.451146644
+        },
+        "108": {
+            "first_JNT": 0.548853343,
+            "second_JNT": 0.451146657
+        },
+        "109": {
+            "first_JNT": 0.548853347,
+            "second_JNT": 0.451146653
+        },
+        "110": {
+            "first_JNT": 0.548853371,
+            "second_JNT": 0.451146629
+        },
+        "111": {
+            "first_JNT": 0.548853838,
+            "second_JNT": 0.451146162
+        },
+        "112": {
+            "first_JNT": 0.548859725,
+            "second_JNT": 0.451140275
+        },
+        "113": {
+            "first_JNT": 0.54891758,
+            "second_JNT": 0.45108242
+        },
+        "114": {
+            "first_JNT": 0.549365736,
+            "second_JNT": 0.450634264
+        },
+        "115": {
+            "first_JNT": 0.5521296840000001,
+            "second_JNT": 0.447870316
+        },
+        "116": {
+            "first_JNT": 0.565896862,
+            "second_JNT": 0.434103138
+        },
+        "117": {
+            "first_JNT": 0.622670481,
+            "second_JNT": 0.377329519
+        },
+        "118": {
+            "first_JNT": 0.642316307,
+            "second_JNT": 0.357683693
+        },
+        "119": {
+            "first_JNT": 0.622670466,
+            "second_JNT": 0.377329534
+        },
+        "120": {
+            "first_JNT": 0.5658968280000001,
+            "second_JNT": 0.434103172
+        },
+        "121": {
+            "first_JNT": 0.5521296450000001,
+            "second_JNT": 0.447870355
+        },
+        "122": {
+            "first_JNT": 1.0
+        },
+        "123": {
+            "first_JNT": 1.0
+        },
+        "124": {
+            "first_JNT": 1.0
+        },
+        "125": {
+            "first_JNT": 1.0
+        },
+        "126": {
+            "first_JNT": 1.0
+        },
+        "127": {
+            "first_JNT": 1.0
+        },
+        "128": {
+            "first_JNT": 1.0
+        },
+        "129": {
+            "first_JNT": 1.0
+        },
+        "130": {
+            "first_JNT": 1.0
+        },
+        "131": {
+            "first_JNT": 1.0
+        },
+        "132": {
+            "first_JNT": 1.0
+        },
+        "133": {
+            "first_JNT": 1.0
+        },
+        "134": {
+            "first_JNT": 1.0
+        },
+        "135": {
+            "first_JNT": 1.0
+        },
+        "136": {
+            "first_JNT": 1.0
+        },
+        "137": {
+            "first_JNT": 1.0
+        },
+        "138": {
+            "first_JNT": 1.0
+        },
+        "139": {
+            "first_JNT": 1.0
+        },
+        "140": {
+            "first_JNT": 1.0
+        },
+        "141": {
+            "first_JNT": 1.0
+        },
+        "142": {
+            "first_JNT": 0.000472844,
+            "second_JNT": 0.999527156
+        },
+        "143": {
+            "first_JNT": 5.9708e-05,
+            "second_JNT": 0.999940292
+        },
+        "144": {
+            "first_JNT": 6.003e-06,
+            "second_JNT": 0.999993997
+        },
+        "145": {
+            "first_JNT": 4.72e-07,
+            "second_JNT": 0.999999528
+        },
+        "146": {
+            "first_JNT": 2.8e-08,
+            "second_JNT": 0.999999972
+        },
+        "147": {
+            "first_JNT": 1e-09,
+            "second_JNT": 0.999999999
+        },
+        "148": {
+            "second_JNT": 1.0
+        },
+        "149": {
+            "first_JNT": 1e-09,
+            "second_JNT": 0.999999999
+        },
+        "150": {
+            "first_JNT": 2.8e-08,
+            "second_JNT": 0.999999972
+        },
+        "151": {
+            "first_JNT": 4.72e-07,
+            "second_JNT": 0.999999528
+        },
+        "152": {
+            "first_JNT": 6.003e-06,
+            "second_JNT": 0.999993997
+        },
+        "153": {
+            "first_JNT": 5.9708e-05,
+            "second_JNT": 0.999940292
+        },
+        "154": {
+            "first_JNT": 0.000472844,
+            "second_JNT": 0.999527156
+        },
+        "155": {
+            "first_JNT": 0.003028796,
+            "second_JNT": 0.996971204
+        },
+        "156": {
+            "first_JNT": 0.015966305,
+            "second_JNT": 0.984033695
+        },
+        "157": {
+            "first_JNT": 0.070856941,
+            "second_JNT": 0.929143059
+        },
+        "158": {
+            "first_JNT": 0.089732934,
+            "second_JNT": 0.910267066
+        },
+        "159": {
+            "first_JNT": 0.070856946,
+            "second_JNT": 0.929143054
+        },
+        "160": {
+            "first_JNT": 0.015966307,
+            "second_JNT": 0.984033693
+        },
+        "161": {
+            "first_JNT": 0.003028796,
+            "second_JNT": 0.996971204
+        },
+        "162": {
+            "second_JNT": 1.0
+        },
+        "163": {
+            "second_JNT": 1.0
+        },
+        "164": {
+            "second_JNT": 1.0
+        },
+        "165": {
+            "second_JNT": 1.0
+        },
+        "166": {
+            "second_JNT": 1.0
+        },
+        "167": {
+            "second_JNT": 1.0
+        },
+        "168": {
+            "second_JNT": 1.0
+        },
+        "169": {
+            "second_JNT": 1.0
+        },
+        "170": {
+            "second_JNT": 1.0
+        },
+        "171": {
+            "second_JNT": 1.0
+        },
+        "172": {
+            "second_JNT": 1.0
+        },
+        "173": {
+            "second_JNT": 1.0
+        },
+        "174": {
+            "second_JNT": 1.0
+        },
+        "175": {
+            "second_JNT": 1.0
+        },
+        "176": {
+            "second_JNT": 1.0
+        },
+        "177": {
+            "second_JNT": 1.0
+        },
+        "178": {
+            "second_JNT": 1.0
+        },
+        "179": {
+            "second_JNT": 1.0
+        },
+        "180": {
+            "second_JNT": 1.0
+        },
+        "181": {
+            "second_JNT": 1.0
+        }
+    }
+}

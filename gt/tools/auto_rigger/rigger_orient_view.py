@@ -1,14 +1,11 @@
 """
 OrientationData View
 """
-from PySide2.QtWidgets import QPushButton, QLabel, QVBoxLayout, QRadioButton, QComboBox, QButtonGroup, QHBoxLayout
-from gt.tools.auto_rigger.rig_framework import OrientationData
-import gt.ui.resource_library as resource_library
-from gt.ui.qt_utils import MayaWindowMeta
-from PySide2 import QtWidgets, QtCore
-import gt.ui.qt_utils as qt_utils
-from PySide2.QtGui import QIcon
-from PySide2.QtCore import Qt
+
+import gt.tools.auto_rigger.rig_framework as tools_rig_frm
+import gt.ui.resource_library as ui_res_lib
+import gt.ui.qt_utils as ui_qt_utils
+import gt.ui.qt_import as ui_qt
 import logging
 
 # Logging Setup
@@ -17,7 +14,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class RiggerOrientView(metaclass=MayaWindowMeta):
+class RiggerOrientView(metaclass=ui_qt_utils.MayaWindowMeta):
     def __init__(self, parent=None, module=None):
         """
         Initialize the RiggerOrientView.
@@ -67,20 +64,22 @@ class RiggerOrientView(metaclass=MayaWindowMeta):
         self.create_widgets()
         self.create_layout()
 
-        self.setWindowFlags(self.windowFlags() |
-                            QtCore.Qt.WindowMaximizeButtonHint |
-                            QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowIcon(QIcon(resource_library.Icon.tool_orient_joints))
+        self.setWindowFlags(
+            self.windowFlags()
+            | ui_qt.QtLib.WindowFlag.WindowMaximizeButtonHint
+            | ui_qt.QtLib.WindowFlag.WindowMinimizeButtonHint
+        )
+        self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.tool_orient_joints))
 
-        stylesheet = resource_library.Stylesheet.scroll_bar_base
-        stylesheet += resource_library.Stylesheet.maya_dialog_base
-        stylesheet += resource_library.Stylesheet.list_widget_base
-        stylesheet += resource_library.Stylesheet.btn_radio_base
-        stylesheet += resource_library.Stylesheet.combobox_base
+        stylesheet = ui_res_lib.Stylesheet.scroll_bar_base
+        stylesheet += ui_res_lib.Stylesheet.maya_dialog_base
+        stylesheet += ui_res_lib.Stylesheet.list_widget_base
+        stylesheet += ui_res_lib.Stylesheet.btn_radio_base
+        stylesheet += ui_res_lib.Stylesheet.combobox_base
         self.setStyleSheet(stylesheet)
 
-        self.save_orient_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
-        self.cancel_btn.setStyleSheet(resource_library.Stylesheet.btn_push_base)
+        self.save_orient_btn.setStyleSheet(ui_res_lib.Stylesheet.btn_push_bright)
+        self.cancel_btn.setStyleSheet(ui_res_lib.Stylesheet.btn_push_base)
 
         # Connections
         self.save_orient_btn.clicked.connect(self.save_orientation_to_module)
@@ -89,8 +88,8 @@ class RiggerOrientView(metaclass=MayaWindowMeta):
         # Initial Selection (Default)
         self.set_view_to_module_data()
 
-        qt_utils.resize_to_screen(self, percentage=5, width_percentage=30)
-        qt_utils.center_window(self)
+        ui_qt_utils.resize_to_screen(self, percentage=5, width_percentage=30)
+        ui_qt_utils.center_window(self)
 
     def create_widgets(self):
         """Create the widgets for the window."""
@@ -100,63 +99,64 @@ class RiggerOrientView(metaclass=MayaWindowMeta):
         if _module_name:
             _module_name = f'\n"{_module_name}" ({_module_class})'
         else:
-            _module_name = f'\n{_module_class}'
+            _module_name = f"\n{_module_class}"
 
-        self.settings_label = QLabel(f'Orientation Data for {_module_name}')
-        self.settings_label.setStyleSheet(f"font-weight: bold; font-size: 8; margin-top: 0; "
-                                          f"color: {resource_library.Color.RGB.gray_lighter};")
-        self.settings_label.setAlignment(Qt.AlignCenter)
-        self.settings_label.setFont(qt_utils.get_font(resource_library.Font.roboto))
+        self.settings_label = ui_qt.QtWidgets.QLabel(f"Orientation Data for {_module_name}")
+        self.settings_label.setStyleSheet(
+            f"font-weight: bold; font-size: 8; margin-top: 0; " f"color: {ui_res_lib.Color.RGB.gray_lighter};"
+        )
+        self.settings_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        self.settings_label.setFont(ui_qt_utils.get_font(ui_res_lib.Font.roboto))
         self.settings_label.setFixedHeight(self.settings_label.sizeHint().height())
 
-        self.aim_axis_label = QLabel("Aim Axis:")
-        self.aim_axis_grp = QButtonGroup()
-        self.aim_axis_x = QRadioButton('X')
-        self.aim_axis_y = QRadioButton('Y')
-        self.aim_axis_z = QRadioButton('Z')
+        self.aim_axis_label = ui_qt.QtWidgets.QLabel("Aim Axis:")
+        self.aim_axis_grp = ui_qt.QtWidgets.QButtonGroup()
+        self.aim_axis_x = ui_qt.QtWidgets.QRadioButton("X")
+        self.aim_axis_y = ui_qt.QtWidgets.QRadioButton("Y")
+        self.aim_axis_z = ui_qt.QtWidgets.QRadioButton("Z")
         self.aim_axis_grp.addButton(self.aim_axis_x)
         self.aim_axis_grp.addButton(self.aim_axis_y)
         self.aim_axis_grp.addButton(self.aim_axis_z)
-        self.up_axis_label = QLabel("Up Axis:")
-        self.up_axis_grp = QButtonGroup()
-        self.up_axis_x = QRadioButton('X')
-        self.up_axis_y = QRadioButton('Y')
-        self.up_axis_z = QRadioButton('Z')
+        self.up_axis_label = ui_qt.QtWidgets.QLabel("Up Axis:")
+        self.up_axis_grp = ui_qt.QtWidgets.QButtonGroup()
+        self.up_axis_x = ui_qt.QtWidgets.QRadioButton("X")
+        self.up_axis_y = ui_qt.QtWidgets.QRadioButton("Y")
+        self.up_axis_z = ui_qt.QtWidgets.QRadioButton("Z")
         self.up_axis_grp.addButton(self.up_axis_x)
         self.up_axis_grp.addButton(self.up_axis_y)
         self.up_axis_grp.addButton(self.up_axis_z)
-        self.up_dir_label = QLabel("Up Dir:")
-        self.up_dir_grp = QButtonGroup()
-        self.up_dir_x = QRadioButton('X')
-        self.up_dir_y = QRadioButton('Y')
-        self.up_dir_z = QRadioButton('Z')
+        self.up_dir_label = ui_qt.QtWidgets.QLabel("Up Dir:")
+        self.up_dir_grp = ui_qt.QtWidgets.QButtonGroup()
+        self.up_dir_x = ui_qt.QtWidgets.QRadioButton("X")
+        self.up_dir_y = ui_qt.QtWidgets.QRadioButton("Y")
+        self.up_dir_z = ui_qt.QtWidgets.QRadioButton("Z")
         self.up_dir_grp.addButton(self.up_dir_x)
         self.up_dir_grp.addButton(self.up_dir_y)
         self.up_dir_grp.addButton(self.up_dir_z)
 
-        self.aim_axis_mod = QComboBox()
-        self.up_axis_mod = QComboBox()
-        self.up_dir_mod = QComboBox()
+        self.aim_axis_mod = ui_qt.QtWidgets.QComboBox()
+        self.up_axis_mod = ui_qt.QtWidgets.QComboBox()
+        self.up_dir_mod = ui_qt.QtWidgets.QComboBox()
         for combobox in [self.aim_axis_mod, self.up_axis_mod, self.up_dir_mod]:
             combobox.addItem("+")
             combobox.addItem("-")
             combobox.setMaximumWidth(50)
             combobox.setMinimumWidth(50)
 
-        self.save_orient_btn = QPushButton("Save Orientation")
+        self.save_orient_btn = ui_qt.QtWidgets.QPushButton("Save Orientation")
         self.save_orient_btn.setStyleSheet("padding: 10;")
-        self.save_orient_btn.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.save_orient_btn.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Expanding)
 
-        self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn = ui_qt.QtWidgets.QPushButton("Cancel")
         self.cancel_btn.setStyleSheet("padding: 10;")
-        self.cancel_btn.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.cancel_btn.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Expanding)
 
     def create_layout(self):
         """Create the layout for the window."""
-        body_layout = QVBoxLayout()
+        body_layout = ui_qt.QtWidgets.QVBoxLayout()
         body_layout.addWidget(self.settings_label)
 
-        aim_axis_layout = QtWidgets.QGridLayout()
+        aim_axis_layout = ui_qt.QtWidgets.QGridLayout()
         aim_axis_layout.setContentsMargins(0, 15, 0, 0)  # L-T-R-B
         aim_axis_layout.addWidget(self.aim_axis_label, 0, 0)
         aim_axis_layout.addWidget(self.aim_axis_x, 0, 1)
@@ -165,7 +165,7 @@ class RiggerOrientView(metaclass=MayaWindowMeta):
         aim_axis_layout.addWidget(self.aim_axis_mod, 0, 4)
         body_layout.addLayout(aim_axis_layout)
 
-        up_axis_layout = QtWidgets.QGridLayout()
+        up_axis_layout = ui_qt.QtWidgets.QGridLayout()
         up_axis_layout.addWidget(self.up_axis_label, 0, 0)
         up_axis_layout.addWidget(self.up_axis_x, 0, 1)
         up_axis_layout.addWidget(self.up_axis_y, 0, 2)
@@ -173,7 +173,7 @@ class RiggerOrientView(metaclass=MayaWindowMeta):
         up_axis_layout.addWidget(self.up_axis_mod, 0, 4)
         body_layout.addLayout(up_axis_layout)
 
-        up_dir_layout = QtWidgets.QGridLayout()
+        up_dir_layout = ui_qt.QtWidgets.QGridLayout()
         up_dir_layout.addWidget(self.up_dir_label, 0, 0)
         up_dir_layout.addWidget(self.up_dir_x, 0, 1)
         up_dir_layout.addWidget(self.up_dir_y, 0, 2)
@@ -182,16 +182,16 @@ class RiggerOrientView(metaclass=MayaWindowMeta):
         body_layout.addLayout(up_dir_layout)
         body_layout.setContentsMargins(20, 5, 20, 5)  # L-T-R-B
 
-        action_layout = QHBoxLayout()
+        action_layout = ui_qt.QtWidgets.QHBoxLayout()
         action_layout.addWidget(self.save_orient_btn)
         action_layout.addWidget(self.cancel_btn)
 
-        main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout = ui_qt.QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
-        top_layout = QtWidgets.QVBoxLayout()
+        top_layout = ui_qt.QtWidgets.QVBoxLayout()
         top_layout.setContentsMargins(15, 15, 15, 15)  # L-T-R-B
         top_layout.addLayout(body_layout)
-        bottom_layout = QtWidgets.QVBoxLayout()
+        bottom_layout = ui_qt.QtWidgets.QVBoxLayout()
         bottom_layout.setContentsMargins(15, 0, 15, 15)  # L-T-R-B
         bottom_layout.addLayout(action_layout)
         main_layout.addLayout(top_layout)
@@ -283,7 +283,7 @@ class RiggerOrientView(metaclass=MayaWindowMeta):
             else:
                 self.aim_axis_mod.setCurrentIndex(1)
         except Exception as e:
-            logger.debug(f'Unable to retrieve aim axis from OrientationData. Issue: {e}')
+            logger.debug(f"Unable to retrieve aim axis from OrientationData. Issue: {e}")
 
         try:
             x, y, z = _orientation.get_up_axis() or (0, 0, 0)
@@ -300,7 +300,7 @@ class RiggerOrientView(metaclass=MayaWindowMeta):
             else:
                 self.up_axis_mod.setCurrentIndex(1)
         except Exception as e:
-            logger.debug(f'Unable to retrieve up axis from OrientationData. Issue: {e}')
+            logger.debug(f"Unable to retrieve up axis from OrientationData. Issue: {e}")
 
         try:
             x, y, z = _orientation.get_up_dir() or (0, 0, 0)
@@ -317,13 +317,13 @@ class RiggerOrientView(metaclass=MayaWindowMeta):
             else:
                 self.up_dir_mod.setCurrentIndex(1)
         except Exception as e:
-            logger.debug(f'Unable to retrieve up direction from OrientationData. Issue: {e}')
+            logger.debug(f"Unable to retrieve up direction from OrientationData. Issue: {e}")
 
     def save_orientation_to_module(self):
         """
         Saves the orientation described in the view back into the module
         """
-        _new_orientation = OrientationData()
+        _new_orientation = tools_rig_frm.OrientationData()
         _new_orientation.set_aim_axis(aim_axis=self.get_aim_axis_tuple())
         _new_orientation.set_up_axis(up_axis=self.get_up_axis_tuple())
         _new_orientation.set_up_dir(up_dir=self.get_up_dir_tuple())
@@ -339,10 +339,14 @@ if __name__ == "__main__":
     from gt.tools.auto_rigger.rig_framework import ModuleGeneric
 
     _a_module = ModuleGeneric(name="My Module")
-    _an_orientation = OrientationData(method=OrientationData.Methods.automatic,
-                                      aim_axis=(0, -1, 0), up_axis=(1, 0, 0), up_dir=(0, 0, -1))
+    _an_orientation = tools_rig_frm.OrientationData(
+        method=tools_rig_frm.OrientationData.Methods.automatic,
+        aim_axis=(0, -1, 0),
+        up_axis=(1, 0, 0),
+        up_dir=(0, 0, -1),
+    )
     _a_module.set_orientation(orientation_data=_an_orientation)
 
-    with qt_utils.QtApplicationContext():
+    with ui_qt_utils.QtApplicationContext():
         window = RiggerOrientView(module=_a_module)  # View
         window.show()

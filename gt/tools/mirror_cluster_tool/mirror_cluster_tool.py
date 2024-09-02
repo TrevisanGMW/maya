@@ -2,10 +2,9 @@
  GT Mirror Cluster Tool - Tool to mirror cluster weights.
  github.com/TrevisanGMW/gt-tools -  2020-06-16
 """
+
 from maya import OpenMayaUI as OpenMayaUI
-from PySide2.QtWidgets import QWidget
-from shiboken2 import wrapInstance
-from PySide2.QtGui import QIcon
+import gt.ui.qt_import as ui_qt
 import maya.cmds as cmds
 import logging
 
@@ -15,16 +14,17 @@ logger = logging.getLogger("gt_mirror_cluster_tool")
 logger.setLevel(logging.INFO)
 
 # Script Name
-script_name = "GT Mirror Cluster Tool"
+script_name = "Mirror Cluster Tool"
 
 # Version
 script_version = "?.?.?"  # Module version (init)
 
-global_settings = {'loaded_mesh': '',
-                   'loaded_cluster_handle': '',
-                   'default_search_string': 'left_',
-                   'default_replace_string': 'right_',
-                   }
+global_settings = {
+    "loaded_mesh": "",
+    "loaded_cluster_handle": "",
+    "default_search_string": "left_",
+    "default_replace_string": "right_",
+}
 
 
 def build_gui_mirror_cluster_tool():
@@ -32,68 +32,84 @@ def build_gui_mirror_cluster_tool():
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
 
-    cmds.window(window_name, title=script_name + '  (v' + script_version + ')', mnb=False, mxb=False, s=True)
+    cmds.window(window_name, title=script_name + "  (v" + script_version + ")", mnb=False, mxb=False, s=True)
     cmds.window(window_name, e=True, s=True, wh=[1, 1])
 
     cmds.columnLayout("main_column", p=window_name)
 
     # Title Text
-    title_bgc_color = (.4, .4, .4)
-    cmds.separator(h=12, style='none')  # Empty Space
+    title_bgc_color = (0.4, 0.4, 0.4)
+    cmds.separator(h=12, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column")  # Window Size Adjustment
-    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 240), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)],
-                         p="main_column")  # Title Column
+    cmds.rowColumnLayout(
+        nc=3, cw=[(1, 10), (2, 240), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p="main_column"
+    )  # Title Column
     cmds.text(" ", bgc=title_bgc_color)  # Tiny Empty Green Space
     cmds.text(script_name, bgc=title_bgc_color, fn="boldLabelFont", align="left")
     cmds.button(l="Help", bgc=title_bgc_color, c=lambda x: build_gui_help_mirror_cluster_tool())
-    cmds.separator(h=10, style='none', p="main_column")  # Empty Space
+    cmds.separator(h=10, style="none", p="main_column")  # Empty Space
 
     # Body ====================
     cmds.rowColumnLayout("body_column", nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")
     cmds.separator(h=8)
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
 
     # Object Loader ====================
-    cmds.separator(h=5, style='none')
+    cmds.separator(h=5, style="none")
     cmds.rowColumnLayout(nc=2, cw=[(1, 150), (2, 150)], cs=[(1, 10), (2, 0)], p="main_column")
 
     # Mesh Loader
     cmds.button(l="Select Mesh", c=lambda x: update_stored_objects("mesh"), w=150)
-    mesh_status = cmds.button(l="Not selected yet", bgc=(.2, .2, .2), w=150,
-                              c="cmds.headsUpMessage( 'Select the mesh you want to mirror and click on \"Select Mesh\""
-                                "', verticalOffset=150 , time=5.0)")
+    mesh_status = cmds.button(
+        l="Not selected yet",
+        bgc=(0.2, 0.2, 0.2),
+        w=150,
+        c='cmds.headsUpMessage( \'Select the mesh you want to mirror and click on "Select Mesh"'
+        "', verticalOffset=150 , time=5.0)",
+    )
     # Cluster Handle Loader
     cmds.button(l="Select Cluster", c=lambda x: update_stored_objects("clusterHandle"), w=150)
-    cluster_handle_status = cmds.button(l="Not selected yet", bgc=(.2, .2, .2), w=150,
-                                        c="cmds.headsUpMessage( 'Select the cluster node you want to mirror and click"
-                                          " on \"Select Cluster\"', verticalOffset=150 , time=5.0)")
-    cmds.separator(h=10, style='none')  # Spacing Before Next Container
+    cluster_handle_status = cmds.button(
+        l="Not selected yet",
+        bgc=(0.2, 0.2, 0.2),
+        w=150,
+        c="cmds.headsUpMessage( 'Select the cluster node you want to mirror and click"
+        ' on "Select Cluster"\', verticalOffset=150 , time=5.0)',
+    )
+    cmds.separator(h=10, style="none")  # Spacing Before Next Container
 
     # Mirror Axis ====================
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")
-    cmds.radioButtonGrp("mirror_axis_btn_grp", nrb=3, sl=1, l="Mirror Axis", labelArray3=["X", "Y", "Z"],
-                        columnAlign4=["center", "left", "left", "left"], cw4=[120, 60, 60, 60])
-    cmds.separator(h=10, style='none')  # Spacing Before Next Container
+    cmds.radioButtonGrp(
+        "mirror_axis_btn_grp",
+        nrb=3,
+        sl=1,
+        l="Mirror Axis",
+        labelArray3=["X", "Y", "Z"],
+        columnAlign4=["center", "left", "left", "left"],
+        cw4=[120, 60, 60, 60],
+    )
+    cmds.separator(h=10, style="none")  # Spacing Before Next Container
 
     # Search and Replace Text Boxes ====================
     cmds.rowColumnLayout(nc=2, cw=[(1, 145), (2, 145)], cs=[(1, 10), (2, 10)], p="main_column")
     cmds.text(l="Search for:", align="left")
-    cmds.text(l='Replace with:', align="left")
-    cmds.separator(h=5, style='none')
-    cmds.separator(h=5, style='none')
+    cmds.text(l="Replace with:", align="left")
+    cmds.separator(h=5, style="none")
+    cmds.separator(h=5, style="none")
     cmds.textField("search_text_field", text=global_settings.get("default_search_string"))
     cmds.textField("replace_text_field", text=global_settings.get("default_replace_string"))
 
     # Bottom Separator ====================
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")
-    cmds.separator(h=8, style='none')  # Empty Space
+    cmds.separator(h=8, style="none")  # Empty Space
     cmds.separator(h=8)
 
     # Run Button ====================
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")
-    cmds.separator(h=10, style='none')
-    cmds.button(l='Mirror', h=30, c=lambda args: mirror_cluster(), bgc=[.6, .6, .6])
-    cmds.separator(h=8, style='none')
+    cmds.separator(h=10, style="none")
+    cmds.button(l="Mirror", h=30, c=lambda args: mirror_cluster(), bgc=[0.6, 0.6, 0.6])
+    cmds.separator(h=8, style="none")
 
     # Show and Lock Window
     cmds.showWindow(window_name)
@@ -105,7 +121,7 @@ def build_gui_mirror_cluster_tool():
         received_valid_object = False
 
         selection = cmds.ls(selection=True)
-        received_object = ''
+        received_object = ""
 
         if len(selection) == 0:
             cmds.warning("No objects selected. Please select a Mesh or a Cluster and try again")
@@ -118,28 +134,50 @@ def build_gui_mirror_cluster_tool():
             cmds.warning("Something went wrong, make sure you selected the correct object type")
 
         # If mesh
-        if expected_type is "mesh" and received_valid_object is True:
+        if expected_type == "mesh" and received_valid_object is True:
             global_settings["loaded_mesh"] = received_object
-            cmds.button(mesh_status, l=received_object, e=True, bgc=(.6, .8, .6),
-                        c=lambda x: loader_existence_check(global_settings.get("loaded_mesh")))
-        elif expected_type is "mesh":
-            cmds.button(mesh_status, l="Failed to Load", e=True, bgc=(1, .4, .4), w=130,
-                        c="cmds.headsUpMessage( 'Make sure you select only one mesh and try again', "
-                          "verticalOffset=150 , time=5.0)")
+            cmds.button(
+                mesh_status,
+                l=received_object,
+                e=True,
+                bgc=(0.6, 0.8, 0.6),
+                c=lambda x: loader_existence_check(global_settings.get("loaded_mesh")),
+            )
+        elif expected_type == "mesh":
+            cmds.button(
+                mesh_status,
+                l="Failed to Load",
+                e=True,
+                bgc=(1, 0.4, 0.4),
+                w=130,
+                c="cmds.headsUpMessage( 'Make sure you select only one mesh and try again', "
+                "verticalOffset=150 , time=5.0)",
+            )
         # If clusterHandle
-        if expected_type is "clusterHandle" and received_valid_object is True:
+        if expected_type == "clusterHandle" and received_valid_object is True:
             global_settings["loaded_cluster_handle"] = received_object
-            cmds.button(cluster_handle_status, l=received_object, e=True, bgc=(.6, .8, .6),
-                        c=lambda x: loader_existence_check(global_settings.get("loaded_cluster_handle")))
-        elif expected_type is "clusterHandle":
-            cmds.button(cluster_handle_status, l="Failed to Load", e=True, bgc=(1, .4, .4), w=130,
-                        c="cmds.headsUpMessage( 'Make sure you select a cluster and try again', "
-                          "verticalOffset=150 , time=5.0)")
+            cmds.button(
+                cluster_handle_status,
+                l=received_object,
+                e=True,
+                bgc=(0.6, 0.8, 0.6),
+                c=lambda x: loader_existence_check(global_settings.get("loaded_cluster_handle")),
+            )
+        elif expected_type == "clusterHandle":
+            cmds.button(
+                cluster_handle_status,
+                l="Failed to Load",
+                e=True,
+                bgc=(1, 0.4, 0.4),
+                w=130,
+                c="cmds.headsUpMessage( 'Make sure you select a cluster and try again', "
+                "verticalOffset=150 , time=5.0)",
+            )
 
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/cluster.png')
+    widget = ui_qt.shiboken.wrapInstance(int(qw), ui_qt.QtWidgets.QWidget)
+    icon = ui_qt.QtGui.QIcon(":/cluster.png")
     widget.setWindowIcon(icon)
 
     # Main GUI End ===================================================================
@@ -157,48 +195,48 @@ def build_gui_help_mirror_cluster_tool():
     main_column = cmds.columnLayout(p=window_name)
 
     # Title Text
-    cmds.separator(h=12, style='none')  # Empty Space
+    cmds.separator(h=12, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p=main_column)  # Window Size Adjustment
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)  # Title Column
-    cmds.text(script_name + " Help", bgc=[.4, .4, .4], fn="boldLabelFont", align="center")
-    cmds.separator(h=10, style='none', p=main_column)  # Empty Space
+    cmds.text(script_name + " Help", bgc=[0.4, 0.4, 0.4], fn="boldLabelFont", align="center")
+    cmds.separator(h=10, style="none", p=main_column)  # Empty Space
 
     # Body ====================
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)
-    cmds.text(l='Script mirroring clusters on mesh objects.', align="left")
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(l='Step 1:', align="left", fn="boldLabelFont")
-    cmds.text(l='Load your mesh by selecting it in the viewport or in the', align="left")
-    cmds.text(l='outliner, then click on \"Select Mesh\".', align="left")
-    cmds.text(l='Requirements: Must be one single mesh transform.', align="left")
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(l='Step 2:', align="left", fn="boldLabelFont")
-    cmds.text(l='Load your clusterHandle by selecting it in the viewport ', align="left")
-    cmds.text(l='or in the outliner, then click on \"Select Cluster\".', align="left")
-    cmds.text(l='Requirements: Must be one single clusterHandle.', align="left")
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(l='Step 3:', align="left", fn="boldLabelFont")
-    cmds.text(l='Select your mirror axis ', align="left")
-    cmds.text(l='X, Y or Z. It will always mirror on the negative direction', align="left")
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(l='Step 4:', align="left", fn="boldLabelFont")
-    cmds.text(l='To save time you can automatically rename the mirrored', align="left")
-    cmds.text(l='clusters using the search and replace text fields.', align="left")
+    cmds.text(l="Script mirroring clusters on mesh objects.", align="left")
+    cmds.separator(h=15, style="none")  # Empty Space
+    cmds.text(l="Step 1:", align="left", fn="boldLabelFont")
+    cmds.text(l="Load your mesh by selecting it in the viewport or in the", align="left")
+    cmds.text(l='outliner, then click on "Select Mesh".', align="left")
+    cmds.text(l="Requirements: Must be one single mesh transform.", align="left")
+    cmds.separator(h=15, style="none")  # Empty Space
+    cmds.text(l="Step 2:", align="left", fn="boldLabelFont")
+    cmds.text(l="Load your clusterHandle by selecting it in the viewport ", align="left")
+    cmds.text(l='or in the outliner, then click on "Select Cluster".', align="left")
+    cmds.text(l="Requirements: Must be one single clusterHandle.", align="left")
+    cmds.separator(h=15, style="none")  # Empty Space
+    cmds.text(l="Step 3:", align="left", fn="boldLabelFont")
+    cmds.text(l="Select your mirror axis ", align="left")
+    cmds.text(l="X, Y or Z. It will always mirror on the negative direction", align="left")
+    cmds.separator(h=15, style="none")  # Empty Space
+    cmds.text(l="Step 4:", align="left", fn="boldLabelFont")
+    cmds.text(l="To save time you can automatically rename the mirrored", align="left")
+    cmds.text(l="clusters using the search and replace text fields.", align="left")
     cmds.text(l='For example search for "left_" and replace with "right_"', align="left")
-    cmds.separator(h=15, style='none')  # Empty Space
+    cmds.separator(h=15, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p=main_column)
-    cmds.text('Guilherme Trevisan  ')
+    cmds.text("Guilherme Trevisan  ")
     cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1, 1, 1])
     cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p=main_column)
-    cmds.separator(h=15, style='none')  # Empty Space
+    cmds.separator(h=15, style="none")  # Empty Space
     cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1, 1, 1])
-    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.separator(h=7, style="none")  # Empty Space
 
-    # Close Button 
+    # Close Button
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)
-    cmds.separator(h=10, style='none')
-    cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
-    cmds.separator(h=8, style='none')
+    cmds.separator(h=10, style="none")
+    cmds.button(l="OK", h=30, c=lambda args: close_help_gui())
+    cmds.separator(h=8, style="none")
 
     # Show and Lock Window
     cmds.showWindow(window_name)
@@ -206,8 +244,8 @@ def build_gui_help_mirror_cluster_tool():
 
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/question.png')
+    widget = ui_qt.shiboken.wrapInstance(int(qw), ui_qt.QtWidgets.QWidget)
+    icon = ui_qt.QtGui.QIcon(":/question.png")
     widget.setWindowIcon(icon)
 
     def close_help_gui():
@@ -243,36 +281,41 @@ def mirror_cluster():
             vertex_position = cmds.pointPosition(vertex[0], local=1)
 
             # Utility node used to collect information about the other side of the mesh
-            closest_point_node = cmds.createNode('closestPointOnMesh')
+            closest_point_node = cmds.createNode("closestPointOnMesh")
 
             if mirror_axis == 1:
 
-                cmds.setAttr((closest_point_node + ".inPosition"), -vertex_position[0], vertex_position[1],
-                             vertex_position[2])
+                cmds.setAttr(
+                    (closest_point_node + ".inPosition"), -vertex_position[0], vertex_position[1], vertex_position[2]
+                )
             elif mirror_axis == 2:
-                cmds.setAttr((closest_point_node + ".inPosition"), vertex_position[0], -vertex_position[1],
-                             vertex_position[2])
+                cmds.setAttr(
+                    (closest_point_node + ".inPosition"), vertex_position[0], -vertex_position[1], vertex_position[2]
+                )
             else:
-                cmds.setAttr((closest_point_node + ".inPosition"), vertex_position[0], vertex_position[1],
-                             -vertex_position[2])
+                cmds.setAttr(
+                    (closest_point_node + ".inPosition"), vertex_position[0], vertex_position[1], -vertex_position[2]
+                )
 
             try:
                 cmds.connectAttr((mesh_shape[0] + ".outMesh"), (closest_point_node + ".inMesh"), force=1)
             except Exception as e:
                 logger.debug(str(e))
 
-            mirrored_vertex = (mesh_transform + ".vtx[" + str(
-                cmds.getAttr((closest_point_node + ".closestVertexIndex"))) + "]")  # Find mirrored vertex
+            mirrored_vertex = (
+                mesh_transform + ".vtx[" + str(cmds.getAttr((closest_point_node + ".closestVertexIndex"))) + "]"
+            )  # Find mirrored vertex
             vertex[0] = mirrored_vertex  # Replace previous pair vertex with newly found one
             mirrored_vertices.append(mirrored_vertex)
             cmds.delete(closest_point_node)  # Delete utility node
 
-        cluster_deform_node = cmds.listConnections((cluster_handle + ".worldMatrix[0]"), type="cluster",
-                                                   destination=1)
+        cluster_deform_node = cmds.listConnections((cluster_handle + ".worldMatrix[0]"), type="cluster", destination=1)
         is_relative = cmds.getAttr((cluster_deform_node[0] + ".relative"))
 
-        new_cluster_name = cluster_handle.replace(cmds.textField("search_text_field", q=True, text=True),
-                                                  cmds.textField("replace_text_field", q=True, text=True))
+        new_cluster_name = cluster_handle.replace(
+            cmds.textField("search_text_field", q=True, text=True),
+            cmds.textField("replace_text_field", q=True, text=True),
+        )
         new_cluster = cmds.cluster(mirrored_vertices, rel=is_relative)
 
         # Transfer weight back to new cluster
@@ -306,7 +349,7 @@ def get_cluster_vertices_on_mesh(mesh_transform, cluster_handle):
     # Isolate vertices on mesh
     vertices_on_mesh = []
     for vertex in extracted_vertices:
-        name = vertex.encode('utf-8')
+        name = vertex.encode("utf-8")
         if name.startswith(mesh_transform):
             vertices_on_mesh.append(vertex)
 
@@ -323,7 +366,7 @@ def get_cluster_vertices_on_mesh(mesh_transform, cluster_handle):
 
 def loader_existence_check(obj):
     """
-    Loader existence check. 
+    Loader existence check.
     If object exists, select it.
 
     Args:
@@ -337,5 +380,5 @@ def loader_existence_check(obj):
 
 
 # Build GUI
-if __name__ == '__main__':
+if __name__ == "__main__":
     build_gui_mirror_cluster_tool()

@@ -1,0 +1,11 @@
+{
+    "mesh": "cylinder",
+    "lookup_method": "path",
+    "max_influences": 4,
+    "maintain_max_influences": true,
+    "influences": [
+        "first_JNT",
+        "first_JNT|second_JNT",
+        "first_JNT|second_JNT|third_JNT"
+    ]
+}

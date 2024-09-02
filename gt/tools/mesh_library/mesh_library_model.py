@@ -1,8 +1,9 @@
 """
 Mesh Library Model
 """
-from gt.utils.mesh_utils import Meshes, MeshFile, ParametricMesh, get_mesh_preview_image_path, ParametricMeshes
-from gt.ui import resource_library
+
+from gt.core.mesh import Meshes, MeshFile, ParametricMesh, get_mesh_preview_image_path, ParametricMeshes
+import gt.ui.resource_library as ui_res_lib
 import logging
 import sys
 import os
@@ -50,10 +51,10 @@ class MeshLibraryModel:
             logger.debug(f'Invalid Mesh detected. "None" or empty element')
             return False
         if not item.is_valid():
-            logger.debug(f'Invalid Mesh. Missing required elements for a mesh: {item}')
+            logger.debug(f"Invalid Mesh. Missing required elements for a mesh: {item}")
             return False
         if self.is_conflicting_name(item.get_name()):
-            logger.debug(f'Invalid Name. This mesh name is already in the list. No duplicates allowed.')
+            logger.debug(f"Invalid Name. This mesh name is already in the list. No duplicates allowed.")
             return False
         return True
 
@@ -64,7 +65,7 @@ class MeshLibraryModel:
             mesh (MeshFile): The mesh file to be added.
         """
         if not self.validate_item(mesh):
-            logger.debug(f'Unable to add MeshFile to package meshes. Mesh failed validation.')
+            logger.debug(f"Unable to add MeshFile to package meshes. Mesh failed validation.")
             return
         self.base_meshes[mesh.get_name()] = mesh
 
@@ -75,7 +76,7 @@ class MeshLibraryModel:
             user_mesh (MeshFile): The mesh file to be added.
         """
         if not self.validate_item(user_mesh):
-            logger.debug(f'Unable to add MeshFile to user-defined meshes. MeshFile failed validation.')
+            logger.debug(f"Unable to add MeshFile to user-defined meshes. MeshFile failed validation.")
             return
         self.user_meshes[user_mesh.get_name()] = user_mesh
 
@@ -86,7 +87,7 @@ class MeshLibraryModel:
             param_mesh (ParametricMesh): The parametric mesh to be added
         """
         if not self.validate_item(param_mesh):
-            logger.debug(f'Unable to add ParametricMesh to mesh list. ParametricMesh failed validation.')
+            logger.debug(f"Unable to add ParametricMesh to mesh list. ParametricMesh failed validation.")
             return
         self.param_meshes[param_mesh.get_name()] = param_mesh
 
@@ -130,7 +131,7 @@ class MeshLibraryModel:
         Imports all meshes found in "mesh_utils.Meshes" to the MeshLibraryModel base meshes list
         """
         attributes = vars(Meshes)
-        keys = [attr for attr in attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        keys = [attr for attr in attributes if not (attr.startswith("__") and attr.endswith("__"))]
         for mesh_key in keys:
             mesh_file = getattr(Meshes, mesh_key)
             self.add_base_mesh(mesh_file)
@@ -140,7 +141,7 @@ class MeshLibraryModel:
         Imports all meshes found in "mesh_utils.Meshes" to the MeshLibraryModel base meshes list
         """
         attributes = vars(ParametricMeshes)
-        keys = [attr for attr in attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        keys = [attr for attr in attributes if not (attr.startswith("__") and attr.endswith("__"))]
         for mesh_key in keys:
             mesh_file = getattr(ParametricMeshes, mesh_key)
             self.add_param_mesh(mesh_file)
@@ -155,7 +156,7 @@ class MeshLibraryModel:
         if reset_user_meshes:
             self.user_meshes = {}
         if not source_dir:
-            logger.debug('Invalid user-defined meshes directory')
+            logger.debug("Invalid user-defined meshes directory")
             return
         if not os.path.exists(source_dir):
             logger.debug("User-defined meshes directory is missing.")
@@ -167,7 +168,7 @@ class MeshLibraryModel:
                     if user_mesh.is_valid():
                         self.add_user_mesh(user_mesh)
                 except Exception as e:
-                    logger.debug(f'Failed to read user-defined mesh. Issue: {e}')
+                    logger.debug(f"Failed to read user-defined mesh. Issue: {e}")
 
     def build_mesh_from_name(self, mesh_name):
         """
@@ -241,7 +242,7 @@ class MeshLibraryModel:
         if preview_image:
             return preview_image
         else:
-            return resource_library.Icon.library_missing_file
+            return ui_res_lib.Icon.library_missing_file
 
     @staticmethod
     def build_mesh_with_custom_parameters(parameters, target_parametric_mesh):
@@ -277,6 +278,7 @@ class MeshLibraryModel:
             logger.warning(f'Unable to export mesh. Invalid target directory: "{target_dir_path}".')
             return
         import maya.cmds as cmds
+
         selection = cmds.ls(selection=True, long=True) or []
         if not selection:
             cmds.warning("Nothing selected. Select an existing mesh in your scene and try again.")
@@ -285,13 +287,15 @@ class MeshLibraryModel:
             cmds.warning("Select only one object and try again.")
             return
         # Determine name
-        from gt.utils.naming_utils import get_short_name
+        from gt.core.naming import get_short_name
+
         mesh_name = get_short_name(long_name=selection[0], remove_namespace=True)
         if mesh_name in self.get_all_mesh_names():
             cmds.warning("Unable to add mesh. Mesh name already exists in the library. Rename it and try again.")
             return
-        file_path = os.path.join(target_dir_path, f'{mesh_name}.obj')
-        from gt.utils import mesh_utils
+        file_path = os.path.join(target_dir_path, f"{mesh_name}.obj")
+        from gt.core import mesh
+
         mesh_utils.export_obj_file(export_path=file_path)
         if not os.path.exists(file_path):
             logger.warning(f'Unable to export mesh. Mesh file was not generated. Missing: "{file_path}".')

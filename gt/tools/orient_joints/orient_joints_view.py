@@ -1,16 +1,13 @@
 """
 Orient Joints View/Window
 """
-from PySide2.QtWidgets import QPushButton, QLabel, QVBoxLayout, QFrame, QRadioButton, QComboBox, QButtonGroup
-import gt.ui.resource_library as resource_library
-from gt.ui.qt_utils import MayaWindowMeta
-from PySide2 import QtWidgets, QtCore
-import gt.ui.qt_utils as qt_utils
-from PySide2.QtGui import QIcon
-from PySide2.QtCore import Qt
+
+import gt.ui.resource_library as ui_res_lib
+import gt.ui.qt_utils as ui_qt_utils
+import gt.ui.qt_import as ui_qt
 
 
-class OrientJointsView(metaclass=MayaWindowMeta):
+class OrientJointsView(metaclass=ui_qt_utils.MayaWindowMeta):
     def __init__(self, parent=None, controller=None, version=None):
         """
         Initialize the OrientJointsView.
@@ -27,10 +24,10 @@ class OrientJointsView(metaclass=MayaWindowMeta):
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
 
         # Window Title
-        self.window_title = "GT Orient Joints"
+        self.window_title = "Orient Joints"
         _window_title = self.window_title
         if version:
-            _window_title += f' - (v{str(version)})'
+            _window_title += f" - (v{str(version)})"
         self.setWindowTitle(_window_title)
 
         self.utilities_label = None
@@ -75,24 +72,26 @@ class OrientJointsView(metaclass=MayaWindowMeta):
         self.create_widgets()
         self.create_layout()
 
-        self.setWindowFlags(self.windowFlags() |
-                            QtCore.Qt.WindowMaximizeButtonHint |
-                            QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowIcon(QIcon(resource_library.Icon.tool_orient_joints))
+        self.setWindowFlags(
+            self.windowFlags()
+            | ui_qt.QtLib.WindowFlag.WindowMaximizeButtonHint
+            | ui_qt.QtLib.WindowFlag.WindowMinimizeButtonHint
+        )
+        self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.tool_orient_joints))
 
-        stylesheet = resource_library.Stylesheet.scroll_bar_base
-        stylesheet += resource_library.Stylesheet.maya_dialog_base
-        stylesheet += resource_library.Stylesheet.list_widget_base
-        stylesheet += resource_library.Stylesheet.btn_radio_base
-        stylesheet += resource_library.Stylesheet.combobox_base
+        stylesheet = ui_res_lib.Stylesheet.scroll_bar_base
+        stylesheet += ui_res_lib.Stylesheet.maya_dialog_base
+        stylesheet += ui_res_lib.Stylesheet.list_widget_base
+        stylesheet += ui_res_lib.Stylesheet.btn_radio_base
+        stylesheet += ui_res_lib.Stylesheet.combobox_base
         self.setStyleSheet(stylesheet)
 
-        self.show_axis_btn.setStyleSheet(resource_library.Stylesheet.btn_push_base)
-        self.hide_axis_btn.setStyleSheet(resource_library.Stylesheet.btn_push_base)
-        self.orient_joints_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
-        self.hide_axis_btn.setStyleSheet(resource_library.Stylesheet.btn_push_base)
-        self.copy_parent_btn.setStyleSheet(resource_library.Stylesheet.btn_push_base)
-        self.copy_world_btn.setStyleSheet(resource_library.Stylesheet.btn_push_base)
+        self.show_axis_btn.setStyleSheet(ui_res_lib.Stylesheet.btn_push_base)
+        self.hide_axis_btn.setStyleSheet(ui_res_lib.Stylesheet.btn_push_base)
+        self.orient_joints_btn.setStyleSheet(ui_res_lib.Stylesheet.btn_push_bright)
+        self.hide_axis_btn.setStyleSheet(ui_res_lib.Stylesheet.btn_push_base)
+        self.copy_parent_btn.setStyleSheet(ui_res_lib.Stylesheet.btn_push_base)
+        self.copy_world_btn.setStyleSheet(ui_res_lib.Stylesheet.btn_push_base)
 
         # Initial Selection (Default)
         self.target_selected.setChecked(True)
@@ -100,117 +99,119 @@ class OrientJointsView(metaclass=MayaWindowMeta):
         self.up_axis_y.setChecked(True)
         self.up_dir_y.setChecked(True)
 
-        qt_utils.resize_to_screen(self, percentage=20, width_percentage=30)
-        qt_utils.center_window(self)
+        ui_qt_utils.resize_to_screen(self, percentage=20, width_percentage=30)
+        ui_qt_utils.center_window(self)
 
     def create_widgets(self):
         """Create the widgets for the window."""
-        self.utilities_label = QLabel("Utilities:")
-        self.utilities_label.setStyleSheet(f"font-weight: bold; font-size: 8; margin-top: 0; "
-                                           f"color: {resource_library.Color.RGB.gray_lighter};")
+        self.utilities_label = ui_qt.QtWidgets.QLabel("Utilities:")
+        self.utilities_label.setStyleSheet(
+            f"font-weight: bold; font-size: 8; margin-top: 0; " f"color: {ui_res_lib.Color.RGB.gray_lighter};"
+        )
 
-        self.utilities_label.setAlignment(Qt.AlignCenter)
-        self.utilities_label.setFont(qt_utils.get_font(resource_library.Font.roboto))
+        self.utilities_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        self.utilities_label.setFont(ui_qt_utils.get_font(ui_res_lib.Font.roboto))
         self.utilities_label.setFixedHeight(self.utilities_label.sizeHint().height())
 
-        self.settings_label = QLabel("Orientation Settings:")
-        self.settings_label.setStyleSheet(f"font-weight: bold; font-size: 8; margin-top: 0; "
-                                          f"color: {resource_library.Color.RGB.gray_lighter};")
-        self.settings_label.setAlignment(Qt.AlignCenter)
-        self.settings_label.setFont(qt_utils.get_font(resource_library.Font.roboto))
+        self.settings_label = ui_qt.QtWidgets.QLabel("Orientation Settings:")
+        self.settings_label.setStyleSheet(
+            f"font-weight: bold; font-size: 8; margin-top: 0; " f"color: {ui_res_lib.Color.RGB.gray_lighter};"
+        )
+        self.settings_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        self.settings_label.setFont(ui_qt_utils.get_font(ui_res_lib.Font.roboto))
         self.settings_label.setFixedHeight(self.settings_label.sizeHint().height())
 
-        self.show_axis_btn = QPushButton('Show Axis')
-        self.show_axis_btn.setToolTip('Set the visibility of the local rotation axis to on (active)')
+        self.show_axis_btn = ui_qt.QtWidgets.QPushButton("Show Axis")
+        self.show_axis_btn.setToolTip("Set the visibility of the local rotation axis to on (active)")
         self.show_axis_btn.setStyleSheet("padding: 10;")
 
-        self.hide_axis_btn = QPushButton('Hide Axis')
-        self.hide_axis_btn.setToolTip('Set the visibility of the local rotation axis to off (inactive)')
+        self.hide_axis_btn = ui_qt.QtWidgets.QPushButton("Hide Axis")
+        self.hide_axis_btn.setToolTip("Set the visibility of the local rotation axis to off (inactive)")
         self.hide_axis_btn.setStyleSheet("padding: 10;")
 
-        self.copy_parent_btn = QPushButton('Copy Parent')
+        self.copy_parent_btn = ui_qt.QtWidgets.QPushButton("Copy Parent")
         self.copy_parent_btn.setToolTip("Match orientation of the parent")
         self.copy_parent_btn.setStyleSheet("padding: 10;")
 
-        self.copy_world_btn = QPushButton("Reset to World")
+        self.copy_world_btn = ui_qt.QtWidgets.QPushButton("Reset to World")
         self.copy_world_btn.setToolTip("Match orientation of the world (origin)")
         self.copy_world_btn.setStyleSheet("padding: 10;")
 
-        self.target_grp = QButtonGroup()
-        self.target_label = QLabel("Target:")
-        self.target_selected = QRadioButton('Selected')
-        self.target_hierarchy = QRadioButton('Hierarchy')
+        self.target_grp = ui_qt.QtWidgets.QButtonGroup()
+        self.target_label = ui_qt.QtWidgets.QLabel("Target:")
+        self.target_selected = ui_qt.QtWidgets.QRadioButton("Selected")
+        self.target_hierarchy = ui_qt.QtWidgets.QRadioButton("Hierarchy")
         self.target_grp.addButton(self.target_selected)
         self.target_grp.addButton(self.target_hierarchy)
-        self.aim_axis_label = QLabel("Aim Axis:")
-        self.aim_axis_grp = QButtonGroup()
-        self.aim_axis_x = QRadioButton('X')
-        self.aim_axis_y = QRadioButton('Y')
-        self.aim_axis_z = QRadioButton('Z')
+        self.aim_axis_label = ui_qt.QtWidgets.QLabel("Aim Axis:")
+        self.aim_axis_grp = ui_qt.QtWidgets.QButtonGroup()
+        self.aim_axis_x = ui_qt.QtWidgets.QRadioButton("X")
+        self.aim_axis_y = ui_qt.QtWidgets.QRadioButton("Y")
+        self.aim_axis_z = ui_qt.QtWidgets.QRadioButton("Z")
         self.aim_axis_grp.addButton(self.aim_axis_x)
         self.aim_axis_grp.addButton(self.aim_axis_y)
         self.aim_axis_grp.addButton(self.aim_axis_z)
-        self.up_axis_label = QLabel("Up Axis:")
-        self.up_axis_grp = QButtonGroup()
-        self.up_axis_x = QRadioButton('X')
-        self.up_axis_y = QRadioButton('Y')
-        self.up_axis_z = QRadioButton('Z')
+        self.up_axis_label = ui_qt.QtWidgets.QLabel("Up Axis:")
+        self.up_axis_grp = ui_qt.QtWidgets.QButtonGroup()
+        self.up_axis_x = ui_qt.QtWidgets.QRadioButton("X")
+        self.up_axis_y = ui_qt.QtWidgets.QRadioButton("Y")
+        self.up_axis_z = ui_qt.QtWidgets.QRadioButton("Z")
         self.up_axis_grp.addButton(self.up_axis_x)
         self.up_axis_grp.addButton(self.up_axis_y)
         self.up_axis_grp.addButton(self.up_axis_z)
-        self.up_dir_label = QLabel("Up Dir:")
-        self.up_dir_grp = QButtonGroup()
-        self.up_dir_x = QRadioButton('X')
-        self.up_dir_y = QRadioButton('Y')
-        self.up_dir_z = QRadioButton('Z')
+        self.up_dir_label = ui_qt.QtWidgets.QLabel("Up Dir:")
+        self.up_dir_grp = ui_qt.QtWidgets.QButtonGroup()
+        self.up_dir_x = ui_qt.QtWidgets.QRadioButton("X")
+        self.up_dir_y = ui_qt.QtWidgets.QRadioButton("Y")
+        self.up_dir_z = ui_qt.QtWidgets.QRadioButton("Z")
         self.up_dir_grp.addButton(self.up_dir_x)
         self.up_dir_grp.addButton(self.up_dir_y)
         self.up_dir_grp.addButton(self.up_dir_z)
 
-        self.aim_axis_mod = QComboBox()
-        self.up_axis_mod = QComboBox()
-        self.up_dir_mod = QComboBox()
+        self.aim_axis_mod = ui_qt.QtWidgets.QComboBox()
+        self.up_axis_mod = ui_qt.QtWidgets.QComboBox()
+        self.up_dir_mod = ui_qt.QtWidgets.QComboBox()
         for combobox in [self.aim_axis_mod, self.up_axis_mod, self.up_dir_mod]:
             combobox.addItem("+")
             combobox.addItem("-")
             combobox.setMaximumWidth(50)
             combobox.setMinimumWidth(50)
 
-        self.orient_joints_btn = QPushButton("Orient Joints")
+        self.orient_joints_btn = ui_qt.QtWidgets.QPushButton("Orient Joints")
         self.orient_joints_btn.setStyleSheet("padding: 10;")
 
     def create_layout(self):
         """Create the layout for the window."""
-        utility_layout = QtWidgets.QVBoxLayout()
+        utility_layout = ui_qt.QtWidgets.QVBoxLayout()
         utility_layout.addWidget(self.utilities_label)
-        axis_layout = QtWidgets.QHBoxLayout()
+        axis_layout = ui_qt.QtWidgets.QHBoxLayout()
         axis_layout.addWidget(self.show_axis_btn)
         axis_layout.addWidget(self.hide_axis_btn)
-        copy_layout = QtWidgets.QHBoxLayout()
+        copy_layout = ui_qt.QtWidgets.QHBoxLayout()
         copy_layout.addWidget(self.copy_parent_btn)
         copy_layout.addWidget(self.copy_world_btn)
         utility_layout.addLayout(axis_layout)
         utility_layout.addLayout(copy_layout)
 
-        self.show_axis_btn.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self.hide_axis_btn.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self.copy_parent_btn.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self.copy_world_btn.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.show_axis_btn.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Expanding)
+        self.hide_axis_btn.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Expanding)
+        self.copy_parent_btn.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Expanding)
+        self.copy_world_btn.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Expanding)
 
-        separator = QFrame()
-        separator.setFrameShape(QFrame.HLine)
-        separator.setFrameShadow(QFrame.Sunken)
+        separator = ui_qt.QtWidgets.QFrame()
+        separator.setFrameShape(ui_qt.QtLib.FrameStyle.HLine)
+        separator.setFrameShadow(ui_qt.QtLib.FrameStyle.Sunken)
 
-        body_layout = QVBoxLayout()
+        body_layout = ui_qt.QtWidgets.QVBoxLayout()
         body_layout.addWidget(self.settings_label)
 
-        target_layout = QtWidgets.QGridLayout()
+        target_layout = ui_qt.QtWidgets.QGridLayout()
         target_layout.addWidget(self.target_label, 0, 0)
         target_layout.addWidget(self.target_selected, 0, 1)
         target_layout.addWidget(self.target_hierarchy, 0, 2)
         body_layout.addLayout(target_layout)
 
-        aim_axis_layout = QtWidgets.QGridLayout()
+        aim_axis_layout = ui_qt.QtWidgets.QGridLayout()
         aim_axis_layout.addWidget(self.aim_axis_label, 0, 0)
         aim_axis_layout.addWidget(self.aim_axis_x, 0, 1)
         aim_axis_layout.addWidget(self.aim_axis_y, 0, 2)
@@ -218,7 +219,7 @@ class OrientJointsView(metaclass=MayaWindowMeta):
         aim_axis_layout.addWidget(self.aim_axis_mod, 0, 4)
         body_layout.addLayout(aim_axis_layout)
 
-        up_axis_layout = QtWidgets.QGridLayout()
+        up_axis_layout = ui_qt.QtWidgets.QGridLayout()
         up_axis_layout.addWidget(self.up_axis_label, 0, 0)
         up_axis_layout.addWidget(self.up_axis_x, 0, 1)
         up_axis_layout.addWidget(self.up_axis_y, 0, 2)
@@ -226,7 +227,7 @@ class OrientJointsView(metaclass=MayaWindowMeta):
         up_axis_layout.addWidget(self.up_axis_mod, 0, 4)
         body_layout.addLayout(up_axis_layout)
 
-        up_dir_layout = QtWidgets.QGridLayout()
+        up_dir_layout = ui_qt.QtWidgets.QGridLayout()
         up_dir_layout.addWidget(self.up_dir_label, 0, 0)
         up_dir_layout.addWidget(self.up_dir_x, 0, 1)
         up_dir_layout.addWidget(self.up_dir_y, 0, 2)
@@ -235,14 +236,14 @@ class OrientJointsView(metaclass=MayaWindowMeta):
         body_layout.addLayout(up_dir_layout)
         body_layout.setContentsMargins(20, 5, 20, 5)  # L-T-R-B
 
-        action_layout = QVBoxLayout()
+        action_layout = ui_qt.QtWidgets.QVBoxLayout()
         action_layout.addWidget(self.orient_joints_btn)
 
-        main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout = ui_qt.QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
-        top_layout = QtWidgets.QVBoxLayout()
-        mid_layout = QtWidgets.QVBoxLayout()
-        bottom_layout = QtWidgets.QVBoxLayout()
+        top_layout = ui_qt.QtWidgets.QVBoxLayout()
+        mid_layout = ui_qt.QtWidgets.QVBoxLayout()
+        bottom_layout = ui_qt.QtWidgets.QVBoxLayout()
         top_layout.setContentsMargins(15, 15, 15, 15)  # L-T-R-B
         mid_layout.setContentsMargins(15, 0, 15, 15)  # L-T-R-B
         bottom_layout.setContentsMargins(15, 0, 15, 15)  # L-T-R-B
@@ -326,7 +327,7 @@ class OrientJointsView(metaclass=MayaWindowMeta):
 
 
 if __name__ == "__main__":
-    with qt_utils.QtApplicationContext():
+    with ui_qt_utils.QtApplicationContext():
         window = OrientJointsView(version="1.2.3")  # View
         window.show()
         window.orient_joints_btn.clicked.connect(window.is_selecting_hierarchy)

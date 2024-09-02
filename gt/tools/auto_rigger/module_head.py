@@ -1,25 +1,22 @@
 """
 Auto Rigger Head Modules
-github.com/TrevisanGMW/gt-tools
+
 """
-from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_joint_from_uuid, find_direction_curve
-from gt.tools.auto_rigger.rig_utils import get_proxy_offset, get_automation_group, create_ctrl_curve
-from gt.utils.transform_utils import Vector3, match_transform, scale_shapes, translate_shapes, rotate_shapes
-from gt.utils.transform_utils import set_equidistant_transforms
-from gt.utils.attr_utils import add_separator_attr, set_attr_state, rescale, hide_lock_default_attrs, set_attr
-from gt.utils.rigging_utils import offset_control_orientation, expose_rotation_order, RiggingConstants
-from gt.utils.constraint_utils import equidistant_constraints, constraint_targets, ConstraintTypes
-from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
-from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
-from gt.utils.hierarchy_utils import add_offset_transform, create_group
-from gt.utils.color_utils import ColorConstants, set_color_viewport
-from gt.utils.joint_utils import copy_parent_orients, reset_orients
-from gt.utils.curve_utils import create_connection_line
-from gt.utils.math_utils import dist_center_to_center
-from gt.utils.naming_utils import NamingConstants
-from gt.utils.node_utils import Node
-from gt.utils import hierarchy_utils
-from gt.ui import resource_library
+
+import gt.tools.auto_rigger.rig_constants as tools_rig_const
+import gt.tools.auto_rigger.rig_framework as tools_rig_frm
+import gt.tools.auto_rigger.rig_utils as tools_rig_utils
+import gt.ui.resource_library as ui_res_lib
+import gt.core.constraint as core_cnstr
+import gt.core.rigging as core_rigging
+import gt.core.hierarchy as core_hrchy
+import gt.core.transform as core_trans
+import gt.core.naming as core_naming
+import gt.core.color as core_color
+import gt.core.curve as core_curve
+import gt.core.attr as core_attr
+import gt.core.math as core_math
+import gt.core.node as core_node
 import maya.cmds as cmds
 import logging
 import re
@@ -30,138 +27,126 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class ModuleHead(ModuleGeneric):
-    __version__ = '0.0.2-alpha'
-    icon = resource_library.Icon.rigger_module_head
+class ModuleHead(tools_rig_frm.ModuleGeneric):
+    __version__ = "0.0.6"
+    icon = ui_res_lib.Icon.rigger_module_head
     allow_parenting = True
 
-    def __init__(self, name="Head", prefix=None, suffix=None):
+    def __init__(self, name="Head", prefix=core_naming.NamingConstants.Prefix.CENTER, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
-        _orientation = OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 0, 1), up_dir=(1, 0, 0))
+        _orientation = tools_rig_frm.OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 0, 1), up_dir=(1, 0, 0))
         self.set_orientation(orientation_data=_orientation)
+        self.set_orientation_method(method="automatic")
+        self.orientation.set_world_aligned(world_aligned=True)
 
-        _end_suffix = NamingConstants.Suffix.END.capitalize()
-        self.main_eye_ctrl = f"main_eye_{NamingConstants.Suffix.CTRL}"  # Not yet exposed/editable
+        self._default_neck_mid_name = "neck"
+        self._default_neck_base_name = f"{self._default_neck_mid_name}01"
+        self._default_neck_suffix = "neckBaseData"
+        self._end_suffix = core_naming.NamingConstants.Description.END.capitalize()
+
+        # Extra Module Data
+        self.build_jaw = True
+        self.build_eyes = True
+        self.prefix_eye_left = core_naming.NamingConstants.Prefix.LEFT
+        self.prefix_eye_right = core_naming.NamingConstants.Prefix.RIGHT
+        self.delete_head_jaw_bind_jnt = True
+        self.set_extra_callable_function(self._delete_unbound_joints)  # Called after the control rig is built
 
         # Neck Base (Chain Base)
-        self.neck_base = Proxy(name="neckBase")
-        pos_neck_base = Vector3(y=137)
-        self.neck_base.set_initial_position(xyz=pos_neck_base)
-        self.neck_base.set_locator_scale(scale=1.5)
-        self.neck_base.set_meta_purpose(value="neckBase")
-        self.neck_base.add_driver_type(driver_type=[RiggerDriverTypes.FK])
+        self.neck_base_proxy = tools_rig_frm.Proxy(name=self._default_neck_base_name)
+        pos_neck_base = core_trans.Vector3(y=137)
+        self.neck_base_proxy.set_initial_position(xyz=pos_neck_base)
+        self.neck_base_proxy.set_locator_scale(scale=1.5)
+        self.neck_base_proxy.set_meta_purpose(value=self._default_neck_base_name)
+        self.neck_base_proxy.set_rotation_order(rotation_order=1)
+        self.neck_base_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
         # Head (Chain End)
-        self.head = Proxy(name="head")
-        pos_head = Vector3(y=142.5)
-        self.head.set_initial_position(xyz=pos_head)
-        self.head.set_locator_scale(scale=1.5)
-        self.head.set_meta_purpose(value="head")
-        self.head.add_driver_type(driver_type=[RiggerDriverTypes.OFFSET, RiggerDriverTypes.FK])
+        self.head_proxy = tools_rig_frm.Proxy(name="head")
+        pos_head = core_trans.Vector3(y=142.5)
+        self.head_proxy.set_initial_position(xyz=pos_head)
+        self.head_proxy.set_locator_scale(scale=1.5)
+        self.head_proxy.set_meta_purpose(value="head")
+        self.head_proxy.set_rotation_order(rotation_order=1)
+        self.head_proxy.add_driver_type(
+            driver_type=[tools_rig_const.RiggerDriverTypes.GENERIC, tools_rig_const.RiggerDriverTypes.FK]
+        )
 
         # Head End
-        self.head_end = Proxy(name=f"head{_end_suffix}")
-        pos_head_end = Vector3(y=160)
-        self.head_end.set_initial_position(xyz=pos_head_end)
-        self.head_end.set_locator_scale(scale=1)
-        self.head_end.set_meta_purpose(value="headEnd")
-        self.head_end.set_parent_uuid(self.head.get_uuid())
-        self.head_end.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
+        self.head_end_proxy = tools_rig_frm.Proxy(name=f"head{self._end_suffix}")
+        pos_head_end = core_trans.Vector3(y=160)
+        self.head_end_proxy.set_initial_position(xyz=pos_head_end)
+        self.head_end_proxy.set_locator_scale(scale=1)
+        self.head_end_proxy.set_meta_purpose(value="headEnd")
+        self.head_end_proxy.set_parent_uuid(self.head_proxy.get_uuid())
+        self.head_end_proxy.add_color(rgb_color=core_color.ColorConstants.RigProxy.FOLLOWER)
+        self.head_end_proxy.set_rotation_order(rotation_order=1)
+        self.head_end_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.GENERIC])
+
+        # jaw, eyes, neck mid (in-between)
+        self.neck_mid_proxies = []
+        self.jaw_proxy = None
+        self.jaw_end_proxy = None
+        self.lt_eye_proxy = None
+        self.rt_eye_proxy = None
 
         # Jaw
-        self.jaw = Proxy(name="jaw")
-        pos_jaw = Vector3(y=147.5, z=2.5)
-        self.jaw.set_initial_position(xyz=pos_jaw)
-        self.jaw.set_locator_scale(scale=1.5)
-        self.jaw.set_meta_purpose(value="jaw")
-        self.jaw.set_parent_uuid(self.head.get_uuid())
-        self.jaw.add_driver_type(driver_type=[RiggerDriverTypes.FK])
+        self.jaw_proxy = tools_rig_frm.Proxy(name="jaw")
+        pos_jaw = core_trans.Vector3(y=147.5, z=2.5)
+        self.jaw_proxy.set_initial_position(xyz=pos_jaw)
+        self.jaw_proxy.set_locator_scale(scale=1.5)
+        self.jaw_proxy.set_meta_purpose(value="jaw")
+        self.jaw_proxy.set_parent_uuid(self.head_proxy.get_uuid())
+        self.jaw_proxy.set_rotation_order(rotation_order=1)
+        self.jaw_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.FK])
 
         # Jaw End
-        self.jaw_end = Proxy(name=f"jaw{_end_suffix}")
-        pos_jaw_end = Vector3(y=142.5, z=11)
-        self.jaw_end.set_initial_position(xyz=pos_jaw_end)
-        self.jaw_end.set_locator_scale(scale=1)
-        self.jaw_end.set_meta_purpose(value="jawEnd")
-        self.jaw_end.set_parent_uuid(self.jaw.get_uuid())
-        self.jaw_end.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
+        self.jaw_end_proxy = tools_rig_frm.Proxy(name=f"jaw{self._end_suffix}")
+        pos_jaw_end = core_trans.Vector3(y=142.5, z=11)
+        self.jaw_end_proxy.set_initial_position(xyz=pos_jaw_end)
+        self.jaw_end_proxy.set_locator_scale(scale=1)
+        self.jaw_end_proxy.set_meta_purpose(value="jawEnd")
+        self.jaw_end_proxy.set_parent_uuid(self.jaw_proxy.get_uuid())
+        self.jaw_end_proxy.add_color(rgb_color=core_color.ColorConstants.RigProxy.FOLLOWER)
+        self.jaw_end_proxy.set_rotation_order(rotation_order=1)
+        self.jaw_end_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.GENERIC])
 
-        # Left Eye
-        self.lt_eye = Proxy(name=f'{NamingConstants.Prefix.LEFT}_eye')
-        pos_lt_eye = Vector3(x=3.5, y=151, z=8.7)
-        self.lt_eye.set_initial_position(xyz=pos_lt_eye)
-        self.lt_eye.set_locator_scale(scale=2.5)
-        self.lt_eye.set_meta_purpose(value="eyeLeft")
-        self.lt_eye.set_parent_uuid(self.head.get_uuid())
-        self.lt_eye.add_driver_type(driver_type=[RiggerDriverTypes.AIM])
+        self.lt_eye_proxy = tools_rig_frm.Proxy(name="eye")
+        pos_lt_eye = core_trans.Vector3(x=3.5, y=151, z=8.7)
+        self.lt_eye_proxy.set_initial_position(xyz=pos_lt_eye)
+        self.lt_eye_proxy.set_locator_scale(scale=2.5)
+        self.lt_eye_proxy.set_meta_purpose(value="eyeLeft")
+        self.lt_eye_proxy.set_parent_uuid(self.head_proxy.get_uuid())
+        self.lt_eye_proxy.set_rotation_order(rotation_order=1)
+        self.lt_eye_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.AIM])
 
         # Right Eye
-        self.rt_eye = Proxy(name=f'{NamingConstants.Prefix.RIGHT}_eye')
-        pos_rt_eye = Vector3(x=-3.5, y=151, z=8.7)
-        self.rt_eye.set_initial_position(xyz=pos_rt_eye)
-        self.rt_eye.set_locator_scale(scale=2.5)
-        self.rt_eye.set_meta_purpose(value="eyeRight")
-        self.rt_eye.set_parent_uuid(self.head.get_uuid())
-        self.rt_eye.add_driver_type(driver_type=[RiggerDriverTypes.AIM])
+        self.rt_eye_proxy = tools_rig_frm.Proxy(name="eye")
+        pos_rt_eye = core_trans.Vector3(x=-3.5, y=151, z=8.7)
+        self.rt_eye_proxy.set_initial_position(xyz=pos_rt_eye)
+        self.rt_eye_proxy.set_locator_scale(scale=2.5)
+        self.rt_eye_proxy.set_meta_purpose(value="eyeRight")
+        self.rt_eye_proxy.set_parent_uuid(self.head_proxy.get_uuid())
+        self.rt_eye_proxy.set_rotation_order(rotation_order=1)
+        self.rt_eye_proxy.add_driver_type(driver_type=[tools_rig_const.RiggerDriverTypes.AIM])
 
-        # Neck Mid (In-between)
-        self.neck_mid_list = []
         self.set_mid_neck_num(neck_mid_num=1)
-
-    def set_mid_neck_num(self, neck_mid_num):
-        """
-        Set a new number of neckMid proxies. These are the proxies in-between the hip proxy (base) and head proxy (end)
-        Args:
-            neck_mid_num (int): New number of neckMid proxies to exist in-between neckBase and head.
-                                Minimum is zero (0) - No negative numbers.
-        """
-        neck_mid_len = len(self.neck_mid_list)
-        # Same as current, skip
-        if neck_mid_len == neck_mid_num:
-            return
-        # New number higher than current - Add more proxies (neck_mid_list)
-        if neck_mid_len < neck_mid_num:
-            # Determine Initial Parent (Last neckMid, or neckBase)
-            if self.neck_mid_list:
-                _parent_uuid = self.neck_mid_list[-1].get_uuid()
-            else:
-                _parent_uuid = self.neck_base.get_uuid()
-            # Create new proxies
-            for num in range(neck_mid_len, neck_mid_num):
-                _neck_mid_name = f'neckMid{str(num + 1).zfill(2)}'
-                new_neck_mid = Proxy(name=_neck_mid_name)
-                new_neck_mid.set_locator_scale(scale=1)
-                new_neck_mid.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
-                new_neck_mid.set_meta_purpose(value=_neck_mid_name)
-                new_neck_mid.add_line_parent(line_parent=_parent_uuid)
-                new_neck_mid.set_parent_uuid(uuid=_parent_uuid)
-                new_neck_mid.add_driver_type(driver_type=[RiggerDriverTypes.FK])
-                _parent_uuid = new_neck_mid.get_uuid()
-                self.neck_mid_list.append(new_neck_mid)
-        # New number lower than current - Remove unnecessary proxies
-        elif len(self.neck_mid_list) > neck_mid_num:
-            self.neck_mid_list = self.neck_mid_list[:neck_mid_num]  # Truncate the list
-
-        if self.neck_mid_list:
-            self.head.add_line_parent(line_parent=self.neck_mid_list[-1].get_uuid())
-        else:
-            self.head.add_line_parent(line_parent=self.neck_base.get_uuid())
-
-        self.refresh_proxies_list()
 
     def refresh_proxies_list(self):
         """
         Refreshes the main proxies list used by the module during build (update in case objects were updated)
         """
-        self.proxies = [self.neck_base]
-        self.proxies.extend(self.neck_mid_list)
-        self.proxies.append(self.head)
-        self.proxies.append(self.head_end)
-        self.proxies.append(self.lt_eye)
-        self.proxies.append(self.rt_eye)
-        self.proxies.append(self.jaw)
-        self.proxies.append(self.jaw_end)
+        self.proxies = [self.neck_base_proxy]
+        self.proxies.extend(self.neck_mid_proxies)
+        self.proxies.append(self.head_proxy)
+        self.proxies.append(self.head_end_proxy)
+        self.proxies.append(self.lt_eye_proxy)
+        self.proxies.append(self.rt_eye_proxy)
+        self.proxies.append(self.jaw_proxy)
+        self.proxies.append(self.jaw_end_proxy)
+
+        self.proxies = [prx for prx in self.proxies if prx]  # remove Nones
 
     def get_module_as_dict(self, **kwargs):
         """
@@ -181,22 +166,21 @@ class ModuleHead(ModuleGeneric):
                                "<description>" being the output of the operation "proxy.get_proxy_as_dict()".
         """
         if not proxy_dict or not isinstance(proxy_dict, dict):
-            logger.debug(f'Unable to read proxies from dictionary. Input must be a dictionary.')
+            logger.debug(f"Unable to read proxies from dictionary. Input must be a dictionary.")
             return
         # Determine Number of Spine Proxies
-        _neck_mid_num = 0
-        neck_mid_pattern = r'neckMid\d+'
+        _neck_mid_num = -1  # Skip required neck base
+        neck_mid_pattern = r"neck\d+"
         for uuid, description in proxy_dict.items():
             metadata = description.get("metadata")
             if metadata:
-                meta_type = metadata.get(RiggerConstants.META_PROXY_PURPOSE)
+                meta_type = metadata.get(tools_rig_const.RiggerConstants.META_PROXY_PURPOSE)
                 if bool(re.match(neck_mid_pattern, meta_type)):
                     _neck_mid_num += 1
         self.set_mid_neck_num(_neck_mid_num)
         self.read_purpose_matching_proxy_from_dict(proxy_dict)
         self.refresh_proxies_list()
 
-    # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
         """
         Checks if the rig module is valid. This means, it's ready to be used and no issues were detected.
@@ -209,14 +193,43 @@ class ModuleHead(ModuleGeneric):
     def build_proxy(self, **kwargs):
         """
         Build proxy elements in the viewport
+
         Returns:
             list: A list of ProxyData objects. These objects describe the created proxy elements.
         """
         if self.parent_uuid:
-            if self.neck_base:
-                self.neck_base.set_parent_uuid(self.parent_uuid)
-        proxy = super().build_proxy(**kwargs)  # Passthrough
-        return proxy
+            if self.neck_base_proxy:
+                self.neck_base_proxy.set_parent_uuid(self.parent_uuid)
+
+        # set central ("C") prefix for central proxies
+        _center_proxies = [self.neck_base_proxy]
+        _center_proxies.extend(self.neck_mid_proxies)
+        _center_proxies.append(self.head_proxy)
+        _center_proxies.append(self.head_end_proxy)
+
+        if self.build_jaw:
+            _center_proxies.append(self.jaw_proxy)
+            _center_proxies.append(self.jaw_end_proxy)
+
+        self.proxies = _center_proxies
+
+        proxy_data = super().build_proxy(**kwargs)
+
+        # Build Eyes
+        if self.build_eyes:
+            module_prefix = self.prefix
+            self.prefix = self.prefix_eye_left
+            self.proxies = [self.lt_eye_proxy]
+            proxy_data.extend(super().build_proxy(**kwargs))
+            self.prefix = self.prefix_eye_right
+            self.proxies = [self.rt_eye_proxy]
+            proxy_data.extend(super().build_proxy(**kwargs))
+            self.prefix = module_prefix
+
+        # reset status
+        self.refresh_proxies_list()
+
+        return proxy_data
 
     def build_proxy_setup(self):
         """
@@ -224,36 +237,43 @@ class ModuleHead(ModuleGeneric):
         When in a project, this runs after the "build_proxy" is done in all modules.
         """
         # Get Maya Elements
-        hip = find_proxy_from_uuid(self.neck_base.get_uuid())
-        chest = find_proxy_from_uuid(self.head.get_uuid())
+        hip = tools_rig_utils.find_proxy_from_uuid(self.neck_base_proxy.get_uuid())
+        chest = tools_rig_utils.find_proxy_from_uuid(self.head_proxy.get_uuid())
 
         neck_mid_list = []
-        for neck_mid in self.neck_mid_list:
-            neck_node = find_proxy_from_uuid(neck_mid.get_uuid())
+        for neck_mid in self.neck_mid_proxies:
+            neck_node = tools_rig_utils.find_proxy_from_uuid(neck_mid.get_uuid())
             neck_mid_list.append(neck_node)
-        self.neck_base.apply_offset_transform()
-        self.head.apply_offset_transform()
-        self.head_end.apply_offset_transform()
-        self.jaw.apply_offset_transform()
-        self.jaw_end.apply_offset_transform()
-        self.lt_eye.apply_offset_transform()
-        self.rt_eye.apply_offset_transform()
+        self.neck_base_proxy.apply_offset_transform()
+        self.head_proxy.apply_offset_transform()
+        self.head_end_proxy.apply_offset_transform()
+
+        if self.jaw_proxy and self.jaw_end_proxy:
+            self.jaw_proxy.apply_offset_transform()
+            self.jaw_end_proxy.apply_offset_transform()
+
+        if self.lt_eye_proxy and self.rt_eye_proxy:
+            self.lt_eye_proxy.apply_offset_transform()
+            self.rt_eye_proxy.apply_offset_transform()
 
         neck_mid_offsets = []
         for neck_mid in neck_mid_list:
-            offset = get_proxy_offset(neck_mid)
+            offset = tools_rig_utils.get_proxy_offset(neck_mid)
             neck_mid_offsets.append(offset)
-        equidistant_constraints(start=hip, end=chest, target_list=neck_mid_offsets)
+        core_cnstr.equidistant_constraints(start=hip, end=chest, target_list=neck_mid_offsets)
 
-        self.neck_base.apply_transforms()
-        self.head.apply_transforms()
-        for neck_mid in self.neck_mid_list:
+        self.neck_base_proxy.apply_transforms()
+        self.head_proxy.apply_transforms()
+        for neck_mid in self.neck_mid_proxies:
             neck_mid.apply_transforms()
-        self.head_end.apply_transforms()
-        self.jaw.apply_transforms()
-        self.jaw_end.apply_transforms()
-        self.lt_eye.apply_transforms()
-        self.rt_eye.apply_transforms()
+        self.head_end_proxy.apply_transforms()
+
+        if self.jaw_proxy and self.jaw_end_proxy:
+            self.jaw_proxy.apply_transforms()
+            self.jaw_end_proxy.apply_transforms()
+        if self.lt_eye_proxy and self.rt_eye_proxy:
+            self.lt_eye_proxy.apply_transforms()
+            self.rt_eye_proxy.apply_transforms()
         cmds.select(clear=True)
 
     def build_skeleton_joints(self):
@@ -264,256 +284,572 @@ class ModuleHead(ModuleGeneric):
         Runs post rig script.
         When in a project, this runs after the "build_rig" is done in all modules.
         """
-        self.head.set_parent_uuid(uuid=self.head.get_meta_parent_uuid())
+        self.head_proxy.set_parent_uuid(uuid=self.head_proxy.get_meta_parent_uuid())
         super().build_skeleton_hierarchy()  # Passthrough
-        self.head.clear_parent_uuid()
+        self.head_proxy.clear_parent_uuid()
 
     def build_rig(self, **kwargs):
-        # Get Elements
-        direction_crv = find_direction_curve()
-        neck_base_jnt = find_joint_from_uuid(self.neck_base.get_uuid())
-        head_jnt = find_joint_from_uuid(self.head.get_uuid())
-        head_end_jnt = find_joint_from_uuid(self.head_end.get_uuid())
-        jaw_jnt = find_joint_from_uuid(self.jaw.get_uuid())
-        jaw_end_jnt = find_joint_from_uuid(self.jaw_end.get_uuid())
-        lt_eye = find_joint_from_uuid(self.lt_eye.get_uuid())
-        rt_eye = find_joint_from_uuid(self.rt_eye.get_uuid())
-        middle_jnt_list = []
-        for proxy in self.neck_mid_list:
-            mid_jnt = find_joint_from_uuid(proxy.get_uuid())
-            if mid_jnt:
-                middle_jnt_list.append(mid_jnt)
-        copy_parent_orients(joint_list=[head_jnt, head_end_jnt])
-        reset_orients(joint_list=[lt_eye, rt_eye], verbose=True)
-        set_color_viewport(obj_list=[head_end_jnt, jaw_end_jnt], rgb_color=ColorConstants.RigJoint.END)
-        set_color_viewport(obj_list=[lt_eye, rt_eye], rgb_color=ColorConstants.RigJoint.UNIQUE)
+        # get direction object
+        direction_crv = tools_rig_utils.find_ctrl_global_offset()
 
-        # Get Scale
-        head_scale = dist_center_to_center(neck_base_jnt, head_jnt)
-        head_scale += dist_center_to_center(head_jnt, head_end_jnt)
+        # get joints
+        (
+            skeleton_joints,
+            neck_base_jnt,
+            neck_mid_jnt_list,
+            head_jnt,
+            head_end_jnt,
+            jaw_jnt,
+            jaw_end_jnt,
+            lt_eye_jnt,
+            rt_eye_jnt,
+        ) = self.get_joints()
 
-        # Neck Base ------------------------------------------------------------------------------------------
-        neck_base_ctrl = self._assemble_ctrl_name(name=self.neck_base.get_name())
-        neck_base_ctrl = create_ctrl_curve(name=neck_base_ctrl, curve_file_name="_pin_neg_y")
-        self.add_driver_uuid_attr(target=neck_base_ctrl,
-                                  driver_type=RiggerDriverTypes.FK,
-                                  proxy_purpose=self.neck_base)
-        neck_base_offset = add_offset_transform(target_list=neck_base_ctrl)[0]
-        match_transform(source=neck_base_jnt, target_list=neck_base_offset)
-        scale_shapes(obj_transform=neck_base_ctrl, offset=head_scale*.3)
-        offset_control_orientation(ctrl=neck_base_ctrl, offset_transform=neck_base_offset, orient_tuple=(-90, -90, 0))
-        hierarchy_utils.parent(source_objects=neck_base_offset, target_parent=direction_crv)
-        constraint_targets(source_driver=neck_base_ctrl, target_driven=neck_base_jnt)
-        # Attributes
-        set_attr_state(attribute_path=f"{neck_base_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=neck_base_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
-        expose_rotation_order(neck_base_ctrl)
+        # set joints color
+        core_color.set_color_viewport(
+            obj_list=[head_end_jnt, jaw_end_jnt],
+            rgb_color=core_color.ColorConstants.RigJoint.END,
+        )
+        core_color.set_color_viewport(
+            obj_list=[lt_eye_jnt, rt_eye_jnt],
+            rgb_color=core_color.ColorConstants.RigJoint.UNIQUE,
+        )
 
-        # Neck Mid Controls ----------------------------------------------------------------------------------
+        # head scale
+        head_scale = core_math.dist_center_to_center(neck_base_jnt, head_jnt)
+        head_scale += core_math.dist_center_to_center(head_jnt, head_end_jnt)
+
+        # neck base control -----------------------------------------------------------
+        neck_base_proxy_item = tools_rig_utils.find_proxy_from_uuid(self.neck_base_proxy.get_uuid())
+        neck_base_rot_order = cmds.getAttr(f"{neck_base_proxy_item}.{tools_rig_const.RiggerConstants.ATTR_ROT_ORDER}")
+        neck_base_ctrl, neck_base_parent_grps = self.create_rig_control(
+            control_base_name=self.neck_base_proxy.get_name(),
+            # curve_file_name="_pin_neg_y",  # previous control
+            curve_file_name="_circle_pos_x",
+            parent_obj=direction_crv,
+            match_obj=neck_base_jnt,
+            rot_order=neck_base_rot_order,
+            shape_scale=head_scale * 0.7,
+        )[:2]
+        # -- driver
+        self._add_driver_uuid_attr(
+            target_driver=neck_base_ctrl,
+            driver_type=tools_rig_const.RiggerDriverTypes.FK,
+            proxy_purpose=self.neck_base_proxy,
+        )
+        # -- constraint
+        core_cnstr.constraint_targets(source_driver=neck_base_ctrl, target_driven=neck_base_jnt)
+        # -- attributes
+        core_attr.hide_lock_default_attrs(obj_list=neck_base_ctrl, translate=True, scale=True, visibility=True)
+        # -- follow setup - Rotation and Position
+        parent_module = self.get_parent_uuid()
+        if parent_module:
+            core_attr.add_separator_attr(
+                target_object=neck_base_ctrl, attr_name=core_rigging.RiggingConstants.SEPARATOR_SPACE
+            )
+            tools_rig_utils.create_follow_setup(
+                control=neck_base_ctrl, parent=tools_rig_utils.find_joint_from_uuid(parent_module)
+            )
+
+        # neck mid controls -----------------------------------------------------------
         neck_mid_ctrls = []
+        neck_mid_auto_data_grps = []
         last_mid_parent_ctrl = neck_base_ctrl
-        for neck_mid_proxy, mid_jnt in zip(self.neck_mid_list, middle_jnt_list):
-            neck_mid_ctrl = self._assemble_ctrl_name(name=neck_mid_proxy.get_name())
-            neck_mid_ctrl = create_ctrl_curve(name=neck_mid_ctrl, curve_file_name="_pin_neg_y")
-            self.add_driver_uuid_attr(target=neck_mid_ctrl, driver_type=RiggerDriverTypes.FK,
-                                      proxy_purpose=neck_mid_proxy)
-            neck_mid_offset = add_offset_transform(target_list=neck_mid_ctrl)[0]
-            _shape_scale_mid = head_scale*.2
+        for neck_mid_proxy, mid_jnt in zip(self.neck_mid_proxies, neck_mid_jnt_list):
+            _shape_scale_mid = head_scale * 0.6
             child_joint = cmds.listRelatives(mid_jnt, fullPath=True, children=True, typ="joint")
             if child_joint:
-                _distance = dist_center_to_center(obj_a=mid_jnt, obj_b=child_joint[0])
-                _shape_scale_mid = _distance*1.5
-            scale_shapes(obj_transform=neck_mid_ctrl, offset=_shape_scale_mid)
-            # Position and Constraint
-            match_transform(source=mid_jnt, target_list=neck_mid_offset)
-            offset_control_orientation(ctrl=neck_mid_ctrl,
-                                       offset_transform=neck_mid_offset,
-                                       orient_tuple=(-90, -90, 0))
-            hierarchy_utils.parent(source_objects=neck_mid_offset, target_parent=last_mid_parent_ctrl)
-            # Attributes
-            set_attr_state(attribute_path=f"{neck_mid_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-            add_separator_attr(target_object=neck_mid_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
-            expose_rotation_order(neck_mid_ctrl)
+                _distance = core_math.dist_center_to_center(obj_a=mid_jnt, obj_b=child_joint[0])
+                _shape_scale_mid = _distance * 3.8
+
+            neck_mid_proxy_item = tools_rig_utils.find_proxy_from_uuid(neck_mid_proxy.get_uuid())
+            neck_mid_rot_order = cmds.getAttr(f"{neck_mid_proxy_item}.{tools_rig_const.RiggerConstants.ATTR_ROT_ORDER}")
+            neck_mid_ctrl, neck_mid_parent_grps = self.create_rig_control(
+                control_base_name=neck_mid_proxy.get_name(),
+                # curve_file_name="_pin_neg_y",  # previous control
+                curve_file_name="_circle_pos_x",
+                parent_obj=last_mid_parent_ctrl,
+                extra_parent_groups=self._default_neck_suffix,  # neckBaseData group for automation
+                match_obj=mid_jnt,
+                rot_order=neck_mid_rot_order,
+                shape_scale=_shape_scale_mid,
+            )[:2]
+            # -- driver
+            self._add_driver_uuid_attr(
+                target_driver=neck_mid_ctrl,
+                driver_type=tools_rig_const.RiggerDriverTypes.FK,
+                proxy_purpose=neck_mid_proxy,
+            )
+            # -- constraint
+            core_cnstr.constraint_targets(source_driver=neck_mid_ctrl, target_driven=mid_jnt)
+            # -- attributes
+            core_attr.hide_lock_default_attrs(obj_list=neck_mid_ctrl, translate=True, scale=True, visibility=True)
+
+            neck_mid_auto_data_grps.append(neck_mid_parent_grps[1])
             neck_mid_ctrls.append(neck_mid_ctrl)
-            constraint_targets(source_driver=neck_mid_ctrl, target_driven=mid_jnt)
             last_mid_parent_ctrl = neck_mid_ctrl
 
-        # Head Ctrl -----------------------------------------------------------------------------------------
-        head_ctrl = self._assemble_ctrl_name(name=self.head.get_name())
-        head_ctrl = create_ctrl_curve(name=head_ctrl, curve_file_name="_circle_pos_x")
-        self.add_driver_uuid_attr(target=head_ctrl,
-                                  driver_type=RiggerDriverTypes.FK,
-                                  proxy_purpose=self.head)
-        head_offset = add_offset_transform(target_list=head_ctrl)[0]
-        match_transform(source=head_jnt, target_list=head_offset)
-        scale_shapes(obj_transform=head_ctrl, offset=head_scale * .4)
-        offset_control_orientation(ctrl=head_ctrl, offset_transform=head_offset, orient_tuple=(-90, -90, 0))
-        head_end_distance = dist_center_to_center(head_jnt, head_end_jnt)
-        translate_shapes(obj_transform=head_ctrl, offset=(0, head_end_distance*1.1, 0))  # Move Above Head
-        hierarchy_utils.parent(source_objects=head_offset, target_parent=last_mid_parent_ctrl)
-        # Attributes
-        set_attr_state(attribute_path=f"{head_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=head_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
-        expose_rotation_order(head_ctrl)
+        # head control -----------------------------------------------------------
+        head_end_distance = core_math.dist_center_to_center(head_jnt, head_end_jnt)
+        head_proxy_item = tools_rig_utils.find_proxy_from_uuid(self.head_proxy.get_uuid())
+        head_rot_order = cmds.getAttr(f"{head_proxy_item}.{tools_rig_const.RiggerConstants.ATTR_ROT_ORDER}")
+        head_ctrl, head_parent_groups, head_o_ctrl, head_data_grp = self.create_rig_control(
+            control_base_name=self.head_proxy.get_name(),
+            curve_file_name="_circle_pos_x",
+            parent_obj=last_mid_parent_ctrl,
+            extra_parent_groups=self._default_neck_suffix,  # neckBaseData group for automation
+            match_obj=head_jnt,
+            add_offset_ctrl=True,
+            shape_pos_offset=(head_end_distance * 1.1, 0, 0),  # Move Above Head
+            rot_order=head_rot_order,
+            shape_scale=head_scale * 0.6,
+        )
+        # -- driver
+        self._add_driver_uuid_attr(
+            target_driver=head_ctrl,
+            driver_type=tools_rig_const.RiggerDriverTypes.FK,
+            proxy_purpose=self.head_proxy,
+        )
+        self._add_driver_uuid_attr(
+            target_driver=head_o_ctrl,
+            driver_type=tools_rig_const.RiggerDriverTypes.OFFSET,
+            proxy_purpose=self.head_proxy,
+        )
+        # -- constraint
+        core_cnstr.constraint_targets(source_driver=head_data_grp, target_driven=head_jnt)
+        # -- attributes
+        core_attr.hide_lock_default_attrs(obj_list=head_ctrl, translate=True, scale=True, visibility=True)
+        # -- follow setup - Rotation and Position
+        core_attr.add_separator_attr(target_object=head_ctrl, attr_name=core_rigging.RiggingConstants.SEPARATOR_SPACE)
+        tools_rig_utils.create_follow_setup(control=head_ctrl, parent=neck_mid_jnt_list[-1])
 
-        # Head Offset Ctrl
-        head_o_ctrl = self._assemble_ctrl_name(name=self.head.get_name(),
-                                               overwrite_suffix=NamingConstants.Control.OFFSET_CTRL)
-        head_o_ctrl = create_ctrl_curve(name=head_o_ctrl, curve_file_name="_circle_pos_x")
-        match_transform(source=head_ctrl, target_list=head_o_ctrl)
-        scale_shapes(obj_transform=head_o_ctrl, offset=head_scale * .35)
-        rotate_shapes(obj_transform=head_o_ctrl, offset=(0, 0, -90))
-        translate_shapes(obj_transform=head_o_ctrl, offset=(0, head_end_distance*1.1, 0))  # Move Above Head
-        set_color_viewport(obj_list=head_o_ctrl, rgb_color=ColorConstants.RigJoint.OFFSET)
-        hierarchy_utils.parent(source_objects=head_o_ctrl, target_parent=head_ctrl)
-        # Head Offset Data Transform
-        head_o_data = self._assemble_ctrl_name(name=self.head.get_name(),
-                                               overwrite_suffix=NamingConstants.Control.OFFSET_DATA)
-        head_o_data = create_group(name=head_o_data)
-        head_o_data = Node(head_o_data)
-        self.add_driver_uuid_attr(target=head_o_data,
-                                  driver_type=RiggerDriverTypes.OFFSET,
-                                  proxy_purpose=self.head)
-        hierarchy_utils.parent(source_objects=head_o_data, target_parent=head_ctrl)
-        # Connections
-        cmds.connectAttr(f'{head_o_ctrl}.translate', f'{head_o_data}.translate')
-        cmds.connectAttr(f'{head_o_ctrl}.rotate', f'{head_o_data}.rotate')
-        constraint_targets(source_driver=head_o_data, target_driven=head_jnt)
-        # Attributes
-        set_attr_state(attribute_path=f"{head_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=head_o_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
-        expose_rotation_order(head_o_ctrl)
-        cmds.addAttr(head_ctrl, ln='showOffsetCtrl', at='bool', k=True)
-        cmds.connectAttr(f'{head_ctrl}.showOffsetCtrl', f'{head_o_ctrl}.v')
+        # build jaw setup if required
+        if jaw_jnt and jaw_end_jnt:
+            self.build_jaw_setup(jaw_jnt, jaw_end_jnt, parent_obj=head_data_grp)
 
-        # Jaw Ctrl -----------------------------------------------------------------------------------------
-        jaw_ctrl = self._assemble_ctrl_name(name=self.jaw.get_name())
-        jaw_ctrl = create_ctrl_curve(name=jaw_ctrl, curve_file_name="_concave_crescent_neg_y")
-        self.add_driver_uuid_attr(target=jaw_ctrl,
-                                  driver_type=RiggerDriverTypes.FK,
-                                  proxy_purpose=self.jaw)
-        jaw_offset = add_offset_transform(target_list=jaw_ctrl)[0]
-        jaw_end_distance = dist_center_to_center(jaw_jnt, jaw_end_jnt)
-        match_transform(source=jaw_jnt, target_list=jaw_offset)
-        scale_shapes(obj_transform=jaw_ctrl, offset=jaw_end_distance * .2)
-        offset_control_orientation(ctrl=jaw_ctrl, offset_transform=jaw_offset, orient_tuple=(-90, -90, 0))
-        translate_shapes(obj_transform=jaw_ctrl,
-                         offset=(0, jaw_end_distance * 1.1, jaw_end_distance*.1))  # Move Shape To Jaw End
-        hierarchy_utils.parent(source_objects=jaw_offset, target_parent=head_o_data)
-        constraint_targets(source_driver=jaw_ctrl, target_driven=jaw_jnt)
-        # Attributes
-        set_attr_state(attribute_path=f"{jaw_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=jaw_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
-        expose_rotation_order(jaw_ctrl)
+        # build eyes setup if required
+        if lt_eye_jnt and rt_eye_jnt:
+            self.build_eyes_setup(lt_eye_jnt, rt_eye_jnt, parent_obj=head_data_grp, setup_scale=head_scale * 0.1)
 
-        # Eye Controls -------------------------------------------------------------------------------------
-        lt_eye_ctrl = self._assemble_ctrl_name(name=self.lt_eye.get_name())
-        rt_eye_ctrl = self._assemble_ctrl_name(name=self.rt_eye.get_name())
-        lt_eye_ctrl = create_ctrl_curve(name=lt_eye_ctrl, curve_file_name="_circle_pos_z")
-        rt_eye_ctrl = create_ctrl_curve(name=rt_eye_ctrl, curve_file_name="_circle_pos_z")
-        self.add_driver_uuid_attr(target=lt_eye_ctrl,
-                                  driver_type=RiggerDriverTypes.AIM,
-                                  proxy_purpose=self.lt_eye)
-        self.add_driver_uuid_attr(target=rt_eye_ctrl,
-                                  driver_type=RiggerDriverTypes.AIM,
-                                  proxy_purpose=self.rt_eye)
-        main_eye_ctrl = create_ctrl_curve(name=self.main_eye_ctrl, curve_file_name="_peanut_pos_z")
-        lt_eye_offset = add_offset_transform(target_list=lt_eye_ctrl)[0]
-        rt_eye_offset = add_offset_transform(target_list=rt_eye_ctrl)[0]
-        main_eye_offset = add_offset_transform(target_list=main_eye_ctrl)[0]
+        # Base neck rotate automation
+        core_attr.add_separator_attr(
+            target_object=neck_base_ctrl, attr_name=core_rigging.RiggingConstants.SEPARATOR_INFLUENCE
+        )
+        for index, (mid_ctrl, mid_proxy, mid_data_grp) in enumerate(
+            zip(neck_mid_ctrls, self.neck_mid_proxies, neck_mid_auto_data_grps)
+        ):
+            attr_name = f"{mid_proxy.get_name()}Influence"
+            # Create Attribute Long and Nice Names
+            cmds.addAttr(
+                neck_base_ctrl,
+                longName=attr_name,
+                attributeType="double",
+                defaultValue=1,
+                keyable=True,
+                minValue=0,
+                maxValue=1,
+                # **nice_name_param,
+            )
 
-        # Create Divergence Drivers
-        lt_eye_divergence = add_offset_transform(target_list=lt_eye_ctrl)[0]
-        rt_eye_divergence = add_offset_transform(target_list=rt_eye_ctrl)[0]
-        lt_eye_divergence.rename(f'{self.lt_eye.get_name()}_divergenceData')
-        rt_eye_divergence.rename(f'{self.rt_eye.get_name()}_divergenceData')
+            # Create Influence Setup
+            influence_multiply = core_node.create_node(
+                node_type="multiplyDivide", name=f"{mid_proxy.get_name()}Influence_multiply"
+            )
+            cmds.connectAttr(f"{neck_base_ctrl}.rotate", f"{influence_multiply}.input1")
+            core_attr.connect_attr(
+                source_attr=f"{neck_base_ctrl}.{attr_name}",
+                target_attr_list=[
+                    f"{influence_multiply}.input2X",
+                    f"{influence_multiply}.input2Y",
+                    f"{influence_multiply}.input2Z",
+                ],
+            )
 
-        # Organize and Position Elements
-        hierarchy_utils.parent(source_objects=[lt_eye_offset, rt_eye_offset], target_parent=main_eye_ctrl)
-        cmds.move(1.6, 0, 0, lt_eye_offset)
-        cmds.move(-1.6, 0, 0, rt_eye_offset)
+            cmds.connectAttr(f"{influence_multiply}.output", f"{mid_data_grp}.rotate")
 
-        pupillary_distance = dist_center_to_center(lt_eye, rt_eye)
-        rescale(obj=main_eye_offset, scale=pupillary_distance*.31, freeze=False)
+            # zero controls rotations
+            cmds.rotate(0, 0, 0, mid_ctrl, a=True)
 
-        hierarchy_utils.parent(source_objects=main_eye_offset, target_parent=head_o_data)
+        # head automation
+        head_rot_attr = core_attr.add_attr(
+            obj_list=neck_base_ctrl,
+            minimum=0,
+            maximum=1,
+            attributes=f"{self.head_proxy.get_name()}Influence",
+            default=0,
+        )[0]
 
-        set_equidistant_transforms(start=rt_eye, end=lt_eye, target_list=main_eye_offset)  # Place in-between eyes
-        cmds.move(0, 0, head_scale * 2, main_eye_offset, relative=True)
+        influence_multiply = core_node.create_node(
+            node_type="multiplyDivide", name=f"{self.head_proxy.get_name()}Influence_multiply"
+        )
+        cmds.connectAttr(f"{neck_base_ctrl}.rotate", f"{influence_multiply}.input1")
+        core_attr.connect_attr(
+            source_attr=head_rot_attr,
+            target_attr_list=[
+                f"{influence_multiply}.input2X",
+                f"{influence_multiply}.input2Y",
+                f"{influence_multiply}.input2Z",
+            ],
+        )
+        cmds.connectAttr(f"{influence_multiply}.output", f"{head_parent_groups[1]}.rotate")
 
-        # Constraints and Vectors
-        lt_eye_up_vec = cmds.spaceLocator(name=f'{self.lt_eye.get_name()}_upVec')[0]
-        rt_eye_up_vec = cmds.spaceLocator(name=f'{self.rt_eye.get_name()}_upVec')[0]
-        match_transform(source=lt_eye, target_list=lt_eye_up_vec)
-        match_transform(source=rt_eye, target_list=rt_eye_up_vec)
-        cmds.move(head_scale, lt_eye_up_vec, y=True, relative=True, objectSpace=True)
-        cmds.move(head_scale, rt_eye_up_vec, y=True, relative=True, objectSpace=True)
-        set_attr(obj_list=[lt_eye_up_vec, rt_eye_up_vec],
-                 attr_list=["localScaleX", "localScaleY", "localScaleZ"], value=head_scale*.1)
-        set_attr(obj_list=[lt_eye_up_vec, rt_eye_up_vec],
-                 attr_list="v", value=False)
-        hierarchy_utils.parent(source_objects=[lt_eye_up_vec, rt_eye_up_vec], target_parent=head_o_data)
+        # zero control rotations
+        cmds.rotate(0, 0, 0, head_ctrl, a=True)
 
-        constraint_targets(source_driver=lt_eye_ctrl, target_driven=lt_eye, constraint_type=ConstraintTypes.AIM,
-                           upVector=(0, 1, 0), worldUpType="object", worldUpObject=lt_eye_up_vec)
-        constraint_targets(source_driver=rt_eye_ctrl, target_driven=rt_eye, constraint_type=ConstraintTypes.AIM,
-                           upVector=(0, 1, 0), worldUpType="object", worldUpObject=rt_eye_up_vec)
+        # children drivers
+        self.module_children_drivers = [neck_base_parent_grps[0]]
 
-        # Attributes and Colors
-        lt_lines = create_connection_line(object_a=lt_eye_ctrl,
-                                          object_b=lt_eye)
-        rt_lines = create_connection_line(object_a=rt_eye_ctrl,
-                                          object_b=rt_eye)
+    def _delete_unbound_joints(self):
+        """
+        Deletes joints that are usually not bound to the mesh. In this case the toe joint.
+        """
+        if self.delete_head_jaw_bind_jnt:
+            head_end_jnt = tools_rig_utils.find_joint_from_uuid(self.head_end_proxy.get_uuid())
+            jaw_end_jnt = tools_rig_utils.find_joint_from_uuid(self.jaw_end_proxy.get_uuid())
+            if head_end_jnt:
+                cmds.delete(head_end_jnt)
+            if jaw_end_jnt:
+                cmds.delete(jaw_end_jnt)
 
-        set_color_viewport(obj_list=lt_eye_ctrl, rgb_color=ColorConstants.RigProxy.LEFT)
-        set_color_viewport(obj_list=lt_eye_up_vec, rgb_color=ColorConstants.RigProxy.LEFT)
-        set_color_viewport(obj_list=rt_eye_ctrl, rgb_color=ColorConstants.RigProxy.RIGHT)
-        set_color_viewport(obj_list=rt_eye_up_vec, rgb_color=ColorConstants.RigProxy.RIGHT)
-        aim_lines_grp = get_automation_group(name=f"headAutomation_{NamingConstants.Suffix.GRP}",
-                                             subgroup=f"aimLines_{NamingConstants.Suffix.GRP}")
-        hierarchy_utils.parent(source_objects=lt_lines + rt_lines, target_parent=aim_lines_grp)
+    # ------------------------------------------- Extra Module Setters -------------------------------------------
+    def set_jaw_build_status(self, status=True):
+        """
+        Set Jaw and Jaw end status.
 
-        hide_lock_default_attrs(obj_list=[lt_eye_ctrl, rt_eye_ctrl], rotate=True, scale=True, visibility=True)
-        hide_lock_default_attrs(obj_list=main_eye_ctrl, scale=True, visibility=True)
-        add_separator_attr(target_object=main_eye_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
-        expose_rotation_order(main_eye_ctrl)
+        Args:
+            status (bool): If True, it gets built, otherwise it's ignored.
+        """
+        self.build_jaw = status
 
-        # Set Children Drivers -----------------------------------------------------------------------------
-        self.module_children_drivers = [neck_base_offset]
+    def set_eyes_build_status(self, status=True):
+        """
+        Set Left Eye and Right Eye proxies build status.
+
+        Args:
+            status (bool): If True, it gets built, otherwise it's ignored.
+        """
+        self.build_eyes = status
+
+    def set_mid_neck_num(self, neck_mid_num):
+        """
+        Set a new number of neckMid proxies. These are the proxies in-between the hip proxy (base) and head proxy (end)
+        Args:
+            neck_mid_num (int): New number of neckMid proxies to exist in-between neckBase and head.
+                                Minimum is zero (0) - No negative numbers.
+        """
+        neck_mid_len = len(self.neck_mid_proxies)
+        base_num = 1  # neck01 is the neck base
+
+        # Same as current, skip
+        if neck_mid_len == neck_mid_num:
+            return
+        # New number higher than current - Add more proxies (neck_mid_list)
+        if neck_mid_len < neck_mid_num:
+            # Determine Initial Parent (Last neckMid, or neckBase)
+            if self.neck_mid_proxies:
+                _parent_uuid = self.neck_mid_proxies[-1].get_uuid()
+            else:
+                _parent_uuid = self.neck_base_proxy.get_uuid()
+            # Create new proxies
+            for num in range(neck_mid_len + base_num, neck_mid_num + base_num):
+                neck_mid_name = f"{self._default_neck_mid_name}{str(num + 1).zfill(2)}"
+                new_neck_mid = tools_rig_frm.Proxy(name=neck_mid_name)
+                new_neck_mid.set_locator_scale(scale=1)
+                new_neck_mid.add_color(rgb_color=core_color.ColorConstants.RigProxy.FOLLOWER)
+                new_neck_mid.set_meta_purpose(value=neck_mid_name)
+                new_neck_mid.add_line_parent(line_parent=_parent_uuid)
+                new_neck_mid.set_parent_uuid(uuid=_parent_uuid)
+                new_neck_mid.set_rotation_order(rotation_order=1)
+                new_neck_mid.add_driver_type(
+                    driver_type=[
+                        tools_rig_const.RiggerDriverTypes.GENERIC,
+                        tools_rig_const.RiggerDriverTypes.FK,
+                    ]
+                )
+                _parent_uuid = new_neck_mid.get_uuid()
+                self.neck_mid_proxies.append(new_neck_mid)
+        # New number lower than current - Remove unnecessary proxies
+        elif len(self.neck_mid_proxies) > neck_mid_num:
+            self.neck_mid_proxies = self.neck_mid_proxies[:neck_mid_num]  # Truncate the list
+
+        # If no neckMid, then set neckBase as head's parent
+        if self.neck_mid_proxies:
+            self.head_proxy.add_line_parent(line_parent=self.neck_mid_proxies[-1].get_uuid())
+        else:
+            self.head_proxy.add_line_parent(line_parent=self.neck_base_proxy.get_uuid())
+
+        self.refresh_proxies_list()
+
+    def set_post_delete_head_jaw_bind_joints(self, delete_joint):
+        """
+        Sets a variable to determine if the head end and jaw end joints should be deleted or not
+        Args:
+            delete_joint (bool): If True, the head end and jaw end joints will be deleted after the skeleton and
+                                 control rig are created.
+        """
+        if not isinstance(delete_joint, bool):
+            logger.warning(f'Unable to set "post_delete_head_jaw_bind_joints". Incompatible data type provided.')
+        self.delete_head_jaw_bind_jnt = delete_joint
+
+    # ------------------------------------------- Extra Module Getters -------------------------------------------
+    def get_joints(self):
+        """
+        Gets skeleton and joints
+
+        Returns:
+            skeleton_joints (list): all joints
+            neck_base_jnt (string)
+            neck_mid_jnt_list (list): neck mid joints
+            head_jnt (string)
+            head_end_jnt (string)
+            jaw_jnt (string, optional): can be None
+            jaw_end_jnt (string, optional): can be None
+            lt_eye_jnt (string, optional): can be None
+            rt_eye_jnt (string, optional): can be None
+        """
+        neck_base_jnt = tools_rig_utils.find_joint_from_uuid(self.neck_base_proxy.get_uuid())
+        neck_mid_jnt_list = [tools_rig_utils.find_joint_from_uuid(prx.get_uuid()) for prx in self.neck_mid_proxies]
+        head_jnt = tools_rig_utils.find_joint_from_uuid(self.head_proxy.get_uuid())
+        head_end_jnt = tools_rig_utils.find_joint_from_uuid(self.head_end_proxy.get_uuid())
+
+        skeleton_joints = [neck_base_jnt]
+        skeleton_joints.extend(neck_mid_jnt_list)
+        skeleton_joints.append(head_jnt)
+        skeleton_joints.append(head_end_jnt)
+
+        jaw_jnt = None
+        jaw_end_jnt = None
+        if self.jaw_proxy and self.jaw_end_proxy:
+            jaw_jnt = tools_rig_utils.find_joint_from_uuid(self.jaw_proxy.get_uuid())
+            jaw_end_jnt = tools_rig_utils.find_joint_from_uuid(self.jaw_end_proxy.get_uuid())
+            skeleton_joints.append(jaw_jnt)
+            skeleton_joints.append(jaw_end_jnt)
+
+        lt_eye_jnt = None
+        rt_eye_jnt = None
+        if self.lt_eye_proxy and self.rt_eye_proxy:
+            lt_eye_jnt = tools_rig_utils.find_joint_from_uuid(self.lt_eye_proxy.get_uuid())
+            rt_eye_jnt = tools_rig_utils.find_joint_from_uuid(self.rt_eye_proxy.get_uuid())
+            skeleton_joints.append(lt_eye_jnt)
+            skeleton_joints.append(rt_eye_jnt)
+
+        return (
+            skeleton_joints,
+            neck_base_jnt,
+            neck_mid_jnt_list,
+            head_jnt,
+            head_end_jnt,
+            jaw_jnt,
+            jaw_end_jnt,
+            lt_eye_jnt,
+            rt_eye_jnt,
+        )
+
+    # --------------------------------------------------- Misc ---------------------------------------------------
+    def build_eyes_setup(self, lt_eye_jnt, rt_eye_jnt, parent_obj, setup_scale):
+        """
+        Builds eyes setup.
+
+        Args:
+            lt_eye_jnt (Node): left eye joint
+            rt_eye_jnt (Node): right eye joint
+            parent_obj (Node): parent object
+            setup_scale (float): setup scale
+        """
+        pupillary_distance = core_math.dist_center_to_center(lt_eye_jnt, rt_eye_jnt)
+
+        # temp locators to set world orientation
+        temp_lt_eye_loc = cmds.spaceLocator(
+            name=f"{self.prefix_eye_left}_{self.rt_eye_proxy.get_name()}_temp_loc)",
+        )[0]
+        core_trans.match_transform(source=lt_eye_jnt, target_list=temp_lt_eye_loc, rotate=False, scale=False)
+        temp_rt_eye_loc = cmds.spaceLocator(
+            name=f"{self.prefix_eye_right}_{self.rt_eye_proxy.get_name()}_temp_loc)",
+        )[0]
+        core_trans.match_transform(source=rt_eye_jnt, target_list=temp_rt_eye_loc, rotate=False, scale=False)
+
+        # Main control
+        lt_eye_proxy_item = tools_rig_utils.find_proxy_from_uuid(self.lt_eye_proxy.get_uuid())
+        lt_eye_rot_order = cmds.getAttr(f"{lt_eye_proxy_item}.{tools_rig_const.RiggerConstants.ATTR_ROT_ORDER}")
+        main_eye_ctrl, main_eye_parent_grps = self.create_rig_control(
+            control_base_name="mainEye",
+            curve_file_name="_peanut_pos_z",
+            parent_obj=parent_obj,
+            match_obj=temp_lt_eye_loc,
+            shape_scale=setup_scale * 1.1,
+            rot_order=lt_eye_rot_order,
+        )[:2]
+        self._add_driver_uuid_attr(
+            target_driver=main_eye_ctrl,
+            driver_type=tools_rig_const.RiggerDriverTypes.AIM,
+        )
+        # -- attributes
+        core_attr.hide_lock_default_attrs(obj_list=main_eye_ctrl, scale=True, visibility=True)
+        cmds.setAttr(f"{main_eye_parent_grps[0]}.translateZ", 0)
+
+        # Left eye
+        lt_eye_ctrl = self.create_rig_control(
+            control_base_name=self.rt_eye_proxy.get_name(),
+            curve_file_name="_circle_pos_z",
+            parent_obj=main_eye_ctrl,
+            match_obj=temp_lt_eye_loc,
+            shape_scale=setup_scale,
+            rot_order=lt_eye_rot_order,
+            color=core_color.ColorConstants.RigProxy.LEFT,
+            overwrite_prefix=self.prefix_eye_left,
+        )[0]
+        # -- driver
+        self._add_driver_uuid_attr(
+            target_driver=lt_eye_ctrl,
+            driver_type=tools_rig_const.RiggerDriverTypes.AIM,
+            proxy_purpose=self.lt_eye_proxy,
+        )
+        # -- attributes
+        core_attr.hide_lock_default_attrs(obj_list=lt_eye_ctrl, rotate=True, scale=True, visibility=True)
+
+        # Right eye
+        rt_eye_proxy_item = tools_rig_utils.find_proxy_from_uuid(self.rt_eye_proxy.get_uuid())
+        rt_eye_rot_order = cmds.getAttr(f"{rt_eye_proxy_item}.{tools_rig_const.RiggerConstants.ATTR_ROT_ORDER}")
+        rt_eye_ctrl = self.create_rig_control(
+            control_base_name=self.rt_eye_proxy.get_name(),
+            curve_file_name="_circle_pos_z",
+            parent_obj=main_eye_ctrl,
+            match_obj=temp_rt_eye_loc,
+            shape_scale=setup_scale,
+            rot_order=rt_eye_rot_order,
+            color=core_color.ColorConstants.RigProxy.RIGHT,
+            overwrite_prefix=self.prefix_eye_right,
+        )[0]
+        # -- driver
+        self._add_driver_uuid_attr(
+            target_driver=rt_eye_ctrl,
+            driver_type=tools_rig_const.RiggerDriverTypes.AIM,
+            proxy_purpose=self.rt_eye_proxy,
+        )
+        # -- attributes
+        core_attr.hide_lock_default_attrs(obj_list=rt_eye_ctrl, rotate=True, scale=True, visibility=True)
+
+        # delete temp locators
+        cmds.delete(temp_lt_eye_loc, temp_rt_eye_loc)
+
+        # move eyes setup forward
+        cmds.move(0, 0, pupillary_distance * 3, main_eye_parent_grps[0], r=True)
+
+        # vectors
+        lt_eye_up_vec = cmds.spaceLocator(name=f"{self.lt_eye_proxy.get_name()}_upVec")[0]
+        rt_eye_up_vec = cmds.spaceLocator(name=f"{self.rt_eye_proxy.get_name()}_upVec")[0]
+        core_trans.match_transform(source=lt_eye_jnt, target_list=lt_eye_up_vec)
+        core_trans.match_transform(source=rt_eye_jnt, target_list=rt_eye_up_vec)
+        cmds.move(setup_scale, lt_eye_up_vec, y=True, relative=True, objectSpace=True)
+        cmds.move(setup_scale, rt_eye_up_vec, y=True, relative=True, objectSpace=True)
+        core_attr.set_attr(
+            obj_list=[lt_eye_up_vec, rt_eye_up_vec],
+            attr_list=["localScaleX", "localScaleY", "localScaleZ"],
+            value=setup_scale * 0.1,
+        )
+        core_attr.set_attr(obj_list=[lt_eye_up_vec, rt_eye_up_vec], attr_list="v", value=False)
+        lt_eye_up_vec, rt_eye_up_vec = core_hrchy.parent(
+            source_objects=[lt_eye_up_vec, rt_eye_up_vec], target_parent=parent_obj
+        )
+
+        core_cnstr.constraint_targets(
+            source_driver=lt_eye_ctrl,
+            target_driven=lt_eye_jnt,
+            constraint_type=core_cnstr.ConstraintTypes.AIM,
+            upVector=(0, 1, 0),
+            worldUpType="object",
+            worldUpObject=lt_eye_up_vec,
+        )
+        core_cnstr.constraint_targets(
+            source_driver=rt_eye_ctrl,
+            target_driven=rt_eye_jnt,
+            constraint_type=core_cnstr.ConstraintTypes.AIM,
+            upVector=(0, 1, 0),
+            worldUpType="object",
+            worldUpObject=rt_eye_up_vec,
+        )
+
+        # eye lines
+        tools_rig_utils.create_control_visualization_line(lt_eye_ctrl, lt_eye_jnt)
+        tools_rig_utils.create_control_visualization_line(rt_eye_ctrl, rt_eye_jnt)
+
+    def build_jaw_setup(self, jaw_jnt, jaw_end_jnt, parent_obj):
+        jaw_end_distance = core_math.dist_center_to_center(jaw_jnt, jaw_end_jnt)
+        jaw_proxy_item = tools_rig_utils.find_proxy_from_uuid(self.jaw_proxy.get_uuid())
+        jaw_rot_order = cmds.getAttr(f"{jaw_proxy_item}.{tools_rig_const.RiggerConstants.ATTR_ROT_ORDER}")
+        jaw_ctrl = self.create_rig_control(
+            control_base_name=self.jaw_proxy.get_name(),
+            curve_file_name="_concave_crescent_neg_y",
+            parent_obj=parent_obj,
+            match_obj=jaw_jnt,
+            rot_order=jaw_rot_order,
+            shape_pos_offset=(-jaw_end_distance * 0.6, jaw_end_distance * 1.1, 0),
+            shape_rot_offset=None,
+            shape_scale=jaw_end_distance * 0.4,
+        )[0]
+        # -- driver
+        self._add_driver_uuid_attr(
+            target_driver=jaw_ctrl,
+            driver_type=tools_rig_const.RiggerDriverTypes.FK,
+            proxy_purpose=self.jaw_proxy,
+        )
+        # -- constraint
+        core_cnstr.constraint_targets(source_driver=jaw_ctrl, target_driven=jaw_jnt)
+        # -- attributes
+        core_attr.hide_lock_default_attrs(obj_list=jaw_ctrl, translate=True, scale=True, visibility=True)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     logger.setLevel(logging.DEBUG)
-    # Auto Reload Script - Must have been initialized using "Run-Only" mode.
-    from gt.utils.session_utils import remove_modules_startswith
-    remove_modules_startswith("gt.tools.auto_rigger.module")
-    remove_modules_startswith("gt.tools.auto_rigger.rig")
+    import gt.core.session as core_session
+
+    core_session.remove_modules_startswith("gt.tools.auto_rigger.module")
+    core_session.remove_modules_startswith("gt.tools.auto_rigger.rig")
     cmds.file(new=True, force=True)
 
-    from gt.tools.auto_rigger.rig_framework import RigProject
-    from gt.tools.auto_rigger.module_spine import ModuleSpine
+    import gt.tools.auto_rigger.module_spine as tools_rig_mod_spine
 
-    a_spine = ModuleSpine()
+    # import gt.tools.auto_rigger.module_head as tools_rig_mod_head
+    import gt.tools.auto_rigger.rig_framework as tools_rig_fmr
+    import gt.tools.auto_rigger.rig_utils as tools_rig_utils
+    import importlib
+
+    # importlib.reload(tools_rig_mod_head)
+    importlib.reload(tools_rig_mod_spine)
+    importlib.reload(tools_rig_utils)
+    importlib.reload(tools_rig_fmr)
+
+    a_spine = tools_rig_mod_spine.ModuleSpine()
     a_head = ModuleHead()
-    spine_chest_uuid = a_spine.chest.get_uuid()
+    a_head.set_mid_neck_num(1)
+    # a_head.set_mid_neck_num(4)
+    spine_chest_uuid = a_spine.chest_proxy.get_uuid()
     a_head.set_parent_uuid(spine_chest_uuid)
-    a_project = RigProject()
+
+    # skip jaw and eyes (elements built by default)
+    # a_head.set_jaw_build_status(False)
+    # a_head.set_eyes_build_status(False)
+    # a_head.set_post_delete_head_jaw_bind_joints(False)
+
+    # build
+    a_project = tools_rig_fmr.RigProject()
     a_project.add_to_modules(a_spine)
     a_project.add_to_modules(a_head)
+    # a_head.set_jaw_status(False)
+    # a_head.set_jaw_status(False)
     a_project.build_proxy()
+    # a_project.build_skeleton()
     a_project.build_rig()
 
-    # cmds.setAttr(f'jaw.rx', -35)
-    # cmds.setAttr(f'head.tx', 3)
-    # cmds.setAttr(f'head.rz', -30)
-
+    # rebuild
     # a_project.read_data_from_scene()
-    # dictionary = a_project.get_project_as_dict()
-    #
-    # cmds.file(new=True, force=True)
-    # a_project2 = RigProject()
-    # a_project2.read_data_from_dict(dictionary)
-    # a_project2.build_proxy()
+    a_project_as_dict = a_project.get_project_as_dict()
+
+    cmds.file(new=True, force=True)
+    a_project2 = tools_rig_fmr.RigProject()
+    a_project2.read_data_from_dict(a_project_as_dict)
+    a_project2.build_proxy()
+    a_project2.build_rig()
 
     # # Show all
     cmds.viewFit(all=True)

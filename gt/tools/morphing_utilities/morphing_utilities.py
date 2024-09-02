@@ -2,10 +2,9 @@
  GT Morphing Utilities
  github.com/TrevisanGMW/gt-tools - 2020-11-15
 """
+
 from maya import OpenMayaUI as OpenMayaUI
-from PySide2.QtWidgets import QWidget
-from shiboken2 import wrapInstance
-from PySide2.QtGui import QIcon
+import gt.ui.qt_import as ui_qt
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
@@ -18,17 +17,18 @@ logger = logging.getLogger("gt_blend_utilities")
 logger.setLevel(logging.INFO)
 
 # Script Name
-script_name = "GT - Morphing Utilities"
+script_name = "Morphing Utilities"
 
 # Version:
 script_version = "?.?.?"  # Module version (init)
 
 # Settings
-morphing_util_settings = {'morphing_obj': '',
-                          'blend_node': '',
-                          'search_string': '',
-                          'replace_string': '',
-                          }
+morphing_util_settings = {
+    "morphing_obj": "",
+    "blend_node": "",
+    "search_string": "",
+    "replace_string": "",
+}
 
 
 def delete_blends_targets(blend_node):
@@ -43,7 +43,7 @@ def delete_blends_targets(blend_node):
     """
     removed_num = 0
     cmds.select(d=True)  # Deselect
-    blendshape_names = cmds.listAttr(blend_node + '.w', m=True) or []
+    blendshape_names = cmds.listAttr(blend_node + ".w", m=True) or []
     if len(blendshape_names) == 0:
         return 0
     for i in range(len(blendshape_names)):
@@ -78,7 +78,7 @@ def delete_blends_target(blend_node, target_name):
         target_name (string) Name of the blend shape target to delete
     """
     cmds.select(d=True)  # Deselect
-    blendshape_names = cmds.listAttr(blend_node + '.w', m=True)
+    blendshape_names = cmds.listAttr(blend_node + ".w", m=True)
 
     for i in range(len(blendshape_names)):
         if blendshape_names[i] == target_name:
@@ -127,7 +127,7 @@ def get_target_index(blend_shape_node, target):
     alias_list = cmds.aliasAttr(blend_shape_node, q=True)
     alias_index = alias_list.index(target)
     alias_attr = alias_list[alias_index + 1]
-    target_index = int(alias_attr.split('[')[-1].split(']')[0])
+    target_index = int(alias_attr.split("[")[-1].split("]")[0])
     return target_index
 
 
@@ -140,7 +140,7 @@ def get_target_list(blend_shape_node):
     """
 
     # Get attribute alias
-    target_list = cmds.listAttr(blend_shape_node + '.w', m=True) or []
+    target_list = cmds.listAttr(blend_shape_node + ".w", m=True) or []
     return target_list
 
 
@@ -179,25 +179,33 @@ def get_target_name(blend_shape_node, target_geo):
         target_shape.extend(non_intermediate_shapes)
 
     if not target_shape:
-        target_shape = cmds.ls(cmds.listRelatives(target_geo, allDescendents=True, path=True),
-                               shapes=True, noIntermediate=True)
+        target_shape = cmds.ls(
+            cmds.listRelatives(target_geo, allDescendents=True, path=True), shapes=True, noIntermediate=True
+        )
     # Find Target Connection
-    target_conn = cmds.listConnections(target_shape, shapes=True, destination=True,
-                                       source=False, plugs=False, connections=True)
+    target_conn = cmds.listConnections(
+        target_shape, shapes=True, destination=True, source=False, plugs=False, connections=True
+    )
     target_conn_ind = target_conn.index(blend_shape_node)
     target_conn_attr = target_conn[target_conn_ind - 1]
     target_conn_plug = cmds.listConnections(target_conn_attr, sh=True, p=True, d=True, s=False)[0]
 
     # Get Target Index
-    target_ind = int(target_conn_plug.split('.')[2].split('[')[1].split(']')[0])
+    target_ind = int(target_conn_plug.split(".")[2].split("[")[1].split("]")[0])
     # Get Target Alias
-    target_alias = cmds.aliasAttr(blend_shape_node + '.weight[' + str(target_ind) + ']', q=True)
+    target_alias = cmds.aliasAttr(blend_shape_node + ".weight[" + str(target_ind) + "]", q=True)
     return target_alias
 
 
-def add_target(blend_shape_node, target=None, base_mesh='',
-               target_index=-1, target_alias='',
-               target_weight=1.0, topology_check=False):
+def add_target(
+    blend_shape_node,
+    target=None,
+    base_mesh="",
+    target_index=-1,
+    target_alias="",
+    target_weight=1.0,
+    topology_check=False,
+):
     """
     Add a new target to the provided blend shape node
     Args:
@@ -232,12 +240,12 @@ def add_target(blend_shape_node, target=None, base_mesh='',
     # Update Target Alias
     if target_alias:
         target_index = get_target_index(blend_shape_node, target_name)
-        cmds.aliasAttr(target_alias, blend_shape_node + '.weight[' + str(target_index) + ']')
+        cmds.aliasAttr(target_alias, blend_shape_node + ".weight[" + str(target_index) + "]")
         target_name = target_alias
 
     if target_weight:
-        cmds.setAttr(blend_shape_node + '.' + target_name, target_weight)
-    return blend_shape_node + '.' + target_name
+        cmds.setAttr(blend_shape_node + "." + target_name, target_weight)
+    return blend_shape_node + "." + target_name
 
 
 def duplicate_blend_target(blend_node, blend_index):
@@ -267,23 +275,23 @@ def duplicate_blend_target(blend_node, blend_index):
     cmds.optionVar(rm="blendShapeEditorTreeViewSelection")
 
 
-def duplicate_flip_blend_target(blend_node, target_name, duplicate_name=None, symmetry_axis='x'):
+def duplicate_flip_blend_target(blend_node, target_name, duplicate_name=None, symmetry_axis="x"):
     """
-        Duplicates and flip targets matching the provided name
-        Args:
-            blend_node (string) Name of the blend shape node
-            target_name (string) Name of the blend shape target to duplicate and flip
-            duplicate_name (optional, string): New name for the duplicated target
-            symmetry_axis (string, optional) Which axis to use when mirroring (default: x)
-        """
+    Duplicates and flip targets matching the provided name
+    Args:
+        blend_node (string) Name of the blend shape node
+        target_name (string) Name of the blend shape target to duplicate and flip
+        duplicate_name (optional, string): New name for the duplicated target
+        symmetry_axis (string, optional) Which axis to use when mirroring (default: x)
+    """
     cmds.select(d=True)  # Deselect
-    blendshape_names = cmds.listAttr(blend_node + '.w', m=True)
+    blendshape_names = cmds.listAttr(blend_node + ".w", m=True)
 
     duplicate_target_index = get_target_index(blend_node, target_name)
     duplicate_blend_target(blend_node, duplicate_target_index)
 
     # Get Newly Generated Targets
-    blendshape_names_refresh = cmds.listAttr(blend_node + '.w', m=True)
+    blendshape_names_refresh = cmds.listAttr(blend_node + ".w", m=True)
     blendshape_names_new_only = list(set(blendshape_names_refresh) - set(blendshape_names))
 
     duplicate_target_name = ""
@@ -291,18 +299,17 @@ def duplicate_flip_blend_target(blend_node, target_name, duplicate_name=None, sy
         duplicate_target_name = blendshape_names_new_only[0]
     if duplicate_target_name:
         duplicate_target_index = get_target_index(blend_node, duplicate_target_name)
-        cmds.blendShape(blend_node, e=True,
-                        flipTarget=[(0, duplicate_target_index)],
-                        symmetryAxis=symmetry_axis,
-                        symmetrySpace=1)  # 0=topological, 1=object, 2=UV
+        cmds.blendShape(
+            blend_node, e=True, flipTarget=[(0, duplicate_target_index)], symmetryAxis=symmetry_axis, symmetrySpace=1
+        )  # 0=topological, 1=object, 2=UV
         if duplicate_name:
             rename_blend_target(blend_node, duplicate_target_name, duplicate_name)
         else:
-            new_name = duplicate_target_name.replace('Copy', 'Flipped')
+            new_name = duplicate_target_name.replace("Copy", "Flipped")
             rename_blend_target(blend_node, duplicate_target_name, new_name)
 
     # Return Generated Targets
-    blendshape_names_refresh = cmds.listAttr(blend_node + '.w', m=True)
+    blendshape_names_refresh = cmds.listAttr(blend_node + ".w", m=True)
     blendshape_names_new_only = list(set(blendshape_names_refresh) - set(blendshape_names))
     for blend in blendshape_names_new_only:
         try:
@@ -312,29 +319,30 @@ def duplicate_flip_blend_target(blend_node, target_name, duplicate_name=None, sy
     return blendshape_names_new_only
 
 
-def duplicate_mirror_blend_target(blend_node, target_name, duplicate_name=None,
-                                  symmetry_axis='x', mirror_direction="-"):
+def duplicate_mirror_blend_target(
+    blend_node, target_name, duplicate_name=None, symmetry_axis="x", mirror_direction="-"
+):
     """
-        Duplicates and mirror targets matching the provided name
-        Args:
-            blend_node (string) Name of the blend shape node
-            target_name (string) Name of the blend shape target to duplicate and flip
-            duplicate_name (optional, string): New name for the duplicated target
-            symmetry_axis (optional, string) Which axis to use when mirroring (default: x)
-            mirror_direction (optional, string): Direction of the mirror operation (either "+" or "-") - Default "-"
-        """
+    Duplicates and mirror targets matching the provided name
+    Args:
+        blend_node (string) Name of the blend shape node
+        target_name (string) Name of the blend shape target to duplicate and flip
+        duplicate_name (optional, string): New name for the duplicated target
+        symmetry_axis (optional, string) Which axis to use when mirroring (default: x)
+        mirror_direction (optional, string): Direction of the mirror operation (either "+" or "-") - Default "-"
+    """
     cmds.select(d=True)  # Deselect
-    blendshape_names = cmds.listAttr(blend_node + '.w', m=True)
+    blendshape_names = cmds.listAttr(blend_node + ".w", m=True)
 
     mirror_dir = 0  # 0=negative,1=positive
-    if mirror_direction == '+':
+    if mirror_direction == "+":
         mirror_dir = 1
 
     duplicate_target_index = get_target_index(blend_node, target_name)
     duplicate_blend_target(blend_node, duplicate_target_index)
 
     # Get Newly Generated Targets
-    blendshape_names_refresh = cmds.listAttr(blend_node + '.w', m=True)
+    blendshape_names_refresh = cmds.listAttr(blend_node + ".w", m=True)
     blendshape_names_new_only = list(set(blendshape_names_refresh) - set(blendshape_names))
 
     duplicate_target_name = ""
@@ -342,20 +350,22 @@ def duplicate_mirror_blend_target(blend_node, target_name, duplicate_name=None,
         duplicate_target_name = blendshape_names_new_only[0]
     if duplicate_target_name:
         duplicate_target_index = get_target_index(blend_node, duplicate_target_name)
-        cmds.blendShape(blend_node, e=True,
-                        mirrorTarget=[(0, duplicate_target_index)],
-                        mirrorDirection=mirror_dir,  # 0=negative,1=positive
-                        symmetrySpace=1,  # 0=topological, 1=object, 2=UV
-                        symmetryAxis=symmetry_axis,  # for object symmetrySpace
-                        )
+        cmds.blendShape(
+            blend_node,
+            e=True,
+            mirrorTarget=[(0, duplicate_target_index)],
+            mirrorDirection=mirror_dir,  # 0=negative,1=positive
+            symmetrySpace=1,  # 0=topological, 1=object, 2=UV
+            symmetryAxis=symmetry_axis,  # for object symmetrySpace
+        )
         if duplicate_name:
             rename_blend_target(blend_node, duplicate_target_name, duplicate_name)
         else:
-            new_name = duplicate_target_name.replace('Copy', 'Mirrored')
+            new_name = duplicate_target_name.replace("Copy", "Mirrored")
             rename_blend_target(blend_node, duplicate_target_name, new_name)
 
     # Return Generated Targets
-    blendshape_names_refresh = cmds.listAttr(blend_node + '.w', m=True)
+    blendshape_names_refresh = cmds.listAttr(blend_node + ".w", m=True)
     blendshape_names_new_only = list(set(blendshape_names_refresh) - set(blendshape_names))
     for blend in blendshape_names_new_only:
         try:
@@ -365,7 +375,7 @@ def duplicate_mirror_blend_target(blend_node, target_name, duplicate_name=None,
     return blendshape_names_new_only
 
 
-def duplicate_flip_filtered_targets(blend_node, search_string, replace_string=None, symmetry_axis='x'):
+def duplicate_flip_filtered_targets(blend_node, search_string, replace_string=None, symmetry_axis="x"):
     """
     Duplicate targets that match search string and flip them
     Args:
@@ -379,7 +389,7 @@ def duplicate_flip_filtered_targets(blend_node, search_string, replace_string=No
     Returns:
         Number of operations (Total number of flipped targets)
     """
-    blendshape_names = cmds.listAttr(blend_node + '.w', m=True) or []
+    blendshape_names = cmds.listAttr(blend_node + ".w", m=True) or []
     pairs_to_rename = {}
     logger.debug("search_string:" + search_string)
     logger.debug("replace_string:" + str(replace_string))
@@ -403,8 +413,9 @@ def duplicate_flip_filtered_targets(blend_node, search_string, replace_string=No
     return number_operations
 
 
-def duplicate_mirror_filtered_targets(blend_node, search_string, replace_string=None,
-                                      symmetry_axis='x', mirror_direction="-"):
+def duplicate_mirror_filtered_targets(
+    blend_node, search_string, replace_string=None, symmetry_axis="x", mirror_direction="-"
+):
     """
     Duplicate targets that match the search string and mirror them
     Args:
@@ -419,7 +430,7 @@ def duplicate_mirror_filtered_targets(blend_node, search_string, replace_string=
     Returns:
         Number of operations (Total number of flipped targets)
     """
-    blendshape_names = cmds.listAttr(blend_node + '.w', m=True) or []
+    blendshape_names = cmds.listAttr(blend_node + ".w", m=True) or []
     pairs_to_rename = {}
     logger.debug("search_string:" + search_string)
     logger.debug("replace_string:" + str(replace_string))
@@ -436,10 +447,9 @@ def duplicate_mirror_filtered_targets(blend_node, search_string, replace_string=
     number_operations = 0
     for key, value in pairs_to_rename.items():
         try:
-            duplicate_mirror_blend_target(blend_node, key,
-                                          duplicate_name=value,
-                                          symmetry_axis=symmetry_axis,
-                                          mirror_direction=mirror_direction)
+            duplicate_mirror_blend_target(
+                blend_node, key, duplicate_name=value, symmetry_axis=symmetry_axis, mirror_direction=mirror_direction
+            )
             number_operations += 1
         except Exception as exc:
             logger.debug(str(exc))
@@ -447,13 +457,13 @@ def duplicate_mirror_filtered_targets(blend_node, search_string, replace_string=
 
 
 def rename_blend_target(blend_shape, target, new_name):
-    """ Renames the provided blend shape target """
-    cmds.aliasAttr(new_name, blend_shape + '.' + target)
+    """Renames the provided blend shape target"""
+    cmds.aliasAttr(new_name, blend_shape + "." + target)
     return new_name
 
 
 def search_replace_blend_targets(blend_node, search_string, replace_string):
-    blendshape_names = cmds.listAttr(blend_node + '.w', m=True) or []
+    blendshape_names = cmds.listAttr(blend_node + ".w", m=True) or []
     pairs_to_rename = {}
     logger.debug("search_string:" + search_string)
     logger.debug("replace_string:" + replace_string)
@@ -478,12 +488,12 @@ def build_gui_morphing_utilities():
         search_string = cmds.textField(desired_filter_textfield, q=True, text=True)
         replace_string = cmds.textField(undesired_filter_textfield, q=True, text=True)
 
-        morphing_util_settings['search_string'] = search_string
-        morphing_util_settings['replace_string'] = replace_string
+        morphing_util_settings["search_string"] = search_string
+        morphing_util_settings["replace_string"] = replace_string
 
-        logger.debug('Updated Settings Called')
-        logger.debug('search_string: ' + str(morphing_util_settings.get('search_string')))
-        logger.debug('replace_string: ' + str(morphing_util_settings.get('replace_string')))
+        logger.debug("Updated Settings Called")
+        logger.debug("search_string: " + str(morphing_util_settings.get("search_string")))
+        logger.debug("replace_string: " + str(morphing_util_settings.get("replace_string")))
 
     def select_blend_shape_node():
         error_message = "Unable to locate blend shape node. Please try again."
@@ -491,13 +501,13 @@ def build_gui_morphing_utilities():
         if blend_node:
             if cmds.objExists(blend_node[0]):
                 sys.stdout.write('"' + str(blend_node[0]) + '" will be used when executing utilities.\n')
-                morphing_util_settings['blend_node'] = blend_node[0]
+                morphing_util_settings["blend_node"] = blend_node[0]
             else:
                 cmds.warning(error_message)
-                morphing_util_settings['blend_node'] = ''
+                morphing_util_settings["blend_node"] = ""
         else:
             cmds.warning(error_message)
-            morphing_util_settings['blend_node'] = ''
+            morphing_util_settings["blend_node"] = ""
 
     def object_load_handler(operation):
         """
@@ -508,12 +518,12 @@ def build_gui_morphing_utilities():
         """
 
         def failed_to_load_source(failed_message="Failed to Load"):
-            cmds.button(source_object_status, l=failed_message, e=True, bgc=(1, .4, .4), w=130)
+            cmds.button(source_object_status, l=failed_message, e=True, bgc=(1, 0.4, 0.4), w=130)
             cmds.textScrollList(blend_nodes_scroll_list, e=True, removeAll=True)
-            morphing_util_settings['morphing_obj'] = ''
+            morphing_util_settings["morphing_obj"] = ""
 
         # Blend Mesh
-        if operation == 'morphing_obj':
+        if operation == "morphing_obj":
             current_selection = cmds.ls(selection=True) or []
             if not current_selection:
                 cmds.warning("Nothing selected. Please select a mesh try again.")
@@ -527,15 +537,20 @@ def build_gui_morphing_utilities():
 
             if cmds.objExists(current_selection[0]):
                 history = cmds.listHistory(current_selection[0])
-                blendshape_nodes = cmds.ls(history, type='blendShape') or []
+                blendshape_nodes = cmds.ls(history, type="blendShape") or []
                 if not blendshape_nodes:
                     cmds.warning("Unable to find blend shape nodes on the selected object.")
                     failed_to_load_source()
                     return
                 else:
-                    morphing_util_settings['morphing_obj'] = current_selection[0]
-                    cmds.button(source_object_status, l=morphing_util_settings.get('morphing_obj'),
-                                e=True, bgc=(.6, .8, .6), w=130)
+                    morphing_util_settings["morphing_obj"] = current_selection[0]
+                    cmds.button(
+                        source_object_status,
+                        l=morphing_util_settings.get("morphing_obj"),
+                        e=True,
+                        bgc=(0.6, 0.8, 0.6),
+                        w=130,
+                    )
                     cmds.textScrollList(blend_nodes_scroll_list, e=True, removeAll=True)
                     cmds.textScrollList(blend_nodes_scroll_list, e=True, append=blendshape_nodes)
 
@@ -543,26 +558,26 @@ def build_gui_morphing_utilities():
         """Checks if basic elements are available before running targeted operations"""
         if blend_node:
             if not cmds.objExists(blend_node):
-                cmds.warning('Unable to blend shape node. Please try loading the object again.')
+                cmds.warning("Unable to blend shape node. Please try loading the object again.")
                 return False
         else:
-            cmds.warning('Select a blend shape node to be used as target.')
+            cmds.warning("Select a blend shape node to be used as target.")
             return False
         return True
 
     def _validate_search_replace(operation="default"):
-        """ Checks elements one last time before running the script """
+        """Checks elements one last time before running the script"""
         update_settings()
 
-        blend_node = morphing_util_settings.get('blend_node')
+        blend_node = morphing_util_settings.get("blend_node")
         is_valid = _validate_current_blend_settings(blend_node)
         if not is_valid:
             return is_valid
 
         # # Run Script
-        logger.debug('Search and Replace Function Called')
-        replace_string = morphing_util_settings.get('replace_string').replace(' ', '')
-        search_string = morphing_util_settings.get('search_string').replace(' ', '')
+        logger.debug("Search and Replace Function Called")
+        replace_string = morphing_util_settings.get("replace_string").replace(" ", "")
+        search_string = morphing_util_settings.get("search_string").replace(" ", "")
 
         if operation == "default":
             current_selection = cmds.ls(selection=True)
@@ -584,8 +599,9 @@ def build_gui_morphing_utilities():
             try:
                 if not replace_string:
                     replace_string = None
-                num_affected = duplicate_flip_filtered_targets(blend_node, search_string, replace_string,
-                                                               symmetry_axis=symmetry_axis)
+                num_affected = duplicate_flip_filtered_targets(
+                    blend_node, search_string, replace_string, symmetry_axis=symmetry_axis
+                )
                 operation_inview_feedback(num_affected, action="duplicated and flipped")
                 return True
             except Exception as e:
@@ -602,9 +618,13 @@ def build_gui_morphing_utilities():
             try:
                 if not replace_string:
                     replace_string = None
-                num_affected = duplicate_mirror_filtered_targets(blend_node, search_string, replace_string,
-                                                                 symmetry_axis=symmetry_axis,
-                                                                 mirror_direction=mirror_direction)
+                num_affected = duplicate_mirror_filtered_targets(
+                    blend_node,
+                    search_string,
+                    replace_string,
+                    symmetry_axis=symmetry_axis,
+                    mirror_direction=mirror_direction,
+                )
                 operation_inview_feedback(num_affected, action="duplicated and mirrored")
                 return True
             except Exception as e:
@@ -624,7 +644,7 @@ def build_gui_morphing_utilities():
 
     def _validate_set_target_values():
         """Validate set targets and run operation"""
-        blend_node = morphing_util_settings.get('blend_node')
+        blend_node = morphing_util_settings.get("blend_node")
         is_valid = _validate_current_blend_settings(blend_node)
         if not is_valid:
             return is_valid
@@ -633,7 +653,7 @@ def build_gui_morphing_utilities():
 
     def _validate_extract_current_targets():
         """Validate set targets and run operation"""
-        blend_node = morphing_util_settings.get('blend_node')
+        blend_node = morphing_util_settings.get("blend_node")
         is_valid = _validate_current_blend_settings(blend_node)
         if not is_valid:
             return is_valid
@@ -644,60 +664,72 @@ def build_gui_morphing_utilities():
         cmds.deleteUI(window_name)
 
     # Build UI
-    window_gui_blends_to_attr = cmds.window(window_name, title=script_name + '  (v' + script_version + ')',
-                                            titleBar=True, mnb=False, mxb=False, sizeable=True)
+    window_gui_blends_to_attr = cmds.window(
+        window_name,
+        title=script_name + "  (v" + script_version + ")",
+        titleBar=True,
+        mnb=False,
+        mxb=False,
+        sizeable=True,
+    )
 
     cmds.window(window_name, e=True, s=True, wh=[1, 1])
 
     content_main = cmds.columnLayout(adj=True)
 
     # Title Text
-    title_bgc_color = (.4, .4, .4)
-    cmds.separator(h=10, style='none')  # Empty Space
+    title_bgc_color = (0.4, 0.4, 0.4)
+    cmds.separator(h=10, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main)  # Window Size Adjustment
-    cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)],
-                         p=content_main)  # Title Column
+    cmds.rowColumnLayout(
+        nc=3, cw=[(1, 10), (2, 200), (3, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main
+    )  # Title Column
     cmds.text(" ", bgc=title_bgc_color)  # Tiny Empty Green Space
     cmds.text(script_name, bgc=title_bgc_color, fn="boldLabelFont", align="left")
     cmds.button(l="Help", bgc=title_bgc_color, c=lambda x: _open_gt_tools_documentation())
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
 
     # General Utilities
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('General Utilities:')
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("General Utilities:")
+    cmds.separator(h=5, style="none")  # Empty Space
 
     cmds.rowColumnLayout(nc=2, cw=[(1, 125), (2, 125)], cs=[(1, 10), (2, 10)], p=content_main)
     cmds.button(l="Delete All\nBlend Shape Nodes", c=lambda x: _delete_all_blend_nodes_btn())
     cmds.button(l="Delete All\nBlend Shape Targets", c=lambda x: _delete_all_blend_targets_btn())
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
 
     # Deformed Mesh (Source) ------------------------------------------
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Deformed Mesh (Source):')
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Deformed Mesh (Source):")
+    cmds.separator(h=5, style="none")  # Empty Space
 
     cmds.rowColumnLayout(nc=2, cw=[(1, 129), (2, 130)], cs=[(1, 10)], p=content_main)
     cmds.button(l="Load Morphing Object", c=lambda x: object_load_handler("morphing_obj"), w=130)
-    source_object_status = cmds.button(l="Not loaded yet", bgc=(.2, .2, .2), w=130,
-                                       c=lambda x: select_existing_object(morphing_util_settings.get('morphing_obj')))
+    source_object_status = cmds.button(
+        l="Not loaded yet",
+        bgc=(0.2, 0.2, 0.2),
+        w=130,
+        c=lambda x: select_existing_object(morphing_util_settings.get("morphing_obj")),
+    )
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Blend Shape Nodes:', font="smallPlainLabelFont")
-    blend_nodes_scroll_list = cmds.textScrollList(numberOfRows=8, allowMultiSelection=False, height=70,
-                                                  selectCommand=select_blend_shape_node)
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Blend Shape Nodes:", font="smallPlainLabelFont")
+    blend_nodes_scroll_list = cmds.textScrollList(
+        numberOfRows=8, allowMultiSelection=False, height=70, selectCommand=select_blend_shape_node
+    )
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
 
     # Search and Replace Target Names ------------------------------------------
-    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.separator(h=7, style="none")  # Empty Space
     cmds.separator(h=5)
-    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.separator(h=7, style="none")  # Empty Space
     cmds.text("Search and Replace Target Names:")
-    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.separator(h=7, style="none")  # Empty Space
 
     text_label_width = 90
     text_field_width = 150
@@ -705,66 +737,74 @@ def build_gui_morphing_utilities():
     cmds.rowColumnLayout(nc=2, cw=[(1, text_label_width), (2, text_field_width)], cs=[(1, 10), (2, 5)], p=content_main)
 
     cmds.text("Search:")
-    desired_filter_textfield = cmds.textField(text='', pht='Text to Search', cc=update_settings)
+    desired_filter_textfield = cmds.textField(text="", pht="Text to Search", cc=update_settings)
 
     cmds.rowColumnLayout(nc=2, cw=[(1, text_label_width), (2, text_field_width)], cs=[(1, 10), (2, 5)], p=content_main)
     cmds.text("Replace:")
-    undesired_filter_textfield = cmds.textField(text='', pht='Text to Replace', cc=update_settings)
+    undesired_filter_textfield = cmds.textField(text="", pht="Text to Replace", cc=update_settings)
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
 
-    cmds.separator(h=10, style='none')  # Empty Space
-    cmds.button(l="Search and Replace Target Names", bgc=(.6, .6, .6), c=lambda x: _validate_search_replace())
-    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.separator(h=10, style="none")  # Empty Space
+    cmds.button(l="Search and Replace Target Names", bgc=(0.6, 0.6, 0.6), c=lambda x: _validate_search_replace())
+    cmds.separator(h=10, style="none")  # Empty Space
     cmds.text("Search & Replace With Operations:")
-    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.separator(h=7, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 120), (2, 120)], cs=[(1, 15), (2, 15)], p=content_main)
 
-    mirror_option_menu = cmds.optionMenu(label='Mirror Direction:')
-    cmds.menuItem(label='-')
-    cmds.menuItem(label='+')
-    symmetry_option_menu = cmds.optionMenu(label='Symmetry Axis:')
-    cmds.menuItem(label='x')
-    cmds.menuItem(label='y')
-    cmds.menuItem(label='z')
-    cmds.separator(h=7, style='none')  # Empty Space
+    mirror_option_menu = cmds.optionMenu(label="Mirror Direction:")
+    cmds.menuItem(label="-")
+    cmds.menuItem(label="+")
+    symmetry_option_menu = cmds.optionMenu(label="Symmetry Axis:")
+    cmds.menuItem(label="x")
+    cmds.menuItem(label="y")
+    cmds.menuItem(label="z")
+    cmds.separator(h=7, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 245), (2, 15)], cs=[(1, 10)], p=content_main)
-    cmds.button(l="Search, Replace While Duplicating and Flipping ",
-                c=lambda x: _validate_search_replace("flip"))
-    flip_help_message = 'This option duplicates filtered targets and flips them. \nIt uses the "Search" text-field ' \
-                        'as a filter, which means that only targets containing the provided string are be used in the' \
-                        ' operation. If empty, all targets will be used.\nThe same "Search" field is used to rename' \
-                        ' the filtered targets using the "Replace" string in the search/replace operation. ' \
-                        'If "Replace" is not provided, an extra suffix "_Flipped" automatically added to the end of ' \
-                        'the new targets to avoid conflicting names.'
+    cmds.button(l="Search, Replace While Duplicating and Flipping ", c=lambda x: _validate_search_replace("flip"))
+    flip_help_message = (
+        'This option duplicates filtered targets and flips them. \nIt uses the "Search" text-field '
+        "as a filter, which means that only targets containing the provided string are be used in the"
+        ' operation. If empty, all targets will be used.\nThe same "Search" field is used to rename'
+        ' the filtered targets using the "Replace" string in the search/replace operation. '
+        'If "Replace" is not provided, an extra suffix "_Flipped" automatically added to the end of '
+        "the new targets to avoid conflicting names."
+    )
     flip_help_title = "Duplicate and Flip"
-    cmds.button(l="?", bgc=(.3, .3, .3), height=15,
-                c=lambda x: build_custom_help_window(flip_help_message, flip_help_title))
-    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.button(
+        l="?", bgc=(0.3, 0.3, 0.3), height=15, c=lambda x: build_custom_help_window(flip_help_message, flip_help_title)
+    )
+    cmds.separator(h=7, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 245), (2, 15)], cs=[(1, 10)], p=content_main)
-    cmds.button(l="Search, Replace While Duplicating and Mirroring ",
-                c=lambda x: _validate_search_replace("mirror"))
-    mirror_help_message = 'This option duplicates filtered targets and mirrors them. \nIt uses the "Search"' \
-                          ' text-field as a filter, which means that only targets containing the provided string are' \
-                          ' be used in the operation. If empty, all targets will be used.\nThe same "Search" field is' \
-                          ' used to rename the filtered targets using the "Replace" string in the search/replace ' \
-                          'operation. If "Replace" is not provided, an extra suffix "_Flipped" automatically added to' \
-                          ' the end of the new targets to avoid conflicting names.'
+    cmds.button(l="Search, Replace While Duplicating and Mirroring ", c=lambda x: _validate_search_replace("mirror"))
+    mirror_help_message = (
+        'This option duplicates filtered targets and mirrors them. \nIt uses the "Search"'
+        " text-field as a filter, which means that only targets containing the provided string are"
+        ' be used in the operation. If empty, all targets will be used.\nThe same "Search" field is'
+        ' used to rename the filtered targets using the "Replace" string in the search/replace '
+        'operation. If "Replace" is not provided, an extra suffix "_Flipped" automatically added to'
+        " the end of the new targets to avoid conflicting names."
+    )
     mirror_help_title = "Duplicate and Mirror"
-    cmds.button(l="?", bgc=(.3, .3, .3), height=15,
-                c=lambda x: build_custom_help_window(mirror_help_message, mirror_help_title))
+    cmds.button(
+        l="?",
+        bgc=(0.3, 0.3, 0.3),
+        height=15,
+        c=lambda x: build_custom_help_window(mirror_help_message, mirror_help_title),
+    )
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
-    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.separator(h=10, style="none")  # Empty Space
     cmds.separator(h=5)
-    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.separator(h=10, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=[(1, 180), (2, 70)], cs=[(1, 10), (2, 10)], p=content_main)
-    cmds.button(l="Set All Target Values To", bgc=(.6, .6, .6), c=lambda x: _validate_set_target_values())
+    cmds.button(l="Set All Target Values To", bgc=(0.6, 0.6, 0.6), c=lambda x: _validate_set_target_values())
     set_target_value = cmds.floatField(value=1, precision=1)
-    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.separator(h=10, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 10)], p=content_main)
-    cmds.button(l="Extract Targets At Current Values", bgc=(.6, .6, .6),
-                c=lambda x: _validate_extract_current_targets())
-    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.button(
+        l="Extract Targets At Current Values", bgc=(0.6, 0.6, 0.6), c=lambda x: _validate_extract_current_targets()
+    )
+    cmds.separator(h=10, style="none")  # Empty Space
 
     # Show and Lock Window
     cmds.showWindow(window_gui_blends_to_attr)
@@ -772,8 +812,8 @@ def build_gui_morphing_utilities():
 
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/falloff_blend.png')
+    widget = ui_qt.shiboken.wrapInstance(int(qw), ui_qt.QtWidgets.QWidget)
+    icon = ui_qt.QtGui.QIcon(":/falloff_blend.png")
     widget.setWindowIcon(icon)
 
     # Remove the focus from the textfield and give it to the window
@@ -781,8 +821,8 @@ def build_gui_morphing_utilities():
 
 
 def _open_gt_tools_documentation():
-    """ Opens a web browser with the auto rigger docs  """
-    cmds.showHelp('https://github.com/TrevisanGMW/gt-tools/tree/release/docs#-gt-morphing-utilities-', absolute=True)
+    """Opens a web browser with the auto rigger docs"""
+    cmds.showHelp("https://github.com/TrevisanGMW/gt-tools/tree/release/docs#-gt-morphing-utilities-", absolute=True)
 
 
 def select_existing_object(obj):
@@ -793,17 +833,27 @@ def select_existing_object(obj):
         obj (str): Object it will try to select
 
     """
-    if obj != '':
+    if obj != "":
         if cmds.objExists(obj):
             cmds.select(obj)
-            unique_message = '<' + str(random.random()) + '>'
-            cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">' + str(
-                obj) + '</span><span style=\"color:#FFFFFF;\"> selected.</span>', pos='botLeft', fade=True, alpha=.9)
+            unique_message = "<" + str(random.random()) + ">"
+            cmds.inViewMessage(
+                amg=unique_message
+                + '<span style="color:#FF0000;text-decoration:underline;">'
+                + str(obj)
+                + '</span><span style="color:#FFFFFF;"> selected.</span>',
+                pos="botLeft",
+                fade=True,
+                alpha=0.9,
+            )
         else:
-            cmds.warning('"' + str(
-                obj) + "\" couldn't be selected. Make sure you didn't rename or deleted the object after loading it")
+            cmds.warning(
+                '"'
+                + str(obj)
+                + "\" couldn't be selected. Make sure you didn't rename or deleted the object after loading it"
+            )
     else:
-        cmds.warning('Nothing loaded. Please load an object before attempting to select it.')
+        cmds.warning("Nothing loaded. Please load an object before attempting to select it.")
 
 
 def operation_inview_feedback(number_of_changes, action="affected"):
@@ -815,13 +865,13 @@ def operation_inview_feedback(number_of_changes, action="affected"):
         number_of_changes (int): How many objects were affected.
         action (string, optional): Description of the action. e.g. "deleted", "renamed", or "affected"
     """
-    message = '<' + str(random.random()) + '><span style=\"color:#FF0000;text-decoration:underline;\">'
+    message = "<" + str(random.random()) + '><span style="color:#FF0000;text-decoration:underline;">'
     message += str(number_of_changes)
     if number_of_changes == 1:
-        message += '</span><span style=\"color:#FFFFFF;\"> element was ' + action + '.</span>'
+        message += '</span><span style="color:#FFFFFF;"> element was ' + action + ".</span>"
     else:
-        message += '</span><span style=\"color:#FFFFFF;\"> elements were ' + action + '.</span>'
-    cmds.inViewMessage(amg=message, pos='botLeft', fade=True, alpha=.9)
+        message += '</span><span style="color:#FFFFFF;"> elements were ' + action + ".</span>"
+    cmds.inViewMessage(amg=message, pos="botLeft", fade=True, alpha=0.9)
 
 
 def set_targets_value(blend_node, value):
@@ -832,7 +882,7 @@ def set_targets_value(blend_node, value):
         value (float): Value to update the blend shape targets (e.g. 0.5) - Default range is 0 to 1
 
     """
-    blendshape_names = cmds.listAttr(blend_node + '.w', m=True) or []
+    blendshape_names = cmds.listAttr(blend_node + ".w", m=True) or []
     errors = []
     for target in blendshape_names:
         try:
@@ -852,7 +902,7 @@ def bake_current_state(blend_node):
     TODO:
         Add lock and connection checks
     """
-    blendshape_names = cmds.listAttr(blend_node + '.w', m=True) or []
+    blendshape_names = cmds.listAttr(blend_node + ".w", m=True) or []
     errors = []
     target_values = {}
     target_mesh = get_blend_mesh(blend_node)
@@ -867,7 +917,7 @@ def bake_current_state(blend_node):
         try:
             value = target_values.get(target)
             cmds.setAttr(blend_node + "." + target, value)
-            new_suffix = "_" + str(int(value*100)) + "pct"
+            new_suffix = "_" + str(int(value * 100)) + "pct"
             cmds.duplicate(target_mesh, name=target_mesh + "_" + target + new_suffix)
             cmds.setAttr(blend_node + "." + target, 0)
         except Exception as e:
@@ -885,14 +935,14 @@ def bake_current_state(blend_node):
 
 def get_blend_mesh(blend_node):
     if cmds.objectType(blend_node) != "blendShape":
-        cmds.warning("Provided node \"" + str(blend_node) + "\" is not a blend shape node.")
+        cmds.warning('Provided node "' + str(blend_node) + '" is not a blend shape node.')
         return
     target_mesh = cmds.listConnections(blend_node + ".outputGeometry") or []
     if len(target_mesh) > 0:
         return target_mesh[0]
 
 
-def build_custom_help_window(input_text, help_title='', *args):
+def build_custom_help_window(input_text, help_title="", *args):
     """
     Creates a help window to display the provided text
 
@@ -914,27 +964,27 @@ def build_custom_help_window(input_text, help_title='', *args):
     main_column = cmds.columnLayout(p=window_name)
 
     # Title Text
-    cmds.separator(h=12, style='none')  # Empty Space
+    cmds.separator(h=12, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p=main_column)  # Window Size Adjustment
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)  # Title Column
-    cmds.text(help_title + ' Help', bgc=(.4, .4, .4), fn='boldLabelFont', align='center')
-    cmds.separator(h=10, style='none', p=main_column)  # Empty Space
+    cmds.text(help_title + " Help", bgc=(0.4, 0.4, 0.4), fn="boldLabelFont", align="center")
+    cmds.separator(h=10, style="none", p=main_column)  # Empty Space
 
     # Body ====================
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)
 
-    help_scroll_field = cmds.scrollField(editable=False, wordWrap=True, fn='smallPlainLabelFont')
+    help_scroll_field = cmds.scrollField(editable=False, wordWrap=True, fn="smallPlainLabelFont")
 
     cmds.scrollField(help_scroll_field, e=True, ip=0, it=input_text)
-    cmds.scrollField(help_scroll_field, e=True, ip=1, it='')  # Bring Back to the Top
+    cmds.scrollField(help_scroll_field, e=True, ip=1, it="")  # Bring Back to the Top
 
     return_column = cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)
 
     # Close Button
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)
-    cmds.separator(h=10, style='none')
-    cmds.button(l='OK', h=30, c=lambda x: close_help_gui())
-    cmds.separator(h=8, style='none')
+    cmds.separator(h=10, style="none")
+    cmds.button(l="OK", h=30, c=lambda x: close_help_gui())
+    cmds.separator(h=8, style="none")
 
     # Show and Lock Window
     cmds.showWindow(window_name)
@@ -942,12 +992,12 @@ def build_custom_help_window(input_text, help_title='', *args):
 
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/question.png')
+    widget = ui_qt.shiboken.wrapInstance(int(qw), ui_qt.QtWidgets.QWidget)
+    icon = ui_qt.QtGui.QIcon(":/question.png")
     widget.setWindowIcon(icon)
 
     def close_help_gui():
-        """ Closes help windows """
+        """Closes help windows"""
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
 
@@ -955,10 +1005,10 @@ def build_custom_help_window(input_text, help_title='', *args):
 
 
 # Build UI
-if __name__ == '__main__':
+if __name__ == "__main__":
     debugging = False
     if debugging:
         logger.setLevel(logging.DEBUG)
-        morphing_util_settings['morphing_obj'] = 'target_obj'
-        morphing_util_settings['blend_node'] = 'blendShape1'
+        morphing_util_settings["morphing_obj"] = "target_obj"
+        morphing_util_settings["blend_node"] = "blendShape1"
     build_gui_morphing_utilities()

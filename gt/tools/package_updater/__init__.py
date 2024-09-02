@@ -27,12 +27,9 @@
 from gt.tools.package_updater import package_updater_controller
 from gt.tools.package_updater import package_updater_model
 from gt.tools.package_updater import package_updater_view
-from PySide2.QtWidgets import QApplication
-from gt.utils import session_utils
 from gt.ui import qt_utils
 import threading
 import logging
-import sys
 
 # Logging Setup
 
@@ -82,9 +79,8 @@ def silently_check_for_updates():
             build_package_updater_gui(model=_model)
 
     def _maya_retrieve_update_data():
-        """ Internal function used to run a thread in Maya """
         """ Internal function used to check for updates using threads in Maya """
-        from gt.utils.system_utils import execute_deferred
+        from gt.utils.system import execute_deferred
         execute_deferred(_initialize_tool_if_updating)
     try:
         thread = threading.Thread(None, target=_maya_retrieve_update_data)

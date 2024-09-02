@@ -1,37 +1,42 @@
 import inspect
-from gt.ui import resource_library
-from gt.utils.string_utils import remove_suffix, remove_prefix
-from gt.tools.auto_rigger.rig_framework import ModuleGeneric
-from gt.tools.auto_rigger.module_root import ModuleRoot
-from gt.tools.auto_rigger.module_biped_leg import (ModuleBipedLeg,
-                                                   ModuleBipedLegLeft,
-                                                   ModuleBipedLegRight)
-from gt.tools.auto_rigger.module_spine import ModuleSpine
-from gt.tools.auto_rigger.module_biped_arm import (ModuleBipedArm,
-                                                   ModuleBipedArmLeft,
-                                                   ModuleBipedArmRight)
-from gt.tools.auto_rigger.module_biped_finger import (ModuleBipedFingers,
-                                                      ModuleBipedFingersLeft,
-                                                      ModuleBipedFingersRight)
-from gt.tools.auto_rigger.module_head import ModuleHead
+import gt.core.str as core_str
+import gt.ui.resource_library as ui_res_lib
+import gt.tools.auto_rigger.rig_framework as tools_rig_fmr
+import gt.tools.auto_rigger.module_root as tools_mod_root
+import gt.tools.auto_rigger.module_spine as tools_mod_spine
+import gt.tools.auto_rigger.module_biped_leg as tools_mod_leg
+import gt.tools.auto_rigger.module_biped_arm as tools_mod_arm
+import gt.tools.auto_rigger.module_biped_finger as tools_mod_finger
+import gt.tools.auto_rigger.module_head as tools_mod_head
+import gt.tools.auto_rigger.module_utils as tools_mod_utils
+import gt.tools.auto_rigger.module_socket as tools_mod_socket
+import gt.tools.auto_rigger.module_attr_hub as tools_mod_attr_switcher
 
 
 class RigModules:
     # General
-    ModuleGeneric = ModuleGeneric
-    ModuleRoot = ModuleRoot
-    ModuleSpine = ModuleSpine
-    ModuleHead = ModuleHead
+    ModuleGeneric = tools_rig_fmr.ModuleGeneric
+    ModuleRoot = tools_mod_root.ModuleRoot
+    ModuleSpine = tools_mod_spine.ModuleSpine
+    ModuleHead = tools_mod_head.ModuleHead
+    ModuleAttributeHub = tools_mod_attr_switcher.ModuleAttributeHub
+    ModuleSocket = tools_mod_socket.ModuleSocket
     # Biped
-    ModuleBipedArm = ModuleBipedArm
-    ModuleBipedArmLeft = ModuleBipedArmLeft
-    ModuleBipedArmRight = ModuleBipedArmRight
-    ModuleBipedFingers = ModuleBipedFingers
-    ModuleBipedFingersLeft = ModuleBipedFingersLeft
-    ModuleBipedFingersRight = ModuleBipedFingersRight
-    ModuleBipedLeg = ModuleBipedLeg
-    ModuleBipedLegLeft = ModuleBipedLegLeft
-    ModuleBipedLegRight = ModuleBipedLegRight
+    ModuleBipedArm = tools_mod_arm.ModuleBipedArm
+    ModuleBipedArmLeft = tools_mod_arm.ModuleBipedArmLeft
+    ModuleBipedArmRight = tools_mod_arm.ModuleBipedArmRight
+    ModuleBipedFingers = tools_mod_finger.ModuleBipedFingers
+    ModuleBipedFingersLeft = tools_mod_finger.ModuleBipedFingersLeft
+    ModuleBipedFingersRight = tools_mod_finger.ModuleBipedFingersRight
+    ModuleBipedLeg = tools_mod_leg.ModuleBipedLeg
+    ModuleBipedLegLeft = tools_mod_leg.ModuleBipedLegLeft
+    ModuleBipedLegRight = tools_mod_leg.ModuleBipedLegRight
+    # Utils
+    ModuleNewScene = tools_mod_utils.ModuleNewScene
+    ModuleImportFile = tools_mod_utils.ModuleImportFile
+    ModuleSkinWeights = tools_mod_utils.ModuleSkinWeights
+    ModulePython = tools_mod_utils.ModulePython
+    ModuleSaveScene = tools_mod_utils.ModuleSaveScene
 
     @staticmethod
     def get_dict_modules():
@@ -65,16 +70,18 @@ class RigModules:
 
 
 class RigModulesCategories:
-    known_categories = {"General": resource_library.Icon.rigger_module_generic,
-                        "Biped": resource_library.Icon.rigger_template_biped}
+    known_categories = {
+        "General": ui_res_lib.Icon.rigger_module_generic,
+        "Biped": ui_res_lib.Icon.rigger_template_biped,
+    }
     categories = {}
     unique_modules = {}
 
     # Create lists of modules with the same name that end with sides (a.k.a. Unique Modules)
     for name, module in RigModules.get_dict_modules().items():
-        _name = remove_prefix(input_string=name, prefix="Module")
-        _name = remove_suffix(input_string=_name, suffix="Left")
-        _name = remove_suffix(input_string=_name, suffix="Right")
+        _name = core_str.remove_prefix(input_string=name, prefix="Module")
+        _name = core_str.remove_suffix(input_string=_name, suffix="Left")
+        _name = core_str.remove_suffix(input_string=_name, suffix="Right")
         if _name in unique_modules:
             unique_modules.get(_name).append(module)
         else:
@@ -96,5 +103,6 @@ class RigModulesCategories:
 
 if __name__ == "__main__":
     import pprint
+
     # pprint.pprint(RigModules.get_dict_modules())
     pprint.pprint(RigModulesCategories.categories)

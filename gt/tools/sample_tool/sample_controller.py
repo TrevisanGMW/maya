@@ -14,7 +14,8 @@ In general, you should strive for fat models and skinny controllers.
 Your controller methods should contain only a few lines of code.
 If a controller action gets too fat, then you should consider moving the logic out to the model.
 """
-from PySide2.QtWidgets import QInputDialog
+
+import gt.ui.qt_import as ui_qt
 
 
 class SampleToolController:
@@ -38,7 +39,7 @@ class SampleToolController:
         """
         Prompt the user for an item name and add it to the model.
         """
-        item_text, ok = QInputDialog.getText(self.view, "Enter item name", "Item name:")
+        item_text, ok = ui_qt.QtWidgets.QInputDialog.getText(self.view, "Enter item name", "Item name:")
         if ok:
             self.model.add_item(item_text)
             self.update_view()
