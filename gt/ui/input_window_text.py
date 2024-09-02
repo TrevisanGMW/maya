@@ -1,10 +1,7 @@
-from PySide2.QtWidgets import QPushButton, QTextEdit, QVBoxLayout, QWidget, QHBoxLayout
-from gt.ui.syntax_highlighter import PythonSyntaxHighlighter
-from gt.ui import resource_library, qt_utils
-from gt.ui.qt_utils import MayaWindowMeta
-from PySide2.QtWidgets import QLabel
-from PySide2.QtGui import QIcon
-from PySide2.QtCore import Qt
+import gt.ui.syntax_highlighter as ui_syntax_highlighter
+import gt.ui.resource_library as ui_res_lib
+import gt.ui.qt_utils as ui_qt_utils
+import gt.ui.qt_import as ui_qt
 import logging
 import os
 
@@ -14,15 +11,24 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class InputWindowText(metaclass=MayaWindowMeta):
+class InputWindowText(metaclass=ui_qt_utils.MayaWindowMeta):
     ALIGN_TOP = "top"
     ALIGN_BOTTOM = "bottom"
     ALIGN_LEFT = "left"
     ALIGN_RIGHT = "right"
     ALIGN_CENTER = [ALIGN_TOP, ALIGN_BOTTOM]
 
-    def __init__(self, parent=None, message=None, window_title=None, window_icon=None,
-                 image=None, image_scale_pct=100, image_align="top", is_python_code=False):
+    def __init__(
+        self,
+        parent=None,
+        message=None,
+        window_title=None,
+        window_icon=None,
+        image=None,
+        image_scale_pct=100,
+        image_align="top",
+        is_python_code=False,
+    ):
         """
         Initialize the InputWindowText widget.
 
@@ -44,63 +50,63 @@ class InputWindowText(metaclass=MayaWindowMeta):
             window_title = "Text Input Window"
         self.setWindowTitle(window_title)
         self.setGeometry(100, 100, 500, 400)
-        self.input_text_font = qt_utils.get_font(resource_library.Font.roboto)
+        self.input_text_font = ui_qt_utils.get_font(ui_res_lib.Font.roboto)
         self.input_text_size = 12
 
         # Determine Window Icon
         self.window_icon = None
         if window_icon and isinstance(window_icon, str) and os.path.exists(window_icon):
             self.window_icon = window_icon
-            self.setWindowIcon(QIcon(window_icon))
+            self.setWindowIcon(ui_qt.QtGui.QIcon(window_icon))
         else:
-            self.setWindowIcon(QIcon(resource_library.Icon.root_help))
+            self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_help))
 
         # Determine Image Settings
         self.image_align = image_align
         self.image_label = None
         if image and os.path.exists(str(image)):
-            self.image_label = QLabel()
+            self.image_label = ui_qt.QtWidgets.QLabel()
             if image_align in self.ALIGN_CENTER:
-                self.image_label.setAlignment(Qt.AlignCenter)
-            pixmap = qt_utils.load_and_scale_pixmap(image_path=image, scale_percentage=image_scale_pct)
+                self.image_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
+            pixmap = ui_qt_utils.load_and_scale_pixmap(image_path=image, scale_percentage=image_scale_pct)
             self.image_label.setPixmap(pixmap)
             if not self.window_icon:
-                self.setWindowIcon(QIcon(image))
+                self.setWindowIcon(ui_qt.QtGui.QIcon(image))
 
         # Create Description
-        self.description_label = QLabel("<description>")
+        self.description_label = ui_qt.QtWidgets.QLabel("<description>")
         if message:
             self.set_message(message)
 
         # Create Text-field
-        self.text_field = QTextEdit()
-        text_stylesheet = f"padding: {10}; background-color: {resource_library.Color.Hex.gray_darker_mid}"
+        self.text_field = ui_qt.QtWidgets.QTextEdit()
+        text_stylesheet = f"padding: {10}; background-color: {ui_res_lib.Color.Hex.gray_darker_mid}"
         self.text_field.setStyleSheet(text_stylesheet)
         if is_python_code:
-            PythonSyntaxHighlighter(self.text_field.document())
+            ui_syntax_highlighter.PythonSyntaxHighlighter(self.text_field.document())
         self.text_field.setFont(self.input_text_font)
         self.text_field.setFontPointSize(self.input_text_size)
 
         # Create Buttons
-        self.confirm_button = QPushButton("Confirm")
-        self.cancel_button = QPushButton("Cancel")
+        self.confirm_button = ui_qt.QtWidgets.QPushButton("Confirm")
+        self.cancel_button = ui_qt.QtWidgets.QPushButton("Cancel")
 
         # Setup Layout
         self.create_layout()
 
-        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint | Qt.WindowModal)
+        self.setWindowFlags(self.windowFlags() | ui_qt.QtLib.WindowFlag.WindowStaysOnTopHint)
 
         # Determine Style
-        progress_bar_stylesheet = resource_library.Stylesheet.maya_dialog_base
-        progress_bar_stylesheet += resource_library.Stylesheet.scroll_bar_base
+        progress_bar_stylesheet = ui_res_lib.Stylesheet.maya_dialog_base
+        progress_bar_stylesheet += ui_res_lib.Stylesheet.scroll_bar_base
         self.setStyleSheet(progress_bar_stylesheet)
 
         # Create connections
         self.cancel_button.clicked.connect(self.close_window)
 
         # Adjust window
-        qt_utils.resize_to_screen(self, percentage=20)
-        qt_utils.center_window(self)
+        ui_qt_utils.resize_to_screen(self, percentage=20)
+        ui_qt_utils.center_window(self)
 
     def set_confirm_button_text(self, text):
         """
@@ -169,10 +175,10 @@ class InputWindowText(metaclass=MayaWindowMeta):
         # ------------------------------- Description Layout Start -------------------------------
         # Determine Layout (left/right = Horizontal, top/bottom = Vertical)
         if self.image_label and self.image_align == self.ALIGN_LEFT or self.image_align == self.ALIGN_RIGHT:
-            layout_description = QHBoxLayout()
+            layout_description = ui_qt.QtWidgets.QHBoxLayout()
         else:
-            layout_description = QVBoxLayout()
-        layout_description.setAlignment(Qt.AlignCenter)  # Align the labels to the center
+            layout_description = ui_qt.QtWidgets.QVBoxLayout()
+        layout_description.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)  # Align the labels to the center
         # Image Alignment - Top
         if self.image_label and (self.image_align is self.ALIGN_TOP or self.image_align is self.ALIGN_LEFT):
             layout_description.addWidget(self.image_label)
@@ -181,46 +187,40 @@ class InputWindowText(metaclass=MayaWindowMeta):
         # Image Alignment - Bottom
         if self.image_label and (self.image_align is self.ALIGN_BOTTOM or self.image_align is self.ALIGN_RIGHT):
             layout_description.addWidget(self.image_label)
-        layout_description.setAlignment(Qt.AlignCenter)  # Align the labels to the center
+        layout_description.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)  # Align the labels to the center
         layout_description.setContentsMargins(15, 15, 15, 15)
         # -------------------------------- Description Layout End --------------------------------
 
-        layout_input = QVBoxLayout()
+        layout_input = ui_qt.QtWidgets.QVBoxLayout()
         layout_input.setContentsMargins(0, 15, 0, 0)
         layout_input.addWidget(self.text_field)
 
-        layout_button = QHBoxLayout()
+        layout_button = ui_qt.QtWidgets.QHBoxLayout()
         layout_button.addWidget(self.confirm_button)
         layout_button.addWidget(self.cancel_button)
 
-        layout_main = QVBoxLayout()
+        layout_main = ui_qt.QtWidgets.QVBoxLayout()
         layout_main.addLayout(layout_description)
         layout_main.addLayout(layout_input)
         layout_main.addLayout(layout_button)
         self.setLayout(layout_main)
 
     def close_window(self):
-        """ Closes Input Window """
+        """Closes Input Window"""
         self.close()
 
 
 if __name__ == "__main__":
-    sample_dict = {
-        'name': 'John Doe',
-        'age': 30,
-        'city': 'Vancouver',
-        'email': 'john@example.com',
-        'is_alive': True
-    }
-    from gt.utils import iterable_utils
-    formatted_dict = iterable_utils.dict_as_formatted_str(sample_dict, one_key_per_line=True)
+    sample_dict = {"name": "John Doe", "age": 30, "city": "Vancouver", "email": "john@example.com", "is_alive": True}
+    from gt.core import iterable
 
-    with qt_utils.QtApplicationContext():
+    formatted_dict = iterable.dict_as_formatted_str(sample_dict, one_key_per_line=True)
+
+    with ui_qt_utils.QtApplicationContext():
         mocked_message = r"Mocked Message. Mocked Message. Mocked Message. Mocked Message. Mocked Message."
-        text_input_window = InputWindowText(message=mocked_message,
-                                            image=resource_library.Icon.dev_screwdriver,
-                                            image_scale_pct=10,
-                                            is_python_code=True)
+        text_input_window = InputWindowText(
+            message=mocked_message, image=ui_res_lib.Icon.dev_screwdriver, image_scale_pct=10, is_python_code=True
+        )
         text_input_window.set_text_field_placeholder("placeholder")
         text_input_window.set_text_field_text(formatted_dict)
         text_input_window.set_window_title("New Window Title")

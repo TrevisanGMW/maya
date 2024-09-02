@@ -2070,7 +2070,7 @@ if __name__ == '__main__':
         # Get/Set Camera Pos/Rot
         persp_pos = cmds.getAttr('persp.translate')[0]
         persp_rot = cmds.getAttr('persp.rotate')[0]
-        from gt.utils.scene_utils import force_reload_file
+        from gt.core.scene import force_reload_file
         force_reload_file()
         cmds.viewFit(all=True)
         cmds.setAttr('persp.tx', persp_pos[0])

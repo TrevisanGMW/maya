@@ -1,3 +1,10 @@
+"""
+UI Resource Library module.
+
+Code Namespace:
+    ui_res_lib  # import gt.ui.resource_library as ui_res_lib
+"""
+
 from copy import deepcopy
 import logging
 import os
@@ -40,7 +47,7 @@ def get_icon_path(icon_name, sub_folder=None):
         str: Path to the icon.
     """
     icon_path = get_resource_path(icon_name, resource_folder=ResourceDirConstants.DIR_ICONS, sub_folder=sub_folder)
-    if not os.path.exists(icon_path) or icon_name == '':
+    if not os.path.exists(icon_path) or icon_name == "":
         logger.info(f'Could not find icon: "{icon_path}"')
     return icon_path
 
@@ -57,7 +64,7 @@ def get_font_path(font_name, sub_folder=None):
         str: QT Formatted Path to the font. @@@ (Double slashes "//" are replaced with single slashes "/")
     """
     font_path = get_resource_path(font_name, resource_folder=ResourceDirConstants.DIR_FONTS, sub_folder=sub_folder)
-    if not os.path.exists(font_path) or font_name == '':
+    if not os.path.exists(font_path) or font_name == "":
         logger.info(f'Could not find font: "{font_path}"')
     return font_path
 
@@ -78,39 +85,44 @@ def process_stylesheet_variables(stylesheet_content, stylesheet_variables=None):
     if stylesheet_variables is None:
         return stylesheet_content
     if not isinstance(stylesheet_variables, dict):
-        logger.debug(f'Unable to process stylesheet. '
-                     f'Must be a dictionary, but received a: "{str(type(stylesheet_variables))}".')
+        logger.debug(
+            f"Unable to process stylesheet. "
+            f'Must be a dictionary, but received a: "{str(type(stylesheet_variables))}".'
+        )
         return stylesheet_content
     for key, value in stylesheet_variables.items():
-        stylesheet_content = stylesheet_content.replace(key, f'{value};')
+        stylesheet_content = stylesheet_content.replace(key, f"{value};")
     return stylesheet_content
 
 
 def get_stylesheet_content(stylesheet_name, sub_folder=None, file_extension="qss", stylesheet_variables=None):
     """
-   Get the path to a stylesheet (qss) file. This file should exist inside the resources/stylesheet folder.
-   Args:
-       stylesheet_name (str): Name of the file without its extension. Since all files share the same extension "qss"
-                              you can provide just the name of the file. If an extension is provided, it is replaced.
-       sub_folder (str, optional): In case the icon exists inside a sub-folder, it can be provided as an argument.
-                                   For example, if the icon is inside "../resource/icons/my_folder/icon.svg"
-                                   One would call "get_icon_path("icon.svg", "my_folder")"
-       file_extension (str, optional): File extension used to find the file.
-       stylesheet_variables (dict, optional): A dictionary of variables to replace when importing the stylesheet
-   Returns:
-       str: Stylesheet content
-   """
-    stylesheet_path = get_resource_path(f"{stylesheet_name}.{file_extension}",
-                                        resource_folder=ResourceDirConstants.DIR_STYLESHEETS,
-                                        sub_folder=sub_folder)
-    if not os.path.exists(stylesheet_path) or stylesheet_name == '':
+    Get the path to a stylesheet (qss) file. This file should exist inside the resources/stylesheet folder.
+    Args:
+        stylesheet_name (str): Name of the file without its extension. Since all files share the same extension "qss"
+                               you can provide just the name of the file. If an extension is provided, it is replaced.
+        sub_folder (str, optional): In case the icon exists inside a sub-folder, it can be provided as an argument.
+                                    For example, if the icon is inside "../resource/icons/my_folder/icon.svg"
+                                    One would call "get_icon_path("icon.svg", "my_folder")"
+        file_extension (str, optional): File extension used to find the file.
+        stylesheet_variables (dict, optional): A dictionary of variables to replace when importing the stylesheet
+    Returns:
+        str: Stylesheet content
+    """
+    stylesheet_path = get_resource_path(
+        f"{stylesheet_name}.{file_extension}",
+        resource_folder=ResourceDirConstants.DIR_STYLESHEETS,
+        sub_folder=sub_folder,
+    )
+    if not os.path.exists(stylesheet_path) or stylesheet_name == "":
         logger.info(f'Could not find stylesheet: "{stylesheet_path}"')
         return ""
     else:
         with open(stylesheet_path, "r") as data_file:
             stylesheet_data = data_file.read()
-            stylesheet_content = process_stylesheet_variables(stylesheet_content=stylesheet_data,
-                                                              stylesheet_variables=stylesheet_variables)
+            stylesheet_content = process_stylesheet_variables(
+                stylesheet_content=stylesheet_data, stylesheet_variables=stylesheet_variables
+            )
         return stylesheet_content
 
 
@@ -172,7 +184,7 @@ def parse_rgb_numbers(rgb_string):
         # Output: (255, 255, 255)
     """
     if rgb_string.startswith("rgba"):
-        pattern = r'^rgba\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$'
+        pattern = r"^rgba\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$"
     elif rgb_string.startswith("rgb"):
         pattern = r"rgb\((\d+),\s*(\d+),\s*(\d+)\)"
     else:
@@ -216,11 +228,12 @@ class ResourceDirConstants:
         """
         Expected locations - Used to retrieve resources
         """
+
     DIR_CURRENT = os.path.dirname(__file__)
     DIR_RESOURCES = os.path.join(DIR_CURRENT, "resources")
-    DIR_STYLESHEETS = os.path.join(DIR_RESOURCES, 'stylesheets')
-    DIR_ICONS = os.path.join(DIR_RESOURCES, 'icons')
-    DIR_FONTS = os.path.join(DIR_RESOURCES, 'fonts')
+    DIR_STYLESHEETS = os.path.join(DIR_RESOURCES, "stylesheets")
+    DIR_ICONS = os.path.join(DIR_RESOURCES, "icons")
+    DIR_FONTS = os.path.join(DIR_RESOURCES, "fonts")
 
 
 class Icon:
@@ -228,6 +241,7 @@ class Icon:
         """
         A library of icons
         """
+
     # Root Menu
     root_general = get_icon_path(r"root_general.svg")
     root_curves = get_icon_path(r"root_curves.svg")
@@ -365,6 +379,7 @@ class Icon:
     library_remove = get_icon_path(r"library_remove.svg")
     library_add = get_icon_path(r"library_add.svg")
     library_shelf = get_icon_path(r"library_shelf.svg")
+    # Auto Rigger
     rigger_proxy = get_icon_path(r"rigger_proxy.svg")
     rigger_project = get_icon_path(r"rigger_project.svg")
     rigger_module_generic = get_icon_path(r"rigger_module_generic.svg")
@@ -376,6 +391,16 @@ class Icon:
     rigger_module_spine = get_icon_path(r"rigger_module_spine.svg")
     rigger_module_head = get_icon_path(r"rigger_module_head.svg")
     rigger_template_biped = get_icon_path(r"rigger_template_biped.svg")
+    rigger_module_util = get_icon_path(r"rigger_module_util.svg")
+    rigger_module_skin_weights = get_icon_path(r"rigger_module_skin_weights.svg")
+    rigger_module_new_scene = get_icon_path(r"rigger_module_new_scene.svg")
+    rigger_module_save_scene = get_icon_path(r"rigger_module_save_scene.svg")
+    rigger_module_python = get_icon_path(r"rigger_module_python.svg")
+    rigger_module_export_sk = get_icon_path(r"rigger_module_export_sk.svg")
+    rigger_module_attr_hub = get_icon_path(r"rigger_module_attr_hub.svg")
+    rigger_module_import_file = get_icon_path(r"rigger_module_import_file.svg")
+    rigger_module_socket = get_icon_path(r"rigger_module_socket.svg")
+    rigger_module_facial_mh = get_icon_path(r"rigger_module_facial_mh.svg")
     # User Interface
     ui_add = get_icon_path(r"ui_add.svg")
     ui_arrow_up = get_icon_path(r"ui_arrow_up.svg")
@@ -412,6 +437,7 @@ class Color:
         """
         A library of colors
         """
+
     class RGB:
         def __init__(self):
             """
@@ -421,10 +447,11 @@ class Color:
             e.g. "rgba(255, 0, 0, 255)" = Red, full opacity
             Value range 0-255
             """
+
         # Red -------------------------------------------
         red_maroon = "rgb(128, 0, 0)"
         red_metallic_dark = "rgb(139, 0, 0)"
-        red_metallic = 'rgb(175, 45, 45)'
+        red_metallic = "rgb(175, 45, 45)"
         red_brown = "rgb(165, 42, 42)"
         red_firebrick = "rgb(178, 34, 34)"
         red_crimson = "rgb(220, 20, 60)"
@@ -470,7 +497,7 @@ class Color:
         green_light = "rgb(144, 238, 144)"
         green_pale = "rgb(152, 251, 152)"
         green_dark_sea = "rgb(143, 188, 143)"
-        green_oxley = 'rgba(96, 152, 129, 255)'
+        green_oxley = "rgba(96, 152, 129, 255)"
         green_medium_spring = "rgb(0, 250, 154)"
         green_spring = "rgb(0, 255, 127)"
         green_sea = "rgb(46, 139, 87)"
@@ -479,8 +506,8 @@ class Color:
         green_light_sea = "rgb(32, 178, 170)"
         green_teal = "rgb(0, 128, 128)"
         green_honeydew = "rgb(240, 255, 240)"
-        green_pearl_aqua = 'rgb(144,  228,  193)'
-        green_wintergreen_dream = 'rgba(88, 140, 119, 255)'
+        green_pearl_aqua = "rgb(144,  228,  193)"
+        green_wintergreen_dream = "rgba(88, 140, 119, 255)"
 
         # Cyan -------------------------------------------
         cyan_dark = "rgb(0, 139, 139)"
@@ -514,11 +541,11 @@ class Color:
         blue_violet = "rgb(138, 43, 226)"
         blue_alice = "rgb(240, 248, 255)"
         blue_azure = "rgb(240, 255, 255)"
-        blue_ghosted = 'rgba(0, 0, 255, 75)'
-        blue_lavender = 'rgba(189,  217,  255, 255)'
-        blue_pastel = 'rgba(82, 133, 166, 255)'
-        blue_vivid_cerulean = 'rgba(0, 160, 232, 255)'
-        blue_medium_persian = 'rgba(0, 110, 160, 255)'
+        blue_ghosted = "rgba(0, 0, 255, 75)"
+        blue_lavender = "rgba(189,  217,  255, 255)"
+        blue_pastel = "rgba(82, 133, 166, 255)"
+        blue_vivid_cerulean = "rgba(0, 160, 232, 255)"
+        blue_medium_persian = "rgba(0, 110, 160, 255)"
 
         # Purple -------------------------------------------
         purple_indigo = "rgb(75, 0, 130)"
@@ -563,8 +590,8 @@ class Color:
         white_ivory = "rgb(255, 255, 240)"
         white_snow = "rgb(255, 250, 250)"
         white_smoke = "rgb(245, 245, 245)"
-        white_smoke_darker = 'rgba(238,238,238,255)'
-        white_smoke_darker_ghosted = 'rgba(238,238,238,75)'
+        white_smoke_darker = "rgba(238,238,238,255)"
+        white_smoke_darker_ghosted = "rgba(238,238,238,75)"
         white_antique = "rgb(250, 235, 215)"
         white_beige = "rgb(245, 245, 220)"
         white_bisque = "rgb(255, 228, 196)"
@@ -594,20 +621,20 @@ class Color:
         gray_silver = "rgb(192, 192, 192)"
         gray_light = "rgb(211, 211, 211)"
         gray_dark_slate_gray = "rgb(47, 79, 79)"
-        gray_nero = 'rgba(20, 20, 20,255)'
-        gray_much_darker = 'rgba(29, 29, 29,255)'
-        gray_darker_mid = 'rgba(35, 35, 35, 255)'
-        gray_darker = 'rgba(43, 43, 43, 255)'
-        gray_darker_ghosted = 'rgba(43, 43, 43, 75)'
-        gray_mid_dark = 'rgba(68, 68, 68, 255)'
-        gray_mid_dark_ghosted = 'rgba(68, 68, 68, 75)'
-        gray_mid = 'rgba(73, 73, 73, 255)'
-        gray_mid_light = 'rgba(82, 82, 82, 255)'
-        gray_mid_lighter = 'rgba(93, 93, 93, 255)'
-        gray_mid_much_lighter = 'rgba(112, 112, 112, 255)'
-        grey_light = 'rgba(145, 145, 145, 255)'
-        gray_lighter = 'rgba(160, 160, 160, 255)'
-        gray_dark_silver = 'rgba(180, 180, 180, 255)'
+        gray_nero = "rgba(20, 20, 20,255)"
+        gray_much_darker = "rgba(29, 29, 29,255)"
+        gray_darker_mid = "rgba(35, 35, 35, 255)"
+        gray_darker = "rgba(43, 43, 43, 255)"
+        gray_darker_ghosted = "rgba(43, 43, 43, 75)"
+        gray_mid_dark = "rgba(68, 68, 68, 255)"
+        gray_mid_dark_ghosted = "rgba(68, 68, 68, 75)"
+        gray_mid = "rgba(73, 73, 73, 255)"
+        gray_mid_light = "rgba(82, 82, 82, 255)"
+        gray_mid_lighter = "rgba(93, 93, 93, 255)"
+        gray_mid_much_lighter = "rgba(112, 112, 112, 255)"
+        grey_light = "rgba(145, 145, 145, 255)"
+        gray_lighter = "rgba(160, 160, 160, 255)"
+        gray_dark_silver = "rgba(180, 180, 180, 255)"
         gray_gainsboro = "rgb(220, 220, 220)"
         gray_slate = "rgb(112, 128, 144)"
         gray_light_slate = "rgb(119, 136, 153)"
@@ -615,13 +642,14 @@ class Color:
 
         # Misc -----------------------------------------
         black = "rgb(0, 0, 0)"
-        transparent = 'rgba(0, 0, 0, 0)'
+        transparent = "rgba(0, 0, 0, 0)"
 
     class Hex:
         def __init__(self):
             """
             A library of Hex colors
             """
+
         black = "#000000"
         blue = "#0000FF"
         blue_alice = "#F0F8FF"
@@ -790,13 +818,18 @@ class Color:
             """
             A library of colors Gradient colors.
             """
-        conical_rainbow = 'qconicalgradient(cx:0.5, cy:0.5, angle:90, stop:0.0 rgba(255, 0, 0, 255), ' \
-                          'stop:0.15 rgba(255, 127, 0, 255), stop:0.3 rgba(255, 255, 0, 255), ' \
-                          'stop:0.45 rgba(0, 255, 0, 255), stop:0.6 rgba(0, 0, 255, 255), ' \
-                          'stop:0.75 rgba(139, 0, 255, 255), stop:1.0 rgba(255, 0, 255, 255));'
-        linear_rainbow = 'qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, stop: 0 #FF0000, stop: 0.15 #FF7F00, ' \
-                         'stop: 0.3 #FFFF00, stop: 0.45 #00FF00, stop: 0.6 #0000FF, stop: 0.75 #8B00FF, ' \
-                         'stop: 1 #FF00FF);'
+
+        conical_rainbow = (
+            "qconicalgradient(cx:0.5, cy:0.5, angle:90, stop:0.0 rgba(255, 0, 0, 255), "
+            "stop:0.15 rgba(255, 127, 0, 255), stop:0.3 rgba(255, 255, 0, 255), "
+            "stop:0.45 rgba(0, 255, 0, 255), stop:0.6 rgba(0, 0, 255, 255), "
+            "stop:0.75 rgba(139, 0, 255, 255), stop:1.0 rgba(255, 0, 255, 255));"
+        )
+        linear_rainbow = (
+            "qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, stop: 0 #FF0000, stop: 0.15 #FF7F00, "
+            "stop: 0.3 #FFFF00, stop: 0.45 #00FF00, stop: 0.6 #0000FF, stop: 0.75 #8B00FF, "
+            "stop: 1 #FF00FF);"
+        )
 
 
 class StylesheetVariables:
@@ -804,6 +837,7 @@ class StylesheetVariables:
         """
         A library of stylesheet variables
         """
+
     maya_basic = {
         # Colors
         "@maya_background_grey;": Color.RGB.gray_mid_dark,
@@ -866,7 +900,6 @@ class StylesheetVariables:
         "@background_disabled_color;": Color.RGB.gray_mid_light,
         "@text_color;": Color.RGB.white,
         "@disabled_text_color;": Color.RGB.gray_mid_much_lighter,
-
         # Formatting
         "@button_padding;": "15",
     }
@@ -878,7 +911,6 @@ class StylesheetVariables:
         "@background_disabled_color;": Color.RGB.gray_mid_light,
         "@text_color;": Color.RGB.black,
         "@disabled_text_color;": Color.RGB.gray_mid_much_lighter,
-
         # Formatting
         "@button_padding;": "15",
     }
@@ -889,7 +921,6 @@ class StylesheetVariables:
         "@indicator_hover_color;": Color.RGB.gray_lighter,
         "@indicator_checked_color;": Color.RGB.white,
         "@indicator_checked_border_color;": Color.RGB.gray_gainsboro,
-
         # Formatting
         "@button_padding;": "5",
     }
@@ -950,9 +981,12 @@ class StylesheetVariables:
         # Colors
         "@background_color;": Color.RGB.gray_darker,
         "@background_selection_color;": Color.RGB.gray_darker,
+        "@background_disabled;": Color.RGB.gray_much_darker,
+        "@hover_border_color;": Color.RGB.grey_light,
         "@focus_border_color;": Color.RGB.blue_corn_flower,
         "@border_color;": Color.RGB.gray_mid_much_lighter,
         "@text_color;": Color.RGB.white_smoke_darker,
+        "@text_color_disabled;": Color.RGB.grey_light,
         # Formatting
         "@border_radius;": "7",
         "@padding;": "5",
@@ -995,7 +1029,6 @@ class StylesheetVariables:
         "@tool_button_text;": Color.RGB.white,
         "@tool_bg_hover_color;": Color.RGB.gray_mid_much_lighter,
         "@tool_bg_click_color;": Color.RGB.gray_much_darker,
-
         # Formatting
         "@tool_button_padding;": "35",
         "@tool_button_font_size;": "16",
@@ -1018,54 +1051,75 @@ class Stylesheet:
         """
         A library of stylesheets
         """
+
     # Stylesheets Without Variations
-    maya_dialog_base = get_stylesheet_content(stylesheet_name="maya_dialog_base",
-                                              stylesheet_variables=StylesheetVariables.maya_basic)
-    progress_bar_base = get_stylesheet_content(stylesheet_name="progress_bar_base",
-                                               stylesheet_variables=StylesheetVariables.progress_bar_base)
-    scroll_bar_base = get_stylesheet_content(stylesheet_name="scroll_bar_base",
-                                             stylesheet_variables=StylesheetVariables.scroll_bar_base)
-    list_widget_base = get_stylesheet_content(stylesheet_name="list_widget_base",
-                                              stylesheet_variables=StylesheetVariables.list_widget_base)
-    text_edit_base = get_stylesheet_content(stylesheet_name="text_edit_base",
-                                            stylesheet_variables=StylesheetVariables.text_edit_base)
-    combobox_base = get_stylesheet_content(stylesheet_name="combobox_base",
-                                           stylesheet_variables=StylesheetVariables.combobox_base)
-    combobox_rounded = get_stylesheet_content(stylesheet_name="combobox_base",
-                                           stylesheet_variables=StylesheetVariables.combobox_rounded)
-    checkbox_base = get_stylesheet_content(stylesheet_name="checkbox_base",
-                                           stylesheet_variables=StylesheetVariables.checkbox_base)
-    tree_widget_base = get_stylesheet_content(stylesheet_name="tree_widget_base",
-                                              stylesheet_variables=StylesheetVariables.tree_widget_base)
-    table_widget_base = get_stylesheet_content(stylesheet_name="table_widget_base",
-                                               stylesheet_variables=StylesheetVariables.table_widget_base)
-    line_edit_base = get_stylesheet_content(stylesheet_name="line_edit_base",
-                                            stylesheet_variables=StylesheetVariables.line_edit_base)
-    menu_base = get_stylesheet_content(stylesheet_name="menu_base",
-                                       stylesheet_variables=StylesheetVariables.menu_base)
-    group_box_base = get_stylesheet_content(stylesheet_name="group_box_base",
-                                            stylesheet_variables=StylesheetVariables.group_box_base)
-    scroll_area_base = get_stylesheet_content(stylesheet_name="scroll_area_base",
-                                            stylesheet_variables=StylesheetVariables.scroll_area_base)
-    spin_box_base = get_stylesheet_content(stylesheet_name="spin_box_base",
-                                           stylesheet_variables=StylesheetVariables.spin_box_base)
+    maya_dialog_base = get_stylesheet_content(
+        stylesheet_name="maya_dialog_base", stylesheet_variables=StylesheetVariables.maya_basic
+    )
+    progress_bar_base = get_stylesheet_content(
+        stylesheet_name="progress_bar_base", stylesheet_variables=StylesheetVariables.progress_bar_base
+    )
+    scroll_bar_base = get_stylesheet_content(
+        stylesheet_name="scroll_bar_base", stylesheet_variables=StylesheetVariables.scroll_bar_base
+    )
+    list_widget_base = get_stylesheet_content(
+        stylesheet_name="list_widget_base", stylesheet_variables=StylesheetVariables.list_widget_base
+    )
+    text_edit_base = get_stylesheet_content(
+        stylesheet_name="text_edit_base", stylesheet_variables=StylesheetVariables.text_edit_base
+    )
+    combobox_base = get_stylesheet_content(
+        stylesheet_name="combobox_base", stylesheet_variables=StylesheetVariables.combobox_base
+    )
+    combobox_rounded = get_stylesheet_content(
+        stylesheet_name="combobox_base", stylesheet_variables=StylesheetVariables.combobox_rounded
+    )
+    checkbox_base = get_stylesheet_content(
+        stylesheet_name="checkbox_base", stylesheet_variables=StylesheetVariables.checkbox_base
+    )
+    tree_widget_base = get_stylesheet_content(
+        stylesheet_name="tree_widget_base", stylesheet_variables=StylesheetVariables.tree_widget_base
+    )
+    table_widget_base = get_stylesheet_content(
+        stylesheet_name="table_widget_base", stylesheet_variables=StylesheetVariables.table_widget_base
+    )
+    line_edit_base = get_stylesheet_content(
+        stylesheet_name="line_edit_base", stylesheet_variables=StylesheetVariables.line_edit_base
+    )
+    menu_base = get_stylesheet_content(stylesheet_name="menu_base", stylesheet_variables=StylesheetVariables.menu_base)
+    group_box_base = get_stylesheet_content(
+        stylesheet_name="group_box_base", stylesheet_variables=StylesheetVariables.group_box_base
+    )
+    scroll_area_base = get_stylesheet_content(
+        stylesheet_name="scroll_area_base", stylesheet_variables=StylesheetVariables.scroll_area_base
+    )
+    spin_box_base = get_stylesheet_content(
+        stylesheet_name="spin_box_base", stylesheet_variables=StylesheetVariables.spin_box_base
+    )
 
     # --------------------------------------------- Buttons ---------------------------------------------
-    btn_push_base = get_stylesheet_content(stylesheet_name="btn_push_base",
-                                           stylesheet_variables=StylesheetVariables.btn_push_base)
-    btn_push_bright = get_stylesheet_content(stylesheet_name="btn_push_base",
-                                             stylesheet_variables=StylesheetVariables.btn_push_bright)
-    btn_radio_base = get_stylesheet_content(stylesheet_name="btn_radio_base",
-                                            stylesheet_variables=StylesheetVariables.btn_radio_base)
+    btn_push_base = get_stylesheet_content(
+        stylesheet_name="btn_push_base", stylesheet_variables=StylesheetVariables.btn_push_base
+    )
+    btn_push_bright = get_stylesheet_content(
+        stylesheet_name="btn_push_base", stylesheet_variables=StylesheetVariables.btn_push_bright
+    )
+    btn_radio_base = get_stylesheet_content(
+        stylesheet_name="btn_radio_base", stylesheet_variables=StylesheetVariables.btn_radio_base
+    )
     # Metro Tool Button
-    btn_tool_metro_base = get_stylesheet_content(stylesheet_name="btn_tool_metro_base",
-                                                 stylesheet_variables=StylesheetVariables.btn_tool_metro_base)
-    btn_tool_metro_red = get_stylesheet_content(stylesheet_name="btn_tool_metro_base",
-                                                stylesheet_variables=StylesheetVariables.btn_tool_metro_red)
-    btn_tool_metro_blue = get_stylesheet_content(stylesheet_name="btn_tool_metro_base",
-                                                 stylesheet_variables=StylesheetVariables.btn_tool_metro_blue)
-    btn_tool_metro_green = get_stylesheet_content(stylesheet_name="btn_tool_metro_base",
-                                                  stylesheet_variables=StylesheetVariables.btn_tool_metro_green)
+    btn_tool_metro_base = get_stylesheet_content(
+        stylesheet_name="btn_tool_metro_base", stylesheet_variables=StylesheetVariables.btn_tool_metro_base
+    )
+    btn_tool_metro_red = get_stylesheet_content(
+        stylesheet_name="btn_tool_metro_base", stylesheet_variables=StylesheetVariables.btn_tool_metro_red
+    )
+    btn_tool_metro_blue = get_stylesheet_content(
+        stylesheet_name="btn_tool_metro_base", stylesheet_variables=StylesheetVariables.btn_tool_metro_blue
+    )
+    btn_tool_metro_green = get_stylesheet_content(
+        stylesheet_name="btn_tool_metro_base", stylesheet_variables=StylesheetVariables.btn_tool_metro_green
+    )
 
 
 class Font:
@@ -1076,6 +1130,7 @@ class Font:
         To use these fonts, wrap them around the function
         """
         self.kb = None
+
     roboto = get_font_path("Roboto-Regular.ttf")
     inter = get_font_path("Inter-Regular.ttf")
 
@@ -1084,7 +1139,7 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # Convert RGB to HEX
     all_attributes = dir(Color.RGB)
-    user_attributes = [attr for attr in all_attributes if not (attr.startswith('__') and attr.endswith('__'))]
+    user_attributes = [attr for attr in all_attributes if not (attr.startswith("__") and attr.endswith("__"))]
     for rgb_color in user_attributes:
         attribute_content = getattr(Color.RGB, rgb_color)
         if "_ghosted" not in rgb_color:

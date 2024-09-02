@@ -1,12 +1,13 @@
 """
 Package Updater Controller
 """
-from gt.utils.iterable_utils import get_next_dict_item
-from gt.utils.system_utils import execute_deferred
-from gt.utils.prefs_utils import PackageCache
+
+from gt.core.iterable import get_next_dict_item
+from gt.utils.system import execute_deferred
+from gt.core.prefs import PackageCache
 from datetime import datetime, timedelta
-from gt.ui import resource_library
-from gt.utils import version_utils
+import gt.ui.resource_library as ui_res_lib
+import gt.core.version as core_version
 import threading
 import logging
 import sys
@@ -51,20 +52,19 @@ class PackageUpdaterController:
             status (str): String to be used in the status description
         """
         comparison_result = self.model.get_version_comparison_result()
-        text_color_hex = resource_library.Color.Hex.black
-        if comparison_result == version_utils.VERSION_BIGGER:
-            text_color_hex = resource_library.Color.Hex.white
-            bg_color = resource_library.Color.Hex.purple_dark_violet
-        elif comparison_result == version_utils.VERSION_SMALLER:
-            bg_color = resource_library.Color.Hex.red_melon
-        elif comparison_result == version_utils.VERSION_EQUAL:
-            bg_color = resource_library.Color.Hex.green_oxley
+        text_color_hex = ui_res_lib.Color.Hex.black
+
+        if comparison_result == core_version.VERSION_BIGGER:
+            text_color_hex = ui_res_lib.Color.Hex.white
+            bg_color = ui_res_lib.Color.Hex.purple_dark_violet
+        elif comparison_result == core_version.VERSION_SMALLER:
+            bg_color = ui_res_lib.Color.Hex.red_melon
+        elif comparison_result == core_version.VERSION_EQUAL:
+            bg_color = ui_res_lib.Color.Hex.green_oxley
         else:
-            text_color_hex = resource_library.Color.Hex.white
-            bg_color = resource_library.Color.Hex.gray_darker
-        self.view.update_status(status=status,
-                                text_color_hex=text_color_hex,
-                                bg_color_hex=bg_color)
+            text_color_hex = ui_res_lib.Color.Hex.white
+            bg_color = ui_res_lib.Color.Hex.gray_darker
+        self.view.update_status(status=status, text_color_hex=text_color_hex, bg_color_hex=bg_color)
 
     def update_view_web_response_with_color(self, response_description):
         """
@@ -72,29 +72,29 @@ class PackageUpdaterController:
         Args:
             response_description (str): String to be used in the web-response description
         """
-        text_color_hex = resource_library.Color.Hex.black
+        text_color_hex = ui_res_lib.Color.Hex.black
         if response_description == "Requesting...":
-            bg_color = resource_library.Color.Hex.yellow
+            bg_color = ui_res_lib.Color.Hex.yellow
         elif response_description == "None":
-            bg_color = resource_library.Color.Hex.red_melon
+            bg_color = ui_res_lib.Color.Hex.red_melon
         else:
-            text_color_hex = resource_library.Color.Hex.white
-            bg_color = resource_library.Color.Hex.gray
-        self.view.update_web_response(response=response_description,
-                                      text_color_hex=text_color_hex,
-                                      bg_color_hex=bg_color)
+            text_color_hex = ui_res_lib.Color.Hex.white
+            bg_color = ui_res_lib.Color.Hex.gray
+        self.view.update_web_response(
+            response=response_description, text_color_hex=text_color_hex, bg_color_hex=bg_color
+        )
 
     def set_view_to_waiting(self):
-        """ Clear view values showing that it's waiting for a refresh """
+        """Clear view values showing that it's waiting for a refresh"""
         self.view.change_update_button_state(state=False)
-        self.view.update_installed_version(version=f'v?.?.?')
-        self.view.update_latest_release(version=f'v?.?.?')
+        self.view.update_installed_version(version=f"v?.?.?")
+        self.view.update_latest_release(version=f"v?.?.?")
         self.view.update_status(status="Unknown")
         self.update_view_web_response_with_color(response_description="Requesting...")
         self.view.clear_changelog_box()
 
     def refresh_view_values(self):
-        """ Updates the view with values found in the model """
+        """Updates the view with values found in the model"""
         auto_check = self.model.get_auto_check()
         self.view.update_auto_check_status_btn(is_active=auto_check)
         interval_days = self.model.get_interval_days()
@@ -104,9 +104,9 @@ class PackageUpdaterController:
         else:
             self.view.change_update_button_state(state=False)
         installed_version = self.model.get_installed_version()
-        self.view.update_installed_version(version=f'v{installed_version}')
+        self.view.update_installed_version(version=f"v{installed_version}")
         latest_github_version = self.model.get_latest_github_version()
-        self.view.update_latest_release(version=f'v{latest_github_version}')
+        self.view.update_latest_release(version=f"v{latest_github_version}")
         status_description = self.model.get_status_description()
         self.update_view_status_with_color(status=status_description)
         web_response = self.model.get_web_response_reason()
@@ -116,16 +116,16 @@ class PackageUpdaterController:
         self.populate_changelog_box()
 
     def populate_changelog_box(self):
-        """ Populates the changelog box with changelog data """
+        """Populates the changelog box with changelog data"""
         self.view.clear_changelog_box()
         if self.model.has_failed_online_request():
             return
         changelog = self.model.get_releases_changelog() or {}
         for tag_name, description in changelog.items():
-            self.view.add_text_to_changelog(text=tag_name,
-                                            text_color_hex=resource_library.Color.Hex.white)
-            self.view.add_text_to_changelog(text=description.replace("\r\n", "\n"),
-                                            text_color_hex=resource_library.Color.Hex.gray_lighter)
+            self.view.add_text_to_changelog(text=tag_name, text_color_hex=ui_res_lib.Color.Hex.white)
+            self.view.add_text_to_changelog(
+                text=description.replace("\r\n", "\n"), text_color_hex=ui_res_lib.Color.Hex.gray_lighter
+            )
 
     def update_view_interval_button(self, new_interval=None, cycle=True, verbose=True):
         """
@@ -140,13 +140,15 @@ class PackageUpdaterController:
         if not new_interval:
             current_interval = self.model.get_interval_days()
 
-        interval_list = {1: "1 day",
-                         5: "5 days",
-                         15: "15 days",
-                         30: "1 month",
-                         91: '3 months',
-                         182: '6 months',
-                         365: '1 year'}
+        interval_list = {
+            1: "1 day",
+            5: "5 days",
+            15: "15 days",
+            30: "1 month",
+            91: "3 months",
+            182: "6 months",
+            365: "1 year",
+        }
 
         if cycle and current_interval in interval_list:
             current_interval = get_next_dict_item(interval_list, current_interval, cycle=True)[0]
@@ -157,7 +159,7 @@ class PackageUpdaterController:
         if current_interval in interval_list:
             time_period = interval_list.get(current_interval)
         else:
-            time_period = f'{current_interval} days'
+            time_period = f"{current_interval} days"
         self.view.update_interval_button(time_period=time_period)
         self.model.set_interval_days(interval_days=current_interval)
         self.model.save_preferences()
@@ -165,8 +167,8 @@ class PackageUpdaterController:
             # Create feedback
             current_date = datetime.now()
             updated_date = current_date + timedelta(days=current_interval)
-            formatted_date = updated_date.strftime('%Y-%B-%d')
-            sys.stdout.write(f'Interval Set To: {time_period}. - (Next check date: {str(formatted_date)})\n')
+            formatted_date = updated_date.strftime("%Y-%B-%d")
+            sys.stdout.write(f"Interval Set To: {time_period}. - (Next check date: {str(formatted_date)})\n")
 
     def update_auto_check(self):
         """
@@ -187,9 +189,9 @@ class PackageUpdaterController:
         self.model.set_auto_check(auto_check=new_state)
         self.model.save_preferences()
         if new_state:
-            sys.stdout.write('Auto Check For Updates: Activated\n')
+            sys.stdout.write("Auto Check For Updates: Activated\n")
         else:
-            sys.stdout.write('Auto Check For Updates: Deactivated\n')
+            sys.stdout.write("Auto Check For Updates: Deactivated\n")
 
     def update_package(self, cache=None):
         """
@@ -207,7 +209,7 @@ class PackageUpdaterController:
         cache = PackageCache()
 
         def _maya_update_latest_package():
-            """ Internal function used to update package using threads in Maya """
+            """Internal function used to update package using threads in Maya"""
             execute_deferred(self.update_package, cache)
 
         try:
@@ -215,7 +217,7 @@ class PackageUpdaterController:
             thread.start()
             cache.clear_cache()
         except Exception as e:
-            logger.warning(f'Unable to update package. Issue: {e}')
+            logger.warning(f"Unable to update package. Issue: {e}")
         finally:
             cache.clear_cache()
 
@@ -232,17 +234,17 @@ class PackageUpdaterController:
         Threaded version of the function "refresh_updater_data" maya to run in Maya
         Checks for updates and refreshes the updater UI to reflect retrieved data
         """
+
         def _maya_retrieve_update_data():
-            """ Internal function used to check for updates using threads in Maya """
+            """Internal function used to check for updates using threads in Maya"""
             execute_deferred(self.refresh_updater_data)
 
         try:
             thread = threading.Thread(None, target=_maya_retrieve_update_data)
             thread.start()
         except Exception as e:
-            logger.warning(f'Unable to refresh updater. Issue: {e}')
+            logger.warning(f"Unable to refresh updater. Issue: {e}")
 
 
 if __name__ == "__main__":
     print('Run it from "__init__.py".')
-

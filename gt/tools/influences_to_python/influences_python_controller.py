@@ -1,10 +1,10 @@
 """
 Extract Influence to Python Controller
 """
-from gt.utils.skin_utils import selected_get_python_influences_code, selected_add_influences_to_set
-from gt.utils.system_utils import execute_python_code
-from gt.utils.misc_utils import create_shelf_button
-from gt.utils.feedback_utils import FeedbackMessage
+from gt.core.skin import selected_get_python_influences_code, selected_add_influences_to_set
+from gt.utils.system import execute_python_code
+from gt.core.misc import create_shelf_button
+from gt.core.feedback import FeedbackMessage
 import logging
 
 # Logging Setup
@@ -42,7 +42,7 @@ class InfluencesPythonController:
     @staticmethod
     def open_help():
         """ Opens package docs """
-        from gt.utils.request_utils import open_package_docs_url_in_browser
+        from gt.utils.request import open_package_docs_url_in_browser
         open_package_docs_url_in_browser()
 
     def extract_influence_python(self):

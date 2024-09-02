@@ -48,13 +48,12 @@
  Fixed an issue where the base version wouldn't update
 
 """
-from shiboken2 import wrapInstance
-from PySide2.QtWidgets import QWidget
-from PySide2.QtGui import QIcon
+
+import gt.ui.qt_import as ui_qt
 from maya import OpenMayaUI
 from gt.tools.biped_rigger_legacy.rigger_biped_logic import *
 from gt.tools.biped_rigger_legacy.rigger_data import *
-from gt.ui import resource_library
+import gt.ui.resource_library as ui_res_lib
 from gt.tools.biped_rigger_legacy import rigger_corrective_logic
 from gt.tools.biped_rigger_legacy import rigger_facial_logic
 import maya.cmds as cmds
@@ -82,46 +81,53 @@ get_persistent_settings(data_corrective)
 
 # Main Dialog ============================================================================
 def build_gui_auto_biped_rig():
-    """  Creates the main GUI for GT Auto Biped Rigger """
+    """Creates the main GUI for GT Auto Biped Rigger"""
 
     # Unpack Common Variables
     script_name = data_biped.script_name
     script_version = data_biped.script_version
 
-    window_name = 'build_gui_auto_biped_rig'
+    window_name = "build_gui_auto_biped_rig"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name)
 
     # Main GUI Start Here =================================================================================
-    gui_auto_biped_rig_window = cmds.window(window_name, title=script_name + '  (v' + script_version + ')',
-                                            titleBar=True, minimizeButton=False, maximizeButton=False, sizeable=True)
+    gui_auto_biped_rig_window = cmds.window(
+        window_name,
+        title=script_name + "  (v" + script_version + ")",
+        titleBar=True,
+        minimizeButton=False,
+        maximizeButton=False,
+        sizeable=True,
+    )
 
     cmds.window(window_name, e=True, s=True, wh=[1, 1])
 
     content_main = cmds.columnLayout(adj=True)
 
     # Title Text
-    title_bgc_color = (.4, .4, .4)
+    title_bgc_color = (0.4, 0.4, 0.4)
     main_window_title = script_name
     if data_biped.debugging:
-        title_bgc_color = (1, .3, .3)
-        main_window_title = 'Debugging Mode Activated'
+        title_bgc_color = (1, 0.3, 0.3)
+        main_window_title = "Debugging Mode Activated"
 
-    cmds.separator(h=10, style='none')  # Empty Space
+    cmds.separator(h=10, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 280)], cs=[(1, 10)], p=content_main)  # Window Size Adjustment
     cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 206), (3, 50), (4, 50)], cs=[(1, 10), (2, 0), (3, 0)], p=content_main)
-    cmds.text(' ', bgc=title_bgc_color)  # Tiny Empty Space
-    cmds.text(main_window_title, bgc=title_bgc_color, fn='boldLabelFont', align='left')
-    cmds.button(label='Help', bgc=title_bgc_color, c=lambda x: build_help_gui_auto_biped_rig(script_name))
-    cmds.separator(h=10, style='none', p=content_main)  # Empty Space
+    cmds.text(" ", bgc=title_bgc_color)  # Tiny Empty Space
+    cmds.text(main_window_title, bgc=title_bgc_color, fn="boldLabelFont", align="left")
+    cmds.button(label="Help", bgc=title_bgc_color, c=lambda x: build_help_gui_auto_biped_rig(script_name))
+    cmds.separator(h=10, style="none", p=content_main)  # Empty Space
 
     # Body ====================
     body_column = cmds.rowColumnLayout(nc=1, cw=[(1, 270)], cs=[(1, 10)], p=content_main)
 
     form = cmds.formLayout(p=body_column)
     tabs = cmds.tabLayout(innerMarginWidth=5, innerMarginHeight=5)
-    cmds.formLayout(form, edit=True,
-                    attachForm=((tabs, 'top', 0), (tabs, 'left', 0), (tabs, 'bottom', 0), (tabs, 'right', 0)))
+    cmds.formLayout(
+        form, edit=True, attachForm=((tabs, "top", 0), (tabs, "left", 0), (tabs, "bottom", 0), (tabs, "right", 0))
+    )
 
     # ####################################### BIPED/BASE TAB #######################################
     cw_biped_two_buttons = [(1, 127), (2, 127)]
@@ -129,257 +135,302 @@ def build_gui_auto_biped_rig():
     biped_rigger_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 2)], p=tabs)
 
     # Step 1
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Step 1 - Biped Proxy:', font='boldLabelFont')
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Step 1 - Biped Proxy:", font="boldLabelFont")
+    cmds.separator(h=5, style="none")  # Empty Space
 
-    cmds.iconTextButton(style='iconAndTextVertical',
-                        image=resource_library.Icon.abr_create_proxy,
-                        label='Create Biped Proxy',
-                        statusBarMessage='Creates a proxy/guide elements so the user can determine '
-                                         'the character\'s shape.',
-                        olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
-                        command=lambda: validate_biped_operation('create_biped_proxy'))
+    cmds.iconTextButton(
+        style="iconAndTextVertical",
+        image=ui_res_lib.Icon.abr_create_proxy,
+        label="Create Biped Proxy",
+        statusBarMessage="Creates a proxy/guide elements so the user can determine " "the character's shape.",
+        olc=[1, 0, 0],
+        enableBackground=True,
+        bgc=[0.4, 0.4, 0.4],
+        h=80,
+        command=lambda: validate_biped_operation("create_biped_proxy"),
+    )
 
     # Step 2
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Step 2 - Biped Pose:', font='boldLabelFont')
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.button(label='Reset Proxy', bgc=(.3, .3, .3), c=lambda x: reset_proxy())
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Step 2 - Biped Pose:", font="boldLabelFont")
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.button(label="Reset Proxy", bgc=(0.3, 0.3, 0.3), c=lambda x: reset_proxy())
+    cmds.separator(h=5, style="none")  # Empty Space
 
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=biped_rigger_tab)
-    cmds.button(label='Mirror Right to Left', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('right_to_left'))
-    cmds.button(label='Mirror Left to Right', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('left_to_right'))
+    cmds.button(label="Mirror Right to Left", bgc=(0.3, 0.3, 0.3), c=lambda x: mirror_proxy("right_to_left"))
+    cmds.button(label="Mirror Left to Right", bgc=(0.3, 0.3, 0.3), c=lambda x: mirror_proxy("left_to_right"))
 
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.button(label='Import Biped Pose', bgc=(.3, .3, .3), c=lambda x: import_biped_proxy_pose())
-    cmds.button(label='Export Biped Pose', bgc=(.3, .3, .3), c=lambda x: export_biped_proxy_pose())
-    cmds.separator(h=4, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.button(label="Import Biped Pose", bgc=(0.3, 0.3, 0.3), c=lambda x: import_biped_proxy_pose())
+    cmds.button(label="Export Biped Pose", bgc=(0.3, 0.3, 0.3), c=lambda x: export_biped_proxy_pose())
+    cmds.separator(h=4, style="none")  # Empty Space
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=biped_rigger_tab)
-    cmds.button(label='Delete Proxy', bgc=(.3, .3, .3), c=lambda x: delete_proxy())
+    cmds.button(label="Delete Proxy", bgc=(0.3, 0.3, 0.3), c=lambda x: delete_proxy())
 
     # Step 3
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=biped_rigger_tab)
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Step 3 - Create Biped Rig:', font='boldLabelFont')
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Step 3 - Create Biped Rig:", font="boldLabelFont")
+    cmds.separator(h=5, style="none")  # Empty Space
 
-    cmds.iconTextButton(style='iconAndTextVertical',
-                        image1=resource_library.Icon.abr_create_rig,
-                        label='Create Biped Rig',
-                        statusBarMessage='Creates the control rig. It uses the transform data found in the proxy to '
-                                         'determine how to create the skeleton, controls and mechanics.',
-                        olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
-                        command=lambda: validate_biped_operation('create_biped_rig'))
+    cmds.iconTextButton(
+        style="iconAndTextVertical",
+        image1=ui_res_lib.Icon.abr_create_rig,
+        label="Create Biped Rig",
+        statusBarMessage="Creates the control rig. It uses the transform data found in the proxy to "
+        "determine how to create the skeleton, controls and mechanics.",
+        olc=[1, 0, 0],
+        enableBackground=True,
+        bgc=[0.4, 0.4, 0.4],
+        h=80,
+        command=lambda: validate_biped_operation("create_biped_rig"),
+    )
 
     # Step 4
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=biped_rigger_tab)
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Step 4 - Skin Weights:', font='boldLabelFont')
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Step 4 - Skin Weights:", font="boldLabelFont")
+    cmds.separator(h=5, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=biped_rigger_tab)
-    cmds.button(label='Select Skinning Joints', bgc=(.3, .3, .3), c=lambda x: select_skinning_joints_biped())
-    cmds.button(label='Bind Skin Options', bgc=(.3, .3, .3), c=lambda x: mel.eval('SmoothBindSkinOptions;'))
+    cmds.button(label="Select Skinning Joints", bgc=(0.3, 0.3, 0.3), c=lambda x: select_skinning_joints_biped())
+    cmds.button(label="Bind Skin Options", bgc=(0.3, 0.3, 0.3), c=lambda x: mel.eval("SmoothBindSkinOptions;"))
 
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
 
     # Utilities
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=biped_rigger_tab)
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Utilities:', font='boldLabelFont')
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Utilities:", font="boldLabelFont")
+    cmds.separator(h=5, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=biped_rigger_tab)
     # cmds.button(label='Add Custom Rig Interface to Shelf', bgc=(.3, .3, .3), c=lambda x: add_rig_interface_button())
     # cmds.separator(h=5, style='none')  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=biped_rigger_tab)
-    cmds.button(label='Toggle Label Visibility', bgc=(.3, .3, .3), c=lambda x: gtu_uniform_jnt_label_toggle())
-    cmds.button(label='Attach to HumanIK', bgc=(.3, .3, .3), c=lambda x: define_biped_humanik('auto_biped'))
+    cmds.button(label="Toggle Label Visibility", bgc=(0.3, 0.3, 0.3), c=lambda x: gtu_uniform_jnt_label_toggle())
+    cmds.button(label="Attach to HumanIK", bgc=(0.3, 0.3, 0.3), c=lambda x: define_biped_humanik("auto_biped"))
 
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=biped_rigger_tab)
-    cmds.button(label='Toggle Rigging Specific Attributes', bgc=(.3, .3, .3), c=lambda x: toggle_rigging_attr())
-    cmds.separator(h=6, style='none')  # Empty Space
-    cmds.button(label='Extract Proxy Pose From Biped Rig', bgc=(.3, .3, .3), c=lambda x: extract_biped_proxy_pose())
+    cmds.button(label="Toggle Rigging Specific Attributes", bgc=(0.3, 0.3, 0.3), c=lambda x: toggle_rigging_attr())
+    cmds.separator(h=6, style="none")  # Empty Space
+    cmds.button(label="Extract Proxy Pose From Biped Rig", bgc=(0.3, 0.3, 0.3), c=lambda x: extract_biped_proxy_pose())
 
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.separator(h=10, style='none', p=body_column)  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.separator(h=10, style="none", p=body_column)  # Empty Space
 
     # ####################################### FACIAL TAB #######################################
     facial_rigger_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 2)], p=tabs)
 
     # Step 1 - Facial
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Step 1 - Facial Proxy:', font='boldLabelFont')
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Step 1 - Facial Proxy:", font="boldLabelFont")
+    cmds.separator(h=5, style="none")  # Empty Space
 
-    cmds.iconTextButton(style='iconAndTextVertical',
-                        image1=resource_library.Icon.abr_create_proxy,
-                        label='Create Facial Proxy',
-                        statusBarMessage='Creates a proxy/guide elements so the user can determine '
-                                         'the character\'s facial shape.',
-                        olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
-                        command=lambda: validate_facial_operation('create_facial_proxy'))
+    cmds.iconTextButton(
+        style="iconAndTextVertical",
+        image1=ui_res_lib.Icon.abr_create_proxy,
+        label="Create Facial Proxy",
+        statusBarMessage="Creates a proxy/guide elements so the user can determine " "the character's facial shape.",
+        olc=[1, 0, 0],
+        enableBackground=True,
+        bgc=[0.4, 0.4, 0.4],
+        h=80,
+        command=lambda: validate_facial_operation("create_facial_proxy"),
+    )
 
     # Step 2 - Facial
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Step 2 - Facial Pose:', font='boldLabelFont')
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.button(label='Reset Proxy', bgc=(.3, .3, .3), c=lambda x: reset_proxy(proxy_target='facial'))
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Step 2 - Facial Pose:", font="boldLabelFont")
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.button(label="Reset Proxy", bgc=(0.3, 0.3, 0.3), c=lambda x: reset_proxy(proxy_target="facial"))
+    cmds.separator(h=5, style="none")  # Empty Space
 
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=facial_rigger_tab)
-    cmds.button(label='Mirror Right to Left', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('right_to_left', 'facial'))
-    cmds.button(label='Mirror Left to Right', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('left_to_right', 'facial'))
+    cmds.button(label="Mirror Right to Left", bgc=(0.3, 0.3, 0.3), c=lambda x: mirror_proxy("right_to_left", "facial"))
+    cmds.button(label="Mirror Left to Right", bgc=(0.3, 0.3, 0.3), c=lambda x: mirror_proxy("left_to_right", "facial"))
 
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.button(label='Import Facial Pose', bgc=(.3, .3, .3), c=lambda x: import_facial_proxy_pose())
-    cmds.button(label='Export Facial Pose', bgc=(.3, .3, .3), c=lambda x: export_facial_proxy_pose())
-    cmds.separator(h=4, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.button(label="Import Facial Pose", bgc=(0.3, 0.3, 0.3), c=lambda x: import_facial_proxy_pose())
+    cmds.button(label="Export Facial Pose", bgc=(0.3, 0.3, 0.3), c=lambda x: export_facial_proxy_pose())
+    cmds.separator(h=4, style="none")  # Empty Space
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=facial_rigger_tab)
-    cmds.button(label='Delete Proxy', bgc=(.3, .3, .3), c=lambda x: delete_proxy(proxy_target='facial'))
+    cmds.button(label="Delete Proxy", bgc=(0.3, 0.3, 0.3), c=lambda x: delete_proxy(proxy_target="facial"))
 
     # Step 3 - Facial
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=facial_rigger_tab)
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Step 3 - Create Facial Rig:', font='boldLabelFont')
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Step 3 - Create Facial Rig:", font="boldLabelFont")
+    cmds.separator(h=5, style="none")  # Empty Space
 
-    cmds.iconTextButton(style='iconAndTextVertical',
-                        image1=resource_library.Icon.abr_create_rig,
-                        label='Create Facial Rig',
-                        statusBarMessage='Creates the control rig. It uses the transform data found in the proxy to '
-                                         'determine how to create the skeleton, controls and mechanics.',
-                        olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
-                        command=lambda: validate_facial_operation('create_facial_rig'))
+    cmds.iconTextButton(
+        style="iconAndTextVertical",
+        image1=ui_res_lib.Icon.abr_create_rig,
+        label="Create Facial Rig",
+        statusBarMessage="Creates the control rig. It uses the transform data found in the proxy to "
+        "determine how to create the skeleton, controls and mechanics.",
+        olc=[1, 0, 0],
+        enableBackground=True,
+        bgc=[0.4, 0.4, 0.4],
+        h=80,
+        command=lambda: validate_facial_operation("create_facial_rig"),
+    )
 
     # Step 4 - Facial
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=facial_rigger_tab)
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Step 4 - Skin Weights:', font='boldLabelFont')
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Step 4 - Skin Weights:", font="boldLabelFont")
+    cmds.separator(h=5, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=facial_rigger_tab)
-    cmds.button(label='Select Skinning Joints', bgc=(.3, .3, .3), c=lambda x: select_skinning_joints_facial())
-    cmds.button(label='Add Influence Options', bgc=(.3, .3, .3), c=lambda x: mel.eval('AddInfluenceOptions;'))
+    cmds.button(label="Select Skinning Joints", bgc=(0.3, 0.3, 0.3), c=lambda x: select_skinning_joints_facial())
+    cmds.button(label="Add Influence Options", bgc=(0.3, 0.3, 0.3), c=lambda x: mel.eval("AddInfluenceOptions;"))
 
     # Utilities - Facial
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=facial_rigger_tab)
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Utilities:', font='boldLabelFont')
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Utilities:", font="boldLabelFont")
+    cmds.separator(h=5, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=facial_rigger_tab)
-    cmds.button(label='Merge Facial Rig with Biped Rig', bgc=(.3, .3, .3),
-                c=lambda x: validate_facial_operation('merge'))
-    cmds.separator(h=6, style='none')  # Empty Space
-    cmds.button(label='Extract Proxy Pose From Facial Rig', bgc=(.3, .3, .3),
-                c=lambda x: extract_facial_proxy_pose())
+    cmds.button(
+        label="Merge Facial Rig with Biped Rig", bgc=(0.3, 0.3, 0.3), c=lambda x: validate_facial_operation("merge")
+    )
+    cmds.separator(h=6, style="none")  # Empty Space
+    cmds.button(
+        label="Extract Proxy Pose From Facial Rig", bgc=(0.3, 0.3, 0.3), c=lambda x: extract_facial_proxy_pose()
+    )
 
     # ####################################### CORRECTIVE TAB #######################################
     corrective_rigger_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 260)], cs=[(1, 2)], p=tabs)
 
     # Step 1 - Corrective
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Step 1 - Corrective Proxy:', font='boldLabelFont')
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Step 1 - Corrective Proxy:", font="boldLabelFont")
+    cmds.separator(h=5, style="none")  # Empty Space
 
-    cmds.iconTextButton(style='iconAndTextVertical',
-                        image1=resource_library.Icon.abr_create_proxy,
-                        label='Create Corrective Proxy',
-                        statusBarMessage='Creates a proxy/guide elements so the user can determine '
-                                         'the character\'s facial shape.',
-                        olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
-                        command=lambda: validate_corrective_operation('create_corrective_proxy'))
+    cmds.iconTextButton(
+        style="iconAndTextVertical",
+        image1=ui_res_lib.Icon.abr_create_proxy,
+        label="Create Corrective Proxy",
+        statusBarMessage="Creates a proxy/guide elements so the user can determine " "the character's facial shape.",
+        olc=[1, 0, 0],
+        enableBackground=True,
+        bgc=[0.4, 0.4, 0.4],
+        h=80,
+        command=lambda: validate_corrective_operation("create_corrective_proxy"),
+    )
 
     # Step 2 - Corrective
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Step 2 - Corrective Pose:', font='boldLabelFont')
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.button(label='Reset Proxy', bgc=(.3, .3, .3), c=lambda x: reset_proxy(proxy_target='corrective'))
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Step 2 - Corrective Pose:", font="boldLabelFont")
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.button(label="Reset Proxy", bgc=(0.3, 0.3, 0.3), c=lambda x: reset_proxy(proxy_target="corrective"))
+    cmds.separator(h=5, style="none")  # Empty Space
 
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=corrective_rigger_tab)
-    cmds.button(label='Mirror Right to Left', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('right_to_left', 'corrective'))
-    cmds.button(label='Mirror Left to Right', bgc=(.3, .3, .3), c=lambda x: mirror_proxy('left_to_right', 'corrective'))
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.button(
+        label="Mirror Right to Left", bgc=(0.3, 0.3, 0.3), c=lambda x: mirror_proxy("right_to_left", "corrective")
+    )
+    cmds.button(
+        label="Mirror Left to Right", bgc=(0.3, 0.3, 0.3), c=lambda x: mirror_proxy("left_to_right", "corrective")
+    )
+    cmds.separator(h=5, style="none")  # Empty Space
 
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.button(label='Import Corrective Pose', bgc=(.3, .3, .3), c=lambda x: import_corrective_proxy_pose())
-    cmds.button(label='Export Corrective Pose', bgc=(.3, .3, .3), c=lambda x: export_corrective_proxy_pose())
-    cmds.separator(h=4, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.button(label="Import Corrective Pose", bgc=(0.3, 0.3, 0.3), c=lambda x: import_corrective_proxy_pose())
+    cmds.button(label="Export Corrective Pose", bgc=(0.3, 0.3, 0.3), c=lambda x: export_corrective_proxy_pose())
+    cmds.separator(h=4, style="none")  # Empty Space
 
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=corrective_rigger_tab)
-    cmds.button(label='Delete Proxy', bgc=(.3, .3, .3), c=lambda x: delete_proxy(proxy_target='corrective'))
+    cmds.button(label="Delete Proxy", bgc=(0.3, 0.3, 0.3), c=lambda x: delete_proxy(proxy_target="corrective"))
 
     # Step 3 - Corrective
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=corrective_rigger_tab)
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Step 3 - Create Corrective Rig:', font='boldLabelFont')
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Step 3 - Create Corrective Rig:", font="boldLabelFont")
+    cmds.separator(h=5, style="none")  # Empty Space
 
-    cmds.iconTextButton(style='iconAndTextVertical',
-                        image1=resource_library.Icon.abr_create_rig,
-                        label='Create Corrective Rig',
-                        statusBarMessage='Creates the control rig. It uses the transform data found in the proxy to '
-                                         'determine how to create the skeleton, controls and mechanics.',
-                        olc=[1, 0, 0], enableBackground=True, bgc=[.4, .4, .4], h=80,
-                        command=lambda: validate_corrective_operation('create_corrective_rig'))
+    cmds.iconTextButton(
+        style="iconAndTextVertical",
+        image1=ui_res_lib.Icon.abr_create_rig,
+        label="Create Corrective Rig",
+        statusBarMessage="Creates the control rig. It uses the transform data found in the proxy to "
+        "determine how to create the skeleton, controls and mechanics.",
+        olc=[1, 0, 0],
+        enableBackground=True,
+        bgc=[0.4, 0.4, 0.4],
+        h=80,
+        command=lambda: validate_corrective_operation("create_corrective_rig"),
+    )
 
     # Step 4 - Corrective
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=corrective_rigger_tab)
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Step 4 - Skin Weights:', font='boldLabelFont')
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Step 4 - Skin Weights:", font="boldLabelFont")
+    cmds.separator(h=5, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=2, cw=cw_biped_two_buttons, cs=cs_biped_two_buttons, p=corrective_rigger_tab)
-    cmds.button(label='Select Skinning Joints', bgc=(.3, .3, .3), c=lambda x: select_skinning_joints_corrective())
-    cmds.button(label='Add Influence Options', bgc=(.3, .3, .3), c=lambda x: mel.eval('AddInfluenceOptions;'))
+    cmds.button(label="Select Skinning Joints", bgc=(0.3, 0.3, 0.3), c=lambda x: select_skinning_joints_corrective())
+    cmds.button(label="Add Influence Options", bgc=(0.3, 0.3, 0.3), c=lambda x: mel.eval("AddInfluenceOptions;"))
 
     # Utilities - Corrective
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=corrective_rigger_tab)
-    cmds.separator(h=5, style='none')  # Empty Space
-    cmds.text('Utilities:', font='boldLabelFont')
-    cmds.separator(h=5, style='none')  # Empty Space
+    cmds.separator(h=5, style="none")  # Empty Space
+    cmds.text("Utilities:", font="boldLabelFont")
+    cmds.separator(h=5, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 259)], cs=[(1, 0)], p=corrective_rigger_tab)
-    cmds.button(label='Merge Corrective Rig with Biped Rig', bgc=(.3, .3, .3),
-                c=lambda x: validate_corrective_operation('merge'))
-    cmds.separator(h=6, style='none')  # Empty Space
-    cmds.button(label='Extract Proxy Pose From Corrective Rig', bgc=(.3, .3, .3),
-                c=lambda x: extract_corrective_proxy_pose())
+    cmds.button(
+        label="Merge Corrective Rig with Biped Rig",
+        bgc=(0.3, 0.3, 0.3),
+        c=lambda x: validate_corrective_operation("merge"),
+    )
+    cmds.separator(h=6, style="none")  # Empty Space
+    cmds.button(
+        label="Extract Proxy Pose From Corrective Rig", bgc=(0.3, 0.3, 0.3), c=lambda x: extract_corrective_proxy_pose()
+    )
 
     # ####################################### SETTINGS TAB #######################################
 
     settings_tab = cmds.rowColumnLayout(nc=1, cw=[(1, 265)], cs=[(1, 0)], p=tabs)
     # General Settings
-    enabled_bgc_color = (.4, .4, .4)
-    disabled_bgc_color = (.3, .3, .3)
-    cmds.separator(h=5, style='none', p=settings_tab)  # Empty Space
-    cmds.text('  Biped/Base Settings:', font='boldLabelFont', p=settings_tab)
-    cmds.separator(h=5, style='none', p=settings_tab)  # Empty Space
+    enabled_bgc_color = (0.4, 0.4, 0.4)
+    disabled_bgc_color = (0.3, 0.3, 0.3)
+    cmds.separator(h=5, style="none", p=settings_tab)  # Empty Space
+    cmds.text("  Biped/Base Settings:", font="boldLabelFont", p=settings_tab)
+    cmds.separator(h=5, style="none", p=settings_tab)  # Empty Space
     cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 210), (3, 20)], cs=[(1, 10)], p=settings_tab)
 
     # Use Real-time skeleton
     is_option_enabled = True
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
-    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
-    cmds.checkBox(label='  Use Real-time Skeleton', value=data_biped.settings.get('using_no_ssc_skeleton'),
-                  ebg=True, cc=lambda x: _invert_stored_setting('using_no_ssc_skeleton', data_biped),
-                  en=is_option_enabled)
+    cmds.text(" ", bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    cmds.checkBox(
+        label="  Use Real-time Skeleton",
+        value=data_biped.settings.get("using_no_ssc_skeleton"),
+        ebg=True,
+        cc=lambda x: _invert_stored_setting("using_no_ssc_skeleton", data_biped),
+        en=is_option_enabled,
+    )
 
-    realtime_custom_help_message = 'Creates another skeleton without the parameter "Segment Scale Compensate" ' \
-                                   'being active. This skeleton inherits the transforms from the controls while ' \
-                                   'mimicking the behaviour of the "Segment Scale Compensate" option, essentially ' \
-                                   'creating a baked version of this Maya depended system.\nAs this baked version ' \
-                                   'does not yet fully support non-uniform scaling, it\'s recommended that you only ' \
-                                   'use it if you are planning to later send this rig into a game engine or another ' \
-                                   '3d application.\n\nThis will allow you to preserve the stretchy settings ' \
-                                   'even in programs that do not support it.'
-    realtime_custom_help_title = 'Use Real-time Skeleton'
-    cmds.button(label='?', bgc=current_bgc_color,
-                c=lambda x: build_custom_help_window(realtime_custom_help_message,
-                                                     realtime_custom_help_title))
+    realtime_custom_help_message = (
+        'Creates another skeleton without the parameter "Segment Scale Compensate" '
+        "being active. This skeleton inherits the transforms from the controls while "
+        'mimicking the behaviour of the "Segment Scale Compensate" option, essentially '
+        "creating a baked version of this Maya depended system.\nAs this baked version "
+        "does not yet fully support non-uniform scaling, it's recommended that you only "
+        "use it if you are planning to later send this rig into a game engine or another "
+        "3d application.\n\nThis will allow you to preserve the stretchy settings "
+        "even in programs that do not support it."
+    )
+    realtime_custom_help_title = "Use Real-time Skeleton"
+    cmds.button(
+        label="?",
+        bgc=current_bgc_color,
+        c=lambda x: build_custom_help_window(realtime_custom_help_message, realtime_custom_help_title),
+    )
 
     # # Limit Proxy Movement
     # is_option_enabled = True
@@ -401,66 +452,98 @@ def build_gui_auto_biped_rig():
     # Force Uniform Control Orientation
     is_option_enabled = True
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
-    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
-    cmds.checkBox(label='  Uniform Control Orientation', value=data_biped.settings.get('uniform_ctrl_orient'),
-                  ebg=True, cc=lambda x: _invert_stored_setting('uniform_ctrl_orient', data_biped),
-                  en=is_option_enabled)
+    cmds.text(" ", bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    cmds.checkBox(
+        label="  Uniform Control Orientation",
+        value=data_biped.settings.get("uniform_ctrl_orient"),
+        ebg=True,
+        cc=lambda x: _invert_stored_setting("uniform_ctrl_orient", data_biped),
+        en=is_option_enabled,
+    )
 
-    uniform_orients_custom_help_message = 'Changes the orientation of most controls to be match the world\'s ' \
-                                          'orientation. This means that Z will likely face forward, ' \
-                                          'X side and Y up/down.'
-    uniform_orients_custom_help_title = 'Uniform Control Orientation'
-    cmds.button(label='?', bgc=current_bgc_color,
-                c=lambda x: build_custom_help_window(uniform_orients_custom_help_message,
-                                                     uniform_orients_custom_help_title))
+    uniform_orients_custom_help_message = (
+        "Changes the orientation of most controls to be match the world's "
+        "orientation. This means that Z will likely face forward, "
+        "X side and Y up/down."
+    )
+    uniform_orients_custom_help_title = "Uniform Control Orientation"
+    cmds.button(
+        label="?",
+        bgc=current_bgc_color,
+        c=lambda x: build_custom_help_window(uniform_orients_custom_help_message, uniform_orients_custom_help_title),
+    )
 
     # Force World-Space IK Orientation
     is_option_enabled = True
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
-    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
-    cmds.checkBox(label='  World-Space IK Orientation', value=data_biped.settings.get('worldspace_ik_orient'),
-                  ebg=True, cc=lambda x: _invert_stored_setting('worldspace_ik_orient', data_biped),
-                  en=is_option_enabled)
+    cmds.text(" ", bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    cmds.checkBox(
+        label="  World-Space IK Orientation",
+        value=data_biped.settings.get("worldspace_ik_orient"),
+        ebg=True,
+        cc=lambda x: _invert_stored_setting("worldspace_ik_orient", data_biped),
+        en=is_option_enabled,
+    )
 
-    ws_ik_orients_custom_help_message = 'Changes the orientation of the IK controls to be match the world\'s ' \
-                                        'orientation. This means that Z will face forward, X side and Y up/down.' \
-                                        '\n\nThe orientation of the joints will be ignored (not inherited)'
-    ws_ik_orients_custom_help_title = 'World-Space IK Orientation'
-    cmds.button(label='?', bgc=current_bgc_color,
-                c=lambda x: build_custom_help_window(ws_ik_orients_custom_help_message,
-                                                     ws_ik_orients_custom_help_title))
+    ws_ik_orients_custom_help_message = (
+        "Changes the orientation of the IK controls to be match the world's "
+        "orientation. This means that Z will face forward, X side and Y up/down."
+        "\n\nThe orientation of the joints will be ignored (not inherited)"
+    )
+    ws_ik_orients_custom_help_title = "World-Space IK Orientation"
+    cmds.button(
+        label="?",
+        bgc=current_bgc_color,
+        c=lambda x: build_custom_help_window(ws_ik_orients_custom_help_message, ws_ik_orients_custom_help_title),
+    )
 
     # Simplify Spine
     is_option_enabled = True
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
-    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
-    cmds.checkBox(label='  Simplify Spine Joints', value=data_biped.settings.get('simplify_spine'),
-                  ebg=True, cc=lambda x: _invert_stored_setting('simplify_spine', data_biped),
-                  en=is_option_enabled)
+    cmds.text(" ", bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    cmds.checkBox(
+        label="  Simplify Spine Joints",
+        value=data_biped.settings.get("simplify_spine"),
+        ebg=True,
+        cc=lambda x: _invert_stored_setting("simplify_spine", data_biped),
+        en=is_option_enabled,
+    )
 
-    simplify_spine_custom_help_message = 'The number of spine joints used in the base skinned skeleton is reduced.' \
-                                         '\nInstead of creating spine 1, 2, 3, and chest, the auto rigger outputs' \
-                                         ' only one spine joint and chest.\n\nThe entire system still exists, within' \
-                                         ' the rig, this change only affects the base skeleton (skinned)'
-    simplify_spine_custom_help_title = 'Simplify Spine Joints'
-    cmds.button(label='?', bgc=current_bgc_color,
-                c=lambda x: build_custom_help_window(simplify_spine_custom_help_message,
-                                                     simplify_spine_custom_help_title))
+    simplify_spine_custom_help_message = (
+        "The number of spine joints used in the base skinned skeleton is reduced."
+        "\nInstead of creating spine 1, 2, 3, and chest, the auto rigger outputs"
+        " only one spine joint and chest.\n\nThe entire system still exists, within"
+        " the rig, this change only affects the base skeleton (skinned)"
+    )
+    simplify_spine_custom_help_title = "Simplify Spine Joints"
+    cmds.button(
+        label="?",
+        bgc=current_bgc_color,
+        c=lambda x: build_custom_help_window(simplify_spine_custom_help_message, simplify_spine_custom_help_title),
+    )
 
     # Auto Merge Facial/Corrective
     is_option_enabled = True
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
-    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
-    cmds.checkBox(label='  Auto Merge Facial/Corrective', value=data_biped.settings.get('auto_merge'),
-                  ebg=True, cc=lambda x: _invert_stored_setting('auto_merge', data_biped),
-                  en=is_option_enabled)
+    cmds.text(" ", bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    cmds.checkBox(
+        label="  Auto Merge Facial/Corrective",
+        value=data_biped.settings.get("auto_merge"),
+        ebg=True,
+        cc=lambda x: _invert_stored_setting("auto_merge", data_biped),
+        en=is_option_enabled,
+    )
 
-    auto_merge_custom_help_message = 'If active, this option will automatically attempt to merge facial or ' \
-                                     'corrective components to the biped/base.'
-    auto_merge_custom_help_title = 'Auto Merge Facial or Corrective'
-    cmds.button(label='?', bgc=current_bgc_color,
-                c=lambda x: build_custom_help_window(auto_merge_custom_help_message,
-                                                     auto_merge_custom_help_title))
+    auto_merge_custom_help_message = (
+        "If active, this option will automatically attempt to merge facial or "
+        "corrective components to the biped/base."
+    )
+    auto_merge_custom_help_title = "Auto Merge Facial or Corrective"
+    cmds.button(
+        label="?",
+        bgc=current_bgc_color,
+        c=lambda x: build_custom_help_window(auto_merge_custom_help_message, auto_merge_custom_help_title),
+    )
 
     # # ####################################### FACIAL SETTINGS ##########################################
     # cmds.separator(h=10, style='none', p=settings_tab)  # Empty Space
@@ -482,121 +565,167 @@ def build_gui_auto_biped_rig():
     #                                                  simplify_spine_custom_help_title))
 
     # ####################################### CORRECTIVE SETTINGS ##########################################
-    cmds.separator(h=10, style='none', p=settings_tab)  # Empty Space
-    cmds.text('  Corrective Settings:', font='boldLabelFont', p=settings_tab)
-    cmds.separator(h=5, style='none', p=settings_tab)  # Empty Space
+    cmds.separator(h=10, style="none", p=settings_tab)  # Empty Space
+    cmds.text("  Corrective Settings:", font="boldLabelFont", p=settings_tab)
+    cmds.separator(h=5, style="none", p=settings_tab)  # Empty Space
     cmds.rowColumnLayout(nc=3, cw=[(1, 10), (2, 210), (3, 20)], cs=[(1, 10)], p=settings_tab)
 
     # Setup Wrist Correctives
     is_option_enabled = True
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
-    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
-    cmds.checkBox(label='  Setup Wrist Correctives', value=data_corrective.settings.get('setup_wrists'),
-                  ebg=True, cc=lambda x: _invert_stored_setting('setup_wrists', data_corrective),
-                  en=is_option_enabled)
+    cmds.text(" ", bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    cmds.checkBox(
+        label="  Setup Wrist Correctives",
+        value=data_corrective.settings.get("setup_wrists"),
+        ebg=True,
+        cc=lambda x: _invert_stored_setting("setup_wrists", data_corrective),
+        en=is_option_enabled,
+    )
 
-    setup_wrists_custom_help_message = 'Creates Wrist Correctives'
-    setup_wrists_custom_help_title = 'Setup Wrist Correctives'
-    cmds.button(label='?', bgc=current_bgc_color,
-                c=lambda x: build_custom_help_window(setup_wrists_custom_help_message,
-                                                     setup_wrists_custom_help_title))
+    setup_wrists_custom_help_message = "Creates Wrist Correctives"
+    setup_wrists_custom_help_title = "Setup Wrist Correctives"
+    cmds.button(
+        label="?",
+        bgc=current_bgc_color,
+        c=lambda x: build_custom_help_window(setup_wrists_custom_help_message, setup_wrists_custom_help_title),
+    )
 
     # Setup Elbow Correctives
     is_option_enabled = True
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
-    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
-    cmds.checkBox(label='  Setup Elbow Correctives', value=data_corrective.settings.get('setup_elbows'),
-                  ebg=True, cc=lambda x: _invert_stored_setting('setup_elbows', data_corrective),
-                  en=is_option_enabled)
+    cmds.text(" ", bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    cmds.checkBox(
+        label="  Setup Elbow Correctives",
+        value=data_corrective.settings.get("setup_elbows"),
+        ebg=True,
+        cc=lambda x: _invert_stored_setting("setup_elbows", data_corrective),
+        en=is_option_enabled,
+    )
 
-    setup_wrists_custom_help_message = 'Creates Elbow Correctives'
-    setup_wrists_custom_help_title = 'Setup Elbow Correctives'
-    cmds.button(label='?', bgc=current_bgc_color,
-                c=lambda x: build_custom_help_window(setup_wrists_custom_help_message,
-                                                     setup_wrists_custom_help_title))
+    setup_wrists_custom_help_message = "Creates Elbow Correctives"
+    setup_wrists_custom_help_title = "Setup Elbow Correctives"
+    cmds.button(
+        label="?",
+        bgc=current_bgc_color,
+        c=lambda x: build_custom_help_window(setup_wrists_custom_help_message, setup_wrists_custom_help_title),
+    )
 
     # Setup Shoulder Correctives
     is_option_enabled = True
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
-    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
-    cmds.checkBox(label='  Setup Shoulder Correctives', value=data_corrective.settings.get('setup_shoulders'),
-                  ebg=True, cc=lambda x: _invert_stored_setting('setup_shoulders', data_corrective),
-                  en=is_option_enabled)
+    cmds.text(" ", bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    cmds.checkBox(
+        label="  Setup Shoulder Correctives",
+        value=data_corrective.settings.get("setup_shoulders"),
+        ebg=True,
+        cc=lambda x: _invert_stored_setting("setup_shoulders", data_corrective),
+        en=is_option_enabled,
+    )
 
-    setup_wrists_custom_help_message = 'Creates Shoulder Correctives'
-    setup_wrists_custom_help_title = 'Setup Shoulder Correctives'
-    cmds.button(label='?', bgc=current_bgc_color,
-                c=lambda x: build_custom_help_window(setup_wrists_custom_help_message,
-                                                     setup_wrists_custom_help_title))
+    setup_wrists_custom_help_message = "Creates Shoulder Correctives"
+    setup_wrists_custom_help_title = "Setup Shoulder Correctives"
+    cmds.button(
+        label="?",
+        bgc=current_bgc_color,
+        c=lambda x: build_custom_help_window(setup_wrists_custom_help_message, setup_wrists_custom_help_title),
+    )
 
     # Setup Hip Correctives
     is_option_enabled = True
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
-    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
-    cmds.checkBox(label='  Setup Hip Correctives', value=data_corrective.settings.get('setup_hips'),
-                  ebg=True, cc=lambda x: _invert_stored_setting('setup_hips', data_corrective),
-                  en=is_option_enabled)
+    cmds.text(" ", bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    cmds.checkBox(
+        label="  Setup Hip Correctives",
+        value=data_corrective.settings.get("setup_hips"),
+        ebg=True,
+        cc=lambda x: _invert_stored_setting("setup_hips", data_corrective),
+        en=is_option_enabled,
+    )
 
-    setup_wrists_custom_help_message = 'Creates Hip Correctives'
-    setup_wrists_custom_help_title = 'Setup Hip Correctives'
-    cmds.button(label='?', bgc=current_bgc_color,
-                c=lambda x: build_custom_help_window(setup_wrists_custom_help_message,
-                                                     setup_wrists_custom_help_title))
+    setup_wrists_custom_help_message = "Creates Hip Correctives"
+    setup_wrists_custom_help_title = "Setup Hip Correctives"
+    cmds.button(
+        label="?",
+        bgc=current_bgc_color,
+        c=lambda x: build_custom_help_window(setup_wrists_custom_help_message, setup_wrists_custom_help_title),
+    )
 
     # Setup Knee Correctives
     is_option_enabled = True
     current_bgc_color = enabled_bgc_color if is_option_enabled else disabled_bgc_color
-    cmds.text(' ', bgc=current_bgc_color, h=20)  # Tiny Empty Space
-    cmds.checkBox(label='  Setup Knee Correctives', value=data_corrective.settings.get('setup_knees'),
-                  ebg=True, cc=lambda x: _invert_stored_setting('setup_knees', data_corrective),
-                  en=is_option_enabled)
+    cmds.text(" ", bgc=current_bgc_color, h=20)  # Tiny Empty Space
+    cmds.checkBox(
+        label="  Setup Knee Correctives",
+        value=data_corrective.settings.get("setup_knees"),
+        ebg=True,
+        cc=lambda x: _invert_stored_setting("setup_knees", data_corrective),
+        en=is_option_enabled,
+    )
 
-    setup_wrists_custom_help_message = 'Creates Knee Correctives'
-    setup_wrists_custom_help_title = 'Setup Knee Correctives'
-    cmds.button(label='?', bgc=current_bgc_color,
-                c=lambda x: build_custom_help_window(setup_wrists_custom_help_message,
-                                                     setup_wrists_custom_help_title))
+    setup_wrists_custom_help_message = "Creates Knee Correctives"
+    setup_wrists_custom_help_title = "Setup Knee Correctives"
+    cmds.button(
+        label="?",
+        bgc=current_bgc_color,
+        c=lambda x: build_custom_help_window(setup_wrists_custom_help_message, setup_wrists_custom_help_title),
+    )
     # #########################################################################################################
     # Reset Persistent Settings
     cmds.rowColumnLayout(nc=1, cw=[(1, 240)], cs=[(1, 10)], p=settings_tab)
     #
     cmds.separator(h=25)
     # cmds.separator(h=5, style='none')  # Empty Space
-    cmds.button(label='Reset Persistent Settings', bgc=current_bgc_color,
-                c=lambda x: _reset_persistent_settings_validation([data_biped, data_facial, data_corrective]))
+    cmds.button(
+        label="Reset Persistent Settings",
+        bgc=current_bgc_color,
+        c=lambda x: _reset_persistent_settings_validation([data_biped, data_facial, data_corrective]),
+    )
 
-    cmds.separator(h=135, style='none')  # Empty Space
+    cmds.separator(h=135, style="none")  # Empty Space
 
     # Temporary Rebuild Button (To be replaced with Full UI
     cmds.rowColumnLayout(nc=2, cw=[(1, 220), (2, 20)], cs=[(1, 10)], p=settings_tab)
-    cmds.button(label='Rebuild Rig', bgc=(.34, .34, .34),
-                c=lambda x: rebuild_rig())
-    rebuild_custom_help_title = 'Rebuild Rig'
-    rebuild_custom_help_message = 'Temporary button used to rebuild the rig. (Experimental)\n' \
-                                  'It currently runs through the entire rebuild operation, extracting proxy for ' \
-                                  'base, face and correctives. It also saved the curve shapes, user-defined ' \
-                                  'attributes and other rig settings. Later versions will allow for step exclusion ' \
-                                  'and debugging options.'
-    cmds.button(label='?', bgc=current_bgc_color,
-                c=lambda x: build_custom_help_window(rebuild_custom_help_message,
-                                                     rebuild_custom_help_title))
+    cmds.button(label="Rebuild Rig", bgc=(0.34, 0.34, 0.34), c=lambda x: rebuild_rig())
+    rebuild_custom_help_title = "Rebuild Rig"
+    rebuild_custom_help_message = (
+        "Temporary button used to rebuild the rig. (Experimental)\n"
+        "It currently runs through the entire rebuild operation, extracting proxy for "
+        "base, face and correctives. It also saved the curve shapes, user-defined "
+        "attributes and other rig settings. Later versions will allow for step exclusion "
+        "and debugging options."
+    )
+    cmds.button(
+        label="?",
+        bgc=current_bgc_color,
+        c=lambda x: build_custom_help_window(rebuild_custom_help_message, rebuild_custom_help_title),
+    )
 
     # Versions:
-    cmds.separator(h=10, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=6, cw=[(1, 35), (2, 35), (3, 35), (4, 35), (5, 50), (6, 35)],
-                         cs=[(1, 10), (2, 0), (3, 7), (4, 0), (5, 7)], p=settings_tab)
-    cmds.text('Biped: ', font='tinyBoldLabelFont', en=False)
-    cmds.text('v' + str(data_biped.script_version), font='tinyBoldLabelFont')
-    cmds.text('Facial: ', font='tinyBoldLabelFont', en=False)
-    cmds.text('v' + str(data_facial.script_version), font='tinyBoldLabelFont')
-    cmds.text('Corrective: ', font='tinyBoldLabelFont', en=False)
-    cmds.text('v' + str(data_corrective.script_version), font='tinyBoldLabelFont')
+    cmds.separator(h=10, style="none")  # Empty Space
+    cmds.rowColumnLayout(
+        nc=6,
+        cw=[(1, 35), (2, 35), (3, 35), (4, 35), (5, 50), (6, 35)],
+        cs=[(1, 10), (2, 0), (3, 7), (4, 0), (5, 7)],
+        p=settings_tab,
+    )
+    cmds.text("Biped: ", font="tinyBoldLabelFont", en=False)
+    cmds.text("v" + str(data_biped.script_version), font="tinyBoldLabelFont")
+    cmds.text("Facial: ", font="tinyBoldLabelFont", en=False)
+    cmds.text("v" + str(data_facial.script_version), font="tinyBoldLabelFont")
+    cmds.text("Corrective: ", font="tinyBoldLabelFont", en=False)
+    cmds.text("v" + str(data_corrective.script_version), font="tinyBoldLabelFont")
 
     # ####################################### END TABS #######################################
-    cmds.tabLayout(tabs, edit=True, tabLabel=((biped_rigger_tab, 'Biped/Base'),
-                                              (facial_rigger_tab, 'Facial'),
-                                              (corrective_rigger_tab, ' Corrective'),
-                                              (settings_tab, 'Settings ')))
+    cmds.tabLayout(
+        tabs,
+        edit=True,
+        tabLabel=(
+            (biped_rigger_tab, "Biped/Base"),
+            (facial_rigger_tab, "Facial"),
+            (corrective_rigger_tab, " Corrective"),
+            (settings_tab, "Settings "),
+        ),
+    )
 
     # Show and Lock Window
     cmds.showWindow(gui_auto_biped_rig_window)
@@ -604,15 +733,15 @@ def build_gui_auto_biped_rig():
 
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(resource_library.Icon.tool_auto_rigger_legacy)
+    widget = ui_qt.shiboken.wrapInstance(int(qw), ui_qt.QtWidgets.QWidget)
+    icon = ui_qt.QtGui.QIcon(ui_res_lib.Icon.tool_auto_rigger_legacy)
     widget.setWindowIcon(icon)
 
     # ### GUI Functions ###
     def _invert_stored_setting(key_string, data_object):
         """
         Used for boolean values, it inverts the value, so if True it becomes False and vice-versa
-        
+
         Args:
             key_string (string) : Key name, used to determine what bool value to flip
             data_object: GT Rigger data object used to update the settings
@@ -641,7 +770,7 @@ def build_gui_auto_biped_rig():
             except Exception as exception:
                 logger.debug(str(exception))
                 try:
-                    cmds.evalDeferred('gt_rigger.biped_gui.build_gui_auto_biped_rig()')
+                    cmds.evalDeferred("gt_rigger.biped_gui.build_gui_auto_biped_rig()")
                 except Exception as exception:
                     logger.debug(str(exception))
 
@@ -650,80 +779,88 @@ def build_gui_auto_biped_rig():
 
 # Creates Help GUI
 def build_help_gui_auto_biped_rig(script_name):
-    """ Creates the Help windows """
-    window_name = 'build_help_gui_auto_biped_rig'
+    """Creates the Help windows"""
+    window_name = "build_help_gui_auto_biped_rig"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
 
-    cmds.window(window_name, title=script_name + ' Help', mnb=False, mxb=False, s=True)
+    cmds.window(window_name, title=script_name + " Help", mnb=False, mxb=False, s=True)
     cmds.window(window_name, e=True, s=True, wh=[1, 1])
 
-    cmds.columnLayout('main_column', p=window_name)
+    cmds.columnLayout("main_column", p=window_name)
 
     # Title Text
-    cmds.separator(h=12, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p='main_column')  # Window Size Adjustment
-    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p='main_column')  # Title Column
-    cmds.text(script_name + ' Help', bgc=(.4, .4, .4), fn='boldLabelFont', align='center')
-    cmds.separator(h=10, style='none', p='main_column')  # Empty Space
+    cmds.separator(h=12, style="none")  # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p="main_column")  # Window Size Adjustment
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")  # Title Column
+    cmds.text(script_name + " Help", bgc=(0.4, 0.4, 0.4), fn="boldLabelFont", align="center")
+    cmds.separator(h=10, style="none", p="main_column")  # Empty Space
 
     # Body ====================
-    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p='main_column')
-    cmds.text(l='Script for quickly generating an advanced biped rig', align='center', fn='boldLabelFont')
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.text(l='For more predictable results execute it in a new scene\n containing only the geometry of the '
-                'desired character.', align='center')
-    cmds.separator(h=15, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")
+    cmds.text(l="Script for quickly generating an advanced biped rig", align="center", fn="boldLabelFont")
+    cmds.separator(h=15, style="none")  # Empty Space
+    cmds.text(
+        l="For more predictable results execute it in a new scene\n containing only the geometry of the "
+        "desired character.",
+        align="center",
+    )
+    cmds.separator(h=15, style="none")  # Empty Space
 
-    cmds.rowColumnLayout(nc=3, cw=[(1, 28)], cs=[(1, 40)], p='main_column')
-    cmds.text(l='Click ', hl=True, highlightColor=[1, 1, 1])
-    cmds.text(l='<a href="https://github.com/TrevisanGMW/gt-tools/tree/master/docs#-gt-auto-biped-rigger-">Here</a>',
-              hl=True, highlightColor=[1, 1, 1])
-    cmds.text(l=' for a more complete documentation.', hl=True, highlightColor=[1, 1, 1])
-    cmds.separator(h=15, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=3, cw=[(1, 28)], cs=[(1, 40)], p="main_column")
+    cmds.text(l="Click ", hl=True, highlightColor=[1, 1, 1])
+    cmds.text(
+        l='<a href="https://github.com/TrevisanGMW/gt-tools/tree/master/docs#-gt-auto-biped-rigger-">Here</a>',
+        hl=True,
+        highlightColor=[1, 1, 1],
+    )
+    cmds.text(l=" for a more complete documentation.", hl=True, highlightColor=[1, 1, 1])
+    cmds.separator(h=15, style="none")  # Empty Space
 
-    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p='main_column')
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")
 
     auto_biped_help_scroll_field = cmds.scrollField(editable=False, wordWrap=True, fn="smallPlainLabelFont")
 
-    text = '[X] Step 1: .\n -Create Proxy:\n   This button creates many temporary curves that will later' \
-           '\n   be used to generate the rig.\n\n   The initial scale is the average height of a\n   woman. (160cm)' \
-           '\n   Presets for other sizes can be found on Github.\n\n   These are not joints. Please don\'t delete or' \
-           ' rename them.\n\n[X] Step 2:\n   Pose the proxy (guide) to match your character.\n\n -Reset Proxy:' \
-           '\n   Resets the position and rotation of the proxy elements,\n   essentially "recreating" the proxy.' \
-           '\n\n -Mirror Side to Side:\n   Copies the transform data from one side to the other,\n   ' \
-           'mirroring the pose.\n\n -Import Pose:\n   Imports a JSON file containing the transforms of the proxy\n  ' \
-           'elements. This file is generated using the "Export Pose"\n   function.\n\n -Export Pose:\n   ' \
-           'Exports a JSON file containing the transforms of the proxy\n   elements.\n\n -Delete Proxy:\n   ' \
-           'Simply deletes the proxy in case you no longer need it.\n\n[X] Step 3:\n   ' \
-           'This button creates the control rig. It uses the transform data\n   ' \
-           'found in the proxy to determine how to create the skeleton\n   and controls. ' \
-           'This function will delete the proxy.\n   Make sure you export it first if you plan to reuse it later.' \
-           '\n\n[X] Step 4:\n   Now that the rig has been created, it\'s time to attach it to the\n   geometry.' \
-           '\n\n -Select Skinning Joints:\n   Select only joints that should be used when skinning the\n   character.' \
-           ' This means that it will not include end joints or\n   the toes.\n\n -Bind Skin Options:\n   ' \
-           'Opens the options for the function "Bind Skin" so the desired\n   ' \
-           'geometry can attached to the skinning joints.\n   Make sure to use the "Bind to" as "Selected Joints"' \
-           '\n\n[X] Utilities:\n   These are utilities that you can use after creating your rig.\n   ' \
-           'Please visit the full documentation to learn more about it.'
+    text = (
+        "[X] Step 1: .\n -Create Proxy:\n   This button creates many temporary curves that will later"
+        "\n   be used to generate the rig.\n\n   The initial scale is the average height of a\n   woman. (160cm)"
+        "\n   Presets for other sizes can be found on Github.\n\n   These are not joints. Please don't delete or"
+        " rename them.\n\n[X] Step 2:\n   Pose the proxy (guide) to match your character.\n\n -Reset Proxy:"
+        '\n   Resets the position and rotation of the proxy elements,\n   essentially "recreating" the proxy.'
+        "\n\n -Mirror Side to Side:\n   Copies the transform data from one side to the other,\n   "
+        "mirroring the pose.\n\n -Import Pose:\n   Imports a JSON file containing the transforms of the proxy\n  "
+        'elements. This file is generated using the "Export Pose"\n   function.\n\n -Export Pose:\n   '
+        "Exports a JSON file containing the transforms of the proxy\n   elements.\n\n -Delete Proxy:\n   "
+        "Simply deletes the proxy in case you no longer need it.\n\n[X] Step 3:\n   "
+        "This button creates the control rig. It uses the transform data\n   "
+        "found in the proxy to determine how to create the skeleton\n   and controls. "
+        "This function will delete the proxy.\n   Make sure you export it first if you plan to reuse it later."
+        "\n\n[X] Step 4:\n   Now that the rig has been created, it's time to attach it to the\n   geometry."
+        "\n\n -Select Skinning Joints:\n   Select only joints that should be used when skinning the\n   character."
+        " This means that it will not include end joints or\n   the toes.\n\n -Bind Skin Options:\n   "
+        'Opens the options for the function "Bind Skin" so the desired\n   '
+        'geometry can attached to the skinning joints.\n   Make sure to use the "Bind to" as "Selected Joints"'
+        "\n\n[X] Utilities:\n   These are utilities that you can use after creating your rig.\n   "
+        "Please visit the full documentation to learn more about it."
+    )
     cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=0, it=text)
 
-    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=1, it='')  # Bring Back to the Top
+    cmds.scrollField(auto_biped_help_scroll_field, e=True, ip=1, it="")  # Bring Back to the Top
 
-    cmds.separator(h=15, style='none')  # Empty Space
-    cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p='main_column')
-    cmds.text('Guilherme Trevisan  ')
+    cmds.separator(h=15, style="none")  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p="main_column")
+    cmds.text("Guilherme Trevisan  ")
     cmds.text(l='<a href="mailto:trevisangmw@gmail.com">TrevisanGMW@gmail.com</a>', hl=True, highlightColor=[1, 1, 1])
-    cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p='main_column')
-    cmds.separator(h=15, style='none')  # Empty Space
+    cmds.rowColumnLayout(nc=2, cw=[(1, 140), (2, 140)], cs=[(1, 10), (2, 0)], p="main_column")
+    cmds.separator(h=15, style="none")  # Empty Space
     cmds.text(l='<a href="https://github.com/TrevisanGMW">Github</a>', hl=True, highlightColor=[1, 1, 1])
-    cmds.separator(h=7, style='none')  # Empty Space
+    cmds.separator(h=7, style="none")  # Empty Space
 
-    # Close Button 
-    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p='main_column')
-    cmds.separator(h=10, style='none')
-    cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
-    cmds.separator(h=8, style='none')
+    # Close Button
+    cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p="main_column")
+    cmds.separator(h=10, style="none")
+    cmds.button(l="OK", h=30, c=lambda args: close_help_gui())
+    cmds.separator(h=8, style="none")
 
     # Show and Lock Window
     cmds.showWindow(window_name)
@@ -731,18 +868,19 @@ def build_help_gui_auto_biped_rig(script_name):
 
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/question.png')
+    widget = ui_qt.shiboken.wrapInstance(int(qw), ui_qt.QtWidgets.QWidget)
+    icon = ui_qt.QtGui.QIcon(":/question.png")
     widget.setWindowIcon(icon)
 
     def close_help_gui():
-        """ Closes help windows """
+        """Closes help windows"""
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
+
     # Help Dialog Ends Here =================================================================================
 
 
-def build_custom_help_window(input_text, help_title=''):
+def build_custom_help_window(input_text, help_title=""):
     """
     Creates a help window to display the provided text
 
@@ -760,25 +898,25 @@ def build_custom_help_window(input_text, help_title=''):
     main_column = cmds.columnLayout(p=window_name)
 
     # Title Text
-    cmds.separator(h=12, style='none')  # Empty Space
+    cmds.separator(h=12, style="none")  # Empty Space
     cmds.rowColumnLayout(nc=1, cw=[(1, 310)], cs=[(1, 10)], p=main_column)  # Window Size Adjustment
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)  # Title Column
-    cmds.text(help_title + ' Help', bgc=(.4, .4, .4), fn='boldLabelFont', align='center')
-    cmds.separator(h=10, style='none', p=main_column)  # Empty Space
+    cmds.text(help_title + " Help", bgc=(0.4, 0.4, 0.4), fn="boldLabelFont", align="center")
+    cmds.separator(h=10, style="none", p=main_column)  # Empty Space
 
-    # Body ====================       
+    # Body ====================
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)
 
-    help_scroll_field = cmds.scrollField(editable=False, wordWrap=True, fn='smallPlainLabelFont')
+    help_scroll_field = cmds.scrollField(editable=False, wordWrap=True, fn="smallPlainLabelFont")
 
     cmds.scrollField(help_scroll_field, e=True, ip=0, it=input_text)
-    cmds.scrollField(help_scroll_field, e=True, ip=1, it='')  # Bring Back to the Top
+    cmds.scrollField(help_scroll_field, e=True, ip=1, it="")  # Bring Back to the Top
 
-    # Close Button 
+    # Close Button
     cmds.rowColumnLayout(nc=1, cw=[(1, 300)], cs=[(1, 10)], p=main_column)
-    cmds.separator(h=10, style='none')
-    cmds.button(l='OK', h=30, c=lambda args: close_help_gui())
-    cmds.separator(h=8, style='none')
+    cmds.separator(h=10, style="none")
+    cmds.button(l="OK", h=30, c=lambda args: close_help_gui())
+    cmds.separator(h=8, style="none")
 
     # Show and Lock Window
     cmds.showWindow(window_name)
@@ -786,21 +924,22 @@ def build_custom_help_window(input_text, help_title=''):
 
     # Set Window Icon
     qw = OpenMayaUI.MQtUtil.findWindow(window_name)
-    widget = wrapInstance(int(qw), QWidget)
-    icon = QIcon(':/question.png')
+    widget = ui_qt.shiboken.wrapInstance(int(qw), ui_qt.QtWidgets.QWidget)
+    icon = ui_qt.QtGui.QIcon(":/question.png")
     widget.setWindowIcon(icon)
 
     def close_help_gui():
-        """ Closes help windows """
+        """Closes help windows"""
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
+
     # Custom Help Dialog Ends Here =================================================================================
 
 
 def validate_facial_operation(operation):
     """
     Validates the necessary objects before executing desired function (Facial Rig)
-    
+
     Args:
         operation (string): Name of the desired operation. e.g. "create_biped_proxy" or "create_biped_rig"
 
@@ -810,30 +949,34 @@ def validate_facial_operation(operation):
         return
 
     # Check for existing rig or conflicting names
-    undesired_elements = ['facial_rig_grp', 'facialAutomation_grp', 'mouthAutomation_grp']
+    undesired_elements = ["facial_rig_grp", "facialAutomation_grp", "mouthAutomation_grp"]
     for obj in undesired_elements:
         if cmds.objExists(obj):
-            cmds.warning('"' + obj + '" found in the scene. This means that you either already created a'
-                                     ' rig or you have conflicting names on your objects. '
-                                     '(Click on "Help" for more details)')
+            cmds.warning(
+                '"' + obj + '" found in the scene. This means that you either already created a'
+                " rig or you have conflicting names on your objects. "
+                '(Click on "Help" for more details)'
+            )
             return
 
     if operation == "create_facial_proxy":
         # Check if proxy exists in the scene
-        proxy_elements = [data_facial.elements_default.get('main_proxy_grp')]
+        proxy_elements = [data_facial.elements_default.get("main_proxy_grp")]
         for proxy in data_facial.elements_default:
-            if '_crv' in proxy:
+            if "_crv" in proxy:
                 proxy_elements.append(data_facial.elements_default.get(proxy))
         for obj in proxy_elements:
             if cmds.objExists(obj):
-                cmds.warning('"' + obj + '" found in the scene. Proxy creation already in progress. '
-                                         'Delete current proxy or generate a rig before creating a new one.')
+                cmds.warning(
+                    '"' + obj + '" found in the scene. Proxy creation already in progress. '
+                    "Delete current proxy or generate a rig before creating a new one."
+                )
                 return
         rigger_facial_logic.create_facial_proxy(data_facial)
     elif operation == "create_facial_rig":
-        expected_proxy = data_facial.elements_default.get('main_proxy_grp')
+        expected_proxy = data_facial.elements_default.get("main_proxy_grp")
         if cmds.objExists(expected_proxy):
-            data_facial.settings['auto_merge'] = data_biped.settings.get('auto_merge')
+            data_facial.settings["auto_merge"] = data_biped.settings.get("auto_merge")
             rigger_facial_logic.create_facial_controls(data_facial)
 
         else:
@@ -853,30 +996,34 @@ def validate_corrective_operation(operation):
         return
 
     # Check for existing rig or conflicting names
-    undesired_elements = ['corrective_rig_grp', 'correctiveAutomation_grp']
+    undesired_elements = ["corrective_rig_grp", "correctiveAutomation_grp"]
     for obj in undesired_elements:
         if cmds.objExists(obj):
-            cmds.warning('"' + obj + '" found in the scene. This means that you either already created a'
-                                     ' rig or you have conflicting names on your objects. '
-                                     '(Click on "Help" for more details)')
+            cmds.warning(
+                '"' + obj + '" found in the scene. This means that you either already created a'
+                " rig or you have conflicting names on your objects. "
+                '(Click on "Help" for more details)'
+            )
             return
 
     if operation == "create_corrective_proxy":
         # Check if proxy exists in the scene
-        proxy_elements = [data_corrective.elements_default.get('main_proxy_grp')]
+        proxy_elements = [data_corrective.elements_default.get("main_proxy_grp")]
         for proxy in data_corrective.elements_default:
-            if '_crv' in proxy:
+            if "_crv" in proxy:
                 proxy_elements.append(data_corrective.elements_default.get(proxy))
         for obj in proxy_elements:
             if cmds.objExists(obj):
-                cmds.warning('"' + obj + '" found in the scene. Proxy creation already in progress. '
-                                         'Delete current proxy or generate a rig before creating a new one.')
+                cmds.warning(
+                    '"' + obj + '" found in the scene. Proxy creation already in progress. '
+                    "Delete current proxy or generate a rig before creating a new one."
+                )
                 return
         rigger_corrective_logic.create_corrective_proxy(data_corrective)
     elif operation == "create_corrective_rig":
-        expected_proxy = data_corrective.elements_default.get('main_proxy_grp')
+        expected_proxy = data_corrective.elements_default.get("main_proxy_grp")
         if cmds.objExists(expected_proxy):
-            data_corrective.settings['auto_merge'] = data_biped.settings.get('auto_merge')
+            data_corrective.settings["auto_merge"] = data_biped.settings.get("auto_merge")
             rigger_corrective_logic.create_corrective_setup(data_corrective)
         else:
             cmds.warning('Unable to find "' + str(expected_proxy) + '". Make sure a proxy was created first.')
@@ -892,60 +1039,64 @@ def validate_biped_operation(operation):
     """
 
     # Load Required Plugins
-    required_plugins = ['quatNodes', 'matrixNodes']
+    required_plugins = ["quatNodes", "matrixNodes"]
     for plugin in required_plugins:
         if not cmds.pluginInfo(plugin, q=True, loaded=True):
             cmds.loadPlugin(plugin, qt=False)
 
     is_valid = True
-    if operation == 'create_biped_proxy':
+    if operation == "create_biped_proxy":
         # Starts new instance (clean scene)
         if data_biped.debugging and data_biped.debugging_force_new_scene:
-            persp_pos = cmds.getAttr('persp.translate')[0]
-            persp_rot = cmds.getAttr('persp.rotate')[0]
+            persp_pos = cmds.getAttr("persp.translate")[0]
+            persp_rot = cmds.getAttr("persp.rotate")[0]
             cmds.file(new=True, force=True)
             if data_biped.debugging_keep_cam_transforms:
                 cmds.viewFit(all=True)
-                cmds.setAttr('persp.tx', persp_pos[0])
-                cmds.setAttr('persp.ty', persp_pos[1])
-                cmds.setAttr('persp.tz', persp_pos[2])
-                cmds.setAttr('persp.rx', persp_rot[0])
-                cmds.setAttr('persp.ry', persp_rot[1])
-                cmds.setAttr('persp.rz', persp_rot[2])
+                cmds.setAttr("persp.tx", persp_pos[0])
+                cmds.setAttr("persp.ty", persp_pos[1])
+                cmds.setAttr("persp.tz", persp_pos[2])
+                cmds.setAttr("persp.rx", persp_rot[0])
+                cmds.setAttr("persp.ry", persp_rot[1])
+                cmds.setAttr("persp.rz", persp_rot[2])
 
         # Debugging (Auto deletes generated proxy)
         if data_biped.debugging and data_biped.debugging_auto_recreate:
             try:
-                cmds.delete(data_biped.elements_default.get('main_proxy_grp'))
+                cmds.delete(data_biped.elements_default.get("main_proxy_grp"))
             except Exception as e:
                 logger.debug(e)
                 pass
 
         # Check if proxy exists in the scene
-        proxy_elements = [data_biped.elements_default.get('main_proxy_grp')]
+        proxy_elements = [data_biped.elements_default.get("main_proxy_grp")]
         for proxy in data_biped.elements_default:
-            if '_crv' in proxy:
+            if "_crv" in proxy:
                 proxy_elements.append(data_biped.elements_default.get(proxy))
         for obj in proxy_elements:
             if cmds.objExists(obj) and is_valid:
                 is_valid = False
-                cmds.warning('"' + obj + '" found in the scene. Proxy creation already in progress. '
-                                         'Delete current proxy or generate a rig before creating a new one.')
+                cmds.warning(
+                    '"' + obj + '" found in the scene. Proxy creation already in progress. '
+                    "Delete current proxy or generate a rig before creating a new one."
+                )
 
         # Check for existing rig or conflicting names
-        undesired_elements = ['rig_grp', 'skeleton_grp', 'controls_grp', 'rig_setup_grp']
+        undesired_elements = ["rig_grp", "skeleton_grp", "controls_grp", "rig_setup_grp"]
         for jnt in data_biped.joints_default:
             undesired_elements.append(data_biped.joints_default.get(jnt))
         for obj in undesired_elements:
             if cmds.objExists(obj) and is_valid:
                 is_valid = False
-                cmds.warning('"' + obj + '" found in the scene. This means that you either already created a'
-                                         ' rig or you have conflicting names on your objects. '
-                                         '(Click on "Help" for more details)')
+                cmds.warning(
+                    '"' + obj + '" found in the scene. This means that you either already created a'
+                    " rig or you have conflicting names on your objects. "
+                    '(Click on "Help" for more details)'
+                )
 
         # If valid, create proxy
         if is_valid:
-            function_name = 'GT Auto Biped - Create Proxy'
+            function_name = "GT Auto Biped - Create Proxy"
             cmds.undoInfo(openChunk=True, chunkName=function_name)
             cmds.refresh(suspend=True)
             try:
@@ -957,32 +1108,35 @@ def validate_biped_operation(operation):
                 cmds.refresh(suspend=False)
 
         # Debugging (Auto imports proxy)
-        if data_biped.debugging and data_biped.debugging_import_proxy and os.path.exists(
-                data_biped.debugging_import_path):
+        if (
+            data_biped.debugging
+            and data_biped.debugging_import_proxy
+            and os.path.exists(data_biped.debugging_import_path)
+        ):
             import_biped_proxy_pose(source_path=data_biped.debugging_import_path)
 
-    elif operation == 'create_biped_rig':
+    elif operation == "create_biped_rig":
         # Starts new instance (clean scene)
         if data_biped.debugging and data_biped.debugging_force_new_scene:
-            persp_pos = cmds.getAttr('persp.translate')[0]
-            persp_rot = cmds.getAttr('persp.rotate')[0]
+            persp_pos = cmds.getAttr("persp.translate")[0]
+            persp_rot = cmds.getAttr("persp.rotate")[0]
             cmds.file(new=True, force=True)
             if data_biped.debugging_keep_cam_transforms:
                 cmds.viewFit(all=True)
-                cmds.setAttr('persp.tx', persp_pos[0])
-                cmds.setAttr('persp.ty', persp_pos[1])
-                cmds.setAttr('persp.tz', persp_pos[2])
-                cmds.setAttr('persp.rx', persp_rot[0])
-                cmds.setAttr('persp.ry', persp_rot[1])
-                cmds.setAttr('persp.rz', persp_rot[2])
+                cmds.setAttr("persp.tx", persp_pos[0])
+                cmds.setAttr("persp.ty", persp_pos[1])
+                cmds.setAttr("persp.tz", persp_pos[2])
+                cmds.setAttr("persp.rx", persp_rot[0])
+                cmds.setAttr("persp.ry", persp_rot[1])
+                cmds.setAttr("persp.rz", persp_rot[2])
 
         # Debugging (Auto deletes generated rig)
         if data_biped.debugging and data_biped.debugging_auto_recreate:
             try:
-                if cmds.objExists('rig_grp'):
-                    cmds.delete('rig_grp')
-                if cmds.objExists(data_biped.elements.get('main_proxy_grp')):
-                    cmds.delete(data_biped.elements.get('main_proxy_grp'))
+                if cmds.objExists("rig_grp"):
+                    cmds.delete("rig_grp")
+                if cmds.objExists(data_biped.elements.get("main_proxy_grp")):
+                    cmds.delete(data_biped.elements.get("main_proxy_grp"))
                 create_biped_proxy(data_biped)
                 # Debugging (Auto imports proxy)
                 if data_biped.debugging_import_proxy and os.path.exists(data_biped.debugging_import_path):
@@ -991,25 +1145,29 @@ def validate_biped_operation(operation):
                 logger.debug(str(e))
 
         # Validate Proxy
-        if not cmds.objExists(data_biped.elements.get('main_proxy_grp')):
-            logger.debug('"' + str(data_biped.elements.get('main_proxy_grp')) + '" not found.')
+        if not cmds.objExists(data_biped.elements.get("main_proxy_grp")):
+            logger.debug('"' + str(data_biped.elements.get("main_proxy_grp")) + '" not found.')
             is_valid = False
-            cmds.warning("Proxy couldn't be found. "
-                         "Make sure you first create a proxy (guide objects) before generating a rig.")
+            cmds.warning(
+                "Proxy couldn't be found. "
+                "Make sure you first create a proxy (guide objects) before generating a rig."
+            )
 
-        proxy_elements = [data_biped.elements.get('main_proxy_grp')]
+        proxy_elements = [data_biped.elements.get("main_proxy_grp")]
         for proxy in data_biped.elements_default:
-            if '_crv' in proxy:
+            if "_crv" in proxy:
                 proxy_elements.append(data_biped.elements.get(proxy))
         for obj in proxy_elements:
             if not cmds.objExists(obj) and is_valid:
                 is_valid = False
-                cmds.warning(f'"{obj}" is missing. '
-                             f'Create a new proxy and make sure NOT to rename or delete any of its elements.')
+                cmds.warning(
+                    f'"{obj}" is missing. '
+                    f"Create a new proxy and make sure NOT to rename or delete any of its elements."
+                )
 
         # If valid, create rig
         if is_valid:
-            function_name = 'GT Auto Biped - Create Rig'
+            function_name = "GT Auto Biped - Create Rig"
             if data_biped.debugging:
                 create_biped_rig(data_biped)
             else:
@@ -1029,16 +1187,29 @@ def validate_biped_operation(operation):
                 select_skinning_joints_biped()
                 selection = cmds.ls(selection=True)
                 if data_biped.debugging_bind_heatmap:
-                    cmds.skinCluster(selection, data_biped.debugging_bind_geo, bindMethod=2, heatmapFalloff=0.68,
-                                     toSelectedBones=True, smoothWeights=0.5, maximumInfluences=4)
+                    cmds.skinCluster(
+                        selection,
+                        data_biped.debugging_bind_geo,
+                        bindMethod=2,
+                        heatmapFalloff=0.68,
+                        toSelectedBones=True,
+                        smoothWeights=0.5,
+                        maximumInfluences=4,
+                    )
                 else:
-                    cmds.skinCluster(selection, data_biped.debugging_bind_geo, bindMethod=1, toSelectedBones=True,
-                                     smoothWeights=0.5, maximumInfluences=4)
+                    cmds.skinCluster(
+                        selection,
+                        data_biped.debugging_bind_geo,
+                        bindMethod=1,
+                        toSelectedBones=True,
+                        smoothWeights=0.5,
+                        maximumInfluences=4,
+                    )
                 cmds.select(d=True)
 
 
 def select_skinning_joints_biped():
-    """ Selects joints that should be used during the skinning process """
+    """Selects joints that should be used during the skinning process"""
 
     # Check for existing rig
     is_valid = True
@@ -1048,46 +1219,72 @@ def select_skinning_joints_biped():
     for obj in desired_elements:
         if not cmds.objExists(obj) and is_valid:
             is_valid = False
-            cmds.warning('"' + obj + '" is missing. This means that it was already renamed or deleted. '
-                                     '(Click on "Help" for more details)')
+            cmds.warning(
+                '"' + obj + '" is missing. This means that it was already renamed or deleted. '
+                '(Click on "Help" for more details)'
+            )
 
     if is_valid:
         skinning_joints = []
         for obj in data_biped.joints_default:
-            if '_end' + JNT_SUFFIX.capitalize() not in data_biped.joints_default.get(obj) \
-                    and '_toe' not in data_biped.joints_default.get(obj) \
-                    and 'root_' not in data_biped.joints_default.get(obj) \
-                    and 'driver' not in data_biped.joints_default.get(obj):
-                parent = cmds.listRelatives(data_biped.joints_default.get(obj), parent=True)[0] or ''
-                if parent != 'skeleton_grp':
+            if (
+                "_end" + JNT_SUFFIX.capitalize() not in data_biped.joints_default.get(obj)
+                and "_toe" not in data_biped.joints_default.get(obj)
+                and "root_" not in data_biped.joints_default.get(obj)
+                and "driver" not in data_biped.joints_default.get(obj)
+            ):
+                parent = cmds.listRelatives(data_biped.joints_default.get(obj), parent=True)[0] or ""
+                if parent != "skeleton_grp":
                     skinning_joints.append(data_biped.joints_default.get(obj))
         cmds.select(skinning_joints)
         # Hacks - Make sure to do it properly later:
-        if 'left_forearm_jnt' not in skinning_joints or 'right_forearm_jnt' not in skinning_joints:
-            for obj in ['left_forearm_jnt', 'right_forearm_jnt']:
+        if "left_forearm_jnt" not in skinning_joints or "right_forearm_jnt" not in skinning_joints:
+            for obj in ["left_forearm_jnt", "right_forearm_jnt"]:
                 try:
                     cmds.select(obj, add=True)
                 except Exception as e:
                     logger.debug(e)
                     pass
-        if 'spine_jnt' not in skinning_joints:
+        if "spine_jnt" not in skinning_joints:
             try:
-                cmds.select('spine_jnt', add=True)
+                cmds.select("spine_jnt", add=True)
             except Exception as e:
                 logger.debug(e)
                 pass
 
 
 def select_skinning_joints_facial():
-    """ Selects joints that should be used during the skinning process """
+    """Selects joints that should be used during the skinning process"""
 
-    joints = ['baseTongue_jnt', 'midTongue_jnt', 'tipTongue_jnt', 'left_upperCornerLip_jnt', 'left_lowerCornerLip_jnt',
-              'left_upperOuterLip_jnt', 'left_lowerOuterLip_jnt', 'mid_lowerLip_jnt', 'mid_upperLip_jnt',
-              'right_upperOuterLip_jnt', 'right_lowerOuterLip_jnt', 'right_lowerCornerLip_jnt',
-              'right_upperCornerLip_jnt', 'right_cheek_jnt', 'right_nose_jnt', 'left_nose_jnt', 'left_cheek_jnt',
-              'left_outerBrow_jnt', 'left_midBrow_jnt', 'left_innerBrow_jnt', 'right_innerBrow_jnt',
-              'right_midBrow_jnt', 'right_outerBrow_jnt', 'right_upperEyelid_jnt', 'right_lowerEyelid_jnt',
-              'left_upperEyelid_jnt', 'left_lowerEyelid_jnt']
+    joints = [
+        "baseTongue_jnt",
+        "midTongue_jnt",
+        "tipTongue_jnt",
+        "left_upperCornerLip_jnt",
+        "left_lowerCornerLip_jnt",
+        "left_upperOuterLip_jnt",
+        "left_lowerOuterLip_jnt",
+        "mid_lowerLip_jnt",
+        "mid_upperLip_jnt",
+        "right_upperOuterLip_jnt",
+        "right_lowerOuterLip_jnt",
+        "right_lowerCornerLip_jnt",
+        "right_upperCornerLip_jnt",
+        "right_cheek_jnt",
+        "right_nose_jnt",
+        "left_nose_jnt",
+        "left_cheek_jnt",
+        "left_outerBrow_jnt",
+        "left_midBrow_jnt",
+        "left_innerBrow_jnt",
+        "right_innerBrow_jnt",
+        "right_midBrow_jnt",
+        "right_outerBrow_jnt",
+        "right_upperEyelid_jnt",
+        "right_lowerEyelid_jnt",
+        "left_upperEyelid_jnt",
+        "left_lowerEyelid_jnt",
+    ]
 
     cmds.select(clear=True)
     for jnt in joints:
@@ -1099,14 +1296,34 @@ def select_skinning_joints_facial():
 
 
 def select_skinning_joints_corrective():
-    """ Selects joints that should be used during the skinning process """
+    """Selects joints that should be used during the skinning process"""
 
-    joints = ['right_wrist_outfit_jnt', 'right_upperWrist_jnt', 'right_lowerWrist_jnt', 'right_frontElbow_jnt',
-              'right_frontShoulder_jnt', 'right_backShoulder_jnt', 'right_upperShoulder_jnt', 'left_frontShoulder_jnt',
-              'left_backShoulder_jnt', 'left_upperShoulder_jnt', 'left_frontElbow_jnt', 'left_upperWrist_jnt',
-              'left_lowerWrist_jnt', 'left_wrist_outfit_jnt', 'left_backHip_jnt', 'left_outerHip_jnt',
-              'left_frontHip_jnt', 'right_backHip_jnt', 'right_outerHip_jnt', 'right_frontHip_jnt',
-              'right_frontKnee_jnt', 'right_backKnee_jnt', 'left_backKnee_jnt', 'left_frontKnee_jnt']
+    joints = [
+        "right_wrist_outfit_jnt",
+        "right_upperWrist_jnt",
+        "right_lowerWrist_jnt",
+        "right_frontElbow_jnt",
+        "right_frontShoulder_jnt",
+        "right_backShoulder_jnt",
+        "right_upperShoulder_jnt",
+        "left_frontShoulder_jnt",
+        "left_backShoulder_jnt",
+        "left_upperShoulder_jnt",
+        "left_frontElbow_jnt",
+        "left_upperWrist_jnt",
+        "left_lowerWrist_jnt",
+        "left_wrist_outfit_jnt",
+        "left_backHip_jnt",
+        "left_outerHip_jnt",
+        "left_frontHip_jnt",
+        "right_backHip_jnt",
+        "right_outerHip_jnt",
+        "right_frontHip_jnt",
+        "right_frontKnee_jnt",
+        "right_backKnee_jnt",
+        "left_backKnee_jnt",
+        "left_frontKnee_jnt",
+    ]
 
     cmds.select(clear=True)
     for jnt in joints:
@@ -1117,7 +1334,7 @@ def select_skinning_joints_corrective():
                 logger.debug(str(e))
 
 
-def reset_proxy(suppress_warning=False, proxy_target='base'):
+def reset_proxy(suppress_warning=False, proxy_target="base"):
     """
     Resets proxy elements to their original position
 
@@ -1128,48 +1345,51 @@ def reset_proxy(suppress_warning=False, proxy_target='base'):
     """
 
     is_reset = False
-    attributes_set_zero = ['tx', 'ty', 'tz', 'rx', 'ry', 'rz', 'followHip']
-    attributes_set_one = ['sx', 'sy', 'sz', 'v']
+    attributes_set_zero = ["tx", "ty", "tz", "rx", "ry", "rz", "followHip"]
+    attributes_set_one = ["sx", "sy", "sz", "v"]
     proxy_elements = []
 
-    data_obj = ''
-    if proxy_target == 'base':
+    data_obj = ""
+    if proxy_target == "base":
         data_obj = data_biped
-    elif proxy_target == 'facial':
+    elif proxy_target == "facial":
         data_obj = data_facial
-    elif proxy_target == 'corrective':
+    elif proxy_target == "corrective":
         data_obj = data_corrective
 
     for proxy in data_obj.elements_default:
-        if '_crv' in proxy or proxy.endswith('_pivot'):
+        if "_crv" in proxy or proxy.endswith("_pivot"):
             proxy_elements.append(data_obj.elements_default.get(proxy))
     for obj in proxy_elements:
         if cmds.objExists(obj):
             for attr in attributes_set_zero:
                 try:
-                    cmds.setAttr(obj + '.' + attr, 0)
+                    cmds.setAttr(obj + "." + attr, 0)
                     is_reset = True
                 except Exception as exception:
                     logger.debug(str(exception))
             for attr in attributes_set_one:
                 try:
-                    cmds.setAttr(obj + '.' + attr, 1)
+                    cmds.setAttr(obj + "." + attr, 1)
                     is_reset = True
                 except Exception as exception:
                     logger.debug(str(exception))
 
     if is_reset:
         if not suppress_warning:
-            unique_message = '<' + str(random.random()) + '>'
+            unique_message = "<" + str(random.random()) + ">"
             cmds.inViewMessage(
-                amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'
-                                     'Proxy</span><span style=\"color:#FFFFFF;\"> was reset!</span>',
-                pos='botLeft', fade=True, alpha=.9)
+                amg=unique_message + '<span style="color:#FF0000;text-decoration:underline;">'
+                'Proxy</span><span style="color:#FFFFFF;"> was reset!</span>',
+                pos="botLeft",
+                fade=True,
+                alpha=0.9,
+            )
     else:
-        cmds.warning('No proxy found. Nothing was reset.')
+        cmds.warning("No proxy found. Nothing was reset.")
 
 
-def delete_proxy(suppress_warning=False, proxy_target='base'):
+def delete_proxy(suppress_warning=False, proxy_target="base"):
     """
     Deletes current proxy/guide curves
 
@@ -1181,12 +1401,12 @@ def delete_proxy(suppress_warning=False, proxy_target='base'):
 
     is_deleted = False
     to_delete_elements = []
-    if proxy_target == 'base':
-        to_delete_elements = [data_biped.elements.get('main_proxy_grp'), data_biped.elements.get('main_crv')]
-    elif proxy_target == 'facial':
-        to_delete_elements = [data_facial.elements.get('main_proxy_grp')]
-    elif proxy_target == 'corrective':
-        to_delete_elements = [data_corrective.elements.get('main_proxy_grp')]
+    if proxy_target == "base":
+        to_delete_elements = [data_biped.elements.get("main_proxy_grp"), data_biped.elements.get("main_crv")]
+    elif proxy_target == "facial":
+        to_delete_elements = [data_facial.elements.get("main_proxy_grp")]
+    elif proxy_target == "corrective":
+        to_delete_elements = [data_corrective.elements.get("main_proxy_grp")]
 
     for obj in to_delete_elements:
         if cmds.objExists(obj) and is_deleted is False:
@@ -1195,15 +1415,17 @@ def delete_proxy(suppress_warning=False, proxy_target='base'):
 
     if not is_deleted:
         if not suppress_warning:
-            cmds.warning('Proxy not found. Nothing was deleted.')
+            cmds.warning("Proxy not found. Nothing was deleted.")
     else:
-        unique_message = '<' + str(random.random()) + '>'
-        unique_message += '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy</span>' \
-                          '<span style=\"color:#FFFFFF;\"> was deleted!</span>'
-        cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
+        unique_message = "<" + str(random.random()) + ">"
+        unique_message += (
+            '<span style="color:#FF0000;text-decoration:underline;">Proxy</span>'
+            '<span style="color:#FFFFFF;"> was deleted!</span>'
+        )
+        cmds.inViewMessage(amg=unique_message, pos="botLeft", fade=True, alpha=0.9)
 
 
-def mirror_proxy(operation, proxy_target='base'):
+def mirror_proxy(operation, proxy_target="base"):
     """
     Mirrors the proxy curves pose by copying translate, rotate and scale attributes from one side to the other
 
@@ -1222,47 +1444,48 @@ def mirror_proxy(operation, proxy_target='base'):
 
         """
         # Attr
-        for attr in ['ty', 'tz', 'rx', 'sx', 'sy', 'sz']:
-            source_attr = cmds.getAttr(source + '.' + attr)
-            if not cmds.getAttr(target + '.' + attr, lock=True):
-                cmds.setAttr(target + '.' + attr, source_attr)
+        for attr in ["ty", "tz", "rx", "sx", "sy", "sz"]:
+            source_attr = cmds.getAttr(source + "." + attr)
+            if not cmds.getAttr(target + "." + attr, lock=True):
+                cmds.setAttr(target + "." + attr, source_attr)
         # Inverted Attr
-        for attr in ['tx', 'ry', 'rz']:
-            source_attr = cmds.getAttr(source + '.' + attr)
-            if not cmds.getAttr(target + '.' + attr, lock=True):
-                cmds.setAttr(target + '.' + attr, source_attr * -1)
+        for attr in ["tx", "ry", "rz"]:
+            source_attr = cmds.getAttr(source + "." + attr)
+            if not cmds.getAttr(target + "." + attr, lock=True):
+                cmds.setAttr(target + "." + attr, source_attr * -1)
 
     # Validate Proxy
     is_valid = True
     # Determine system to be mirrored
-    if proxy_target == 'base':
+    if proxy_target == "base":
         data_obj = data_biped
-    elif proxy_target == 'facial':
+    elif proxy_target == "facial":
         data_obj = data_facial
-    elif proxy_target == 'corrective':
+    elif proxy_target == "corrective":
         data_obj = data_corrective
     else:
-        data_obj = ''
+        data_obj = ""
         is_valid = False
-        cmds.warning('Proxy target not specified or invalid. Please check the ')
+        cmds.warning("Proxy target not specified or invalid. Please check the ")
 
     # Check existence
-    proxy_group = data_obj.elements.get('main_proxy_grp')
+    proxy_group = data_obj.elements.get("main_proxy_grp")
     if not cmds.objExists(proxy_group):
         is_valid = False
         print('Missing: "' + proxy_group + '". (Renaming or adding name spaces may interfere with it)')
-        cmds.warning("Proxy group couldn't be found. "
-                     "Make sure you first create a proxy (guide objects) before mirroring it.")
+        cmds.warning(
+            "Proxy group couldn't be found. " "Make sure you first create a proxy (guide objects) before mirroring it."
+        )
 
-    proxy_elements = [data_obj.elements.get('main_proxy_grp')]
+    proxy_elements = [data_obj.elements.get("main_proxy_grp")]
     for proxy in data_obj.elements_default:
-        if '_crv' in proxy:
+        if "_crv" in proxy:
             proxy_elements.append(data_obj.elements.get(proxy))
     for obj in proxy_elements:
         if not cmds.objExists(obj) and is_valid:
             is_valid = False
             warning = '"' + obj + '"'
-            warning += ' is missing. Create a new proxy and make sure NOT to rename or delete any of its elements.'
+            warning += " is missing. Create a new proxy and make sure NOT to rename or delete any of its elements."
             cmds.warning(warning)
 
     # Lists
@@ -1271,33 +1494,37 @@ def mirror_proxy(operation, proxy_target='base'):
 
     if is_valid:
         for obj in data_obj.elements:
-            if obj.startswith('left_') and ('_crv' in obj or '_pivot' in obj):
+            if obj.startswith("left_") and ("_crv" in obj or "_pivot" in obj):
                 left_elements.append(data_obj.elements.get(obj))
-            elif obj.startswith('right_') and ('_crv' in obj or '_pivot' in obj):
+            elif obj.startswith("right_") and ("_crv" in obj or "_pivot" in obj):
                 right_elements.append(data_obj.elements.get(obj))
 
         for left_obj in left_elements:
             for right_obj in right_elements:
-                if left_obj.replace('left', '') == right_obj.replace('right', ''):
+                if left_obj.replace("left", "") == right_obj.replace("right", ""):
 
-                    if operation == 'left_to_right':
+                    if operation == "left_to_right":
                         print(left_obj, right_obj)
                         mirror_attr(left_obj, right_obj)
 
-                    elif operation == 'right_to_left':
+                    elif operation == "right_to_left":
                         mirror_attr(right_obj, left_obj)
 
-        if operation == 'left_to_right':
-            unique_message = '<' + str(random.random()) + '>'
-            unique_message += '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy</span>' \
-                              '<span style=\"color:#FFFFFF;\"> mirrored from left to right. (+X to -X)</span>'
-            cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
+        if operation == "left_to_right":
+            unique_message = "<" + str(random.random()) + ">"
+            unique_message += (
+                '<span style="color:#FF0000;text-decoration:underline;">Proxy</span>'
+                '<span style="color:#FFFFFF;"> mirrored from left to right. (+X to -X)</span>'
+            )
+            cmds.inViewMessage(amg=unique_message, pos="botLeft", fade=True, alpha=0.9)
 
-        elif operation == 'right_to_left':
-            unique_message = '<' + str(random.random()) + '>'
-            unique_message += '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy</span>' \
-                              '<span style=\"color:#FFFFFF;\"> mirrored from right to left. (-X to +X)</span>'
-            cmds.inViewMessage(amg=unique_message, pos='botLeft', fade=True, alpha=.9)
+        elif operation == "right_to_left":
+            unique_message = "<" + str(random.random()) + ">"
+            unique_message += (
+                '<span style="color:#FF0000;text-decoration:underline;">Proxy</span>'
+                '<span style="color:#FFFFFF;"> mirrored from right to left. (-X to +X)</span>'
+            )
+            cmds.inViewMessage(amg=unique_message, pos="botLeft", fade=True, alpha=0.9)
 
 
 def define_biped_humanik(character_name):
@@ -1317,26 +1544,29 @@ def define_biped_humanik(character_name):
         logger.debug(exception)
 
     # Check for existing rig
-    exceptions = [data_biped.joints_default.get('spine01_jnt'),
-                  data_biped.joints_default.get('spine02_jnt'),
-                  data_biped.joints_default.get('spine03_jnt'),
-                  # biped_data.joints_default.get('spine03_jnt'),
-                  ]
+    exceptions = [
+        data_biped.joints_default.get("spine01_jnt"),
+        data_biped.joints_default.get("spine02_jnt"),
+        data_biped.joints_default.get("spine03_jnt"),
+        # biped_data.joints_default.get('spine03_jnt'),
+    ]
     desired_elements = []
     for jnt in data_biped.joints_default:
-        if not data_biped.joints_default.get(jnt).endswith('endJnt'):
+        if not data_biped.joints_default.get(jnt).endswith("endJnt"):
             desired_elements.append(data_biped.joints_default.get(jnt))
     for obj in exceptions:
         desired_elements.remove(obj)
     for obj in desired_elements:
         if not cmds.objExists(obj) and is_operation_valid:
             is_operation_valid = False
-            cmds.warning('"' + obj + '" is missing. This means that it was already renamed or deleted. '
-                                     '(Click on "Help" for more details)')
+            cmds.warning(
+                '"' + obj + '" is missing. This means that it was already renamed or deleted. '
+                '(Click on "Help" for more details)'
+            )
 
     # Source HIK Modules
     if is_operation_valid:
-        maya_location = os.environ['MAYA_LOCATION']
+        maya_location = os.environ["MAYA_LOCATION"]
         try:
             # Source HIK scripts
             mel.eval('source "' + maya_location + '/scripts/others/hikGlobalUtils.mel"')
@@ -1344,18 +1574,22 @@ def define_biped_humanik(character_name):
             mel.eval('source "' + maya_location + '/scripts/others/hikDefinitionOperations.mel"')
         except Exception as exception:
             logger.debug(str(exception))
-            print('#' * 80)
-            if not os.path.exists(maya_location + '/scripts/others/hikGlobalUtils.mel'):
+            print("#" * 80)
+            if not os.path.exists(maya_location + "/scripts/others/hikGlobalUtils.mel"):
                 print('The module "' + maya_location + "/scripts/others/hikGlobalUtils.mel\" couldn't be found.")
-            if not os.path.exists(maya_location + '/scripts/others/hikCharacterControlsUI.mel'):
+            if not os.path.exists(maya_location + "/scripts/others/hikCharacterControlsUI.mel"):
                 print(
-                    'The module "' + maya_location + "/scripts/others/hikCharacterControlsUI.mel\" couldn't be found.")
-            if not os.path.exists(maya_location + '/scripts/others/hikDefinitionOperations.mel'):
+                    'The module "' + maya_location + "/scripts/others/hikCharacterControlsUI.mel\" couldn't be found."
+                )
+            if not os.path.exists(maya_location + "/scripts/others/hikDefinitionOperations.mel"):
                 print(
-                    'The module "' + maya_location + "/scripts/others/hikDefinitionOperations.mel\" couldn't be found.")
-            print('#' * 80)
-            cmds.warning("HumanIK modules couldn't be found. You might have to define the character manually. "
-                         "Open script editor for more information.")
+                    'The module "' + maya_location + "/scripts/others/hikDefinitionOperations.mel\" couldn't be found."
+                )
+            print("#" * 80)
+            cmds.warning(
+                "HumanIK modules couldn't be found. You might have to define the character manually. "
+                "Open script editor for more information."
+            )
             is_operation_valid = False
 
     # Create Character Definition
@@ -1367,107 +1601,113 @@ def define_biped_humanik(character_name):
             mel.eval('hikCreateCharacter("' + character_name + '")')
 
             # Add joints to Definition.
-            mel.eval('setCharacterObject("' + joints.get('main_jnt') + '", "' + character_name + '", 0,0);')
-            mel.eval('setCharacterObject("' + joints.get('hip_jnt') + '", "' + character_name + '", 1,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_hip_jnt') + '", "' + character_name + '", 2,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_knee_jnt') + '", "' + character_name + '", 3,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_ankle_jnt') + '", "' + character_name + '", 4,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_hip_jnt') + '", "' + character_name + '", 5,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_knee_jnt') + '", "' + character_name + '", 6,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_ankle_jnt') + '", "' + character_name + '", 7,0);')
-            mel.eval('setCharacterObject("' + joints.get('cog_jnt') + '", "' + character_name + '", 8,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_shoulder_jnt') + '", "' + character_name + '", 9,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_elbow_jnt') + '", "' + character_name + '", 10,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_wrist_jnt') + '", "' + character_name + '", 11,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_shoulder_jnt') + '", "' + character_name + '", 12,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_elbow_jnt') + '", "' + character_name + '", 13,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_wrist_jnt') + '", "' + character_name + '", 14,0);')
-            mel.eval('setCharacterObject("' + joints.get('head_jnt') + '", "' + character_name + '", 15,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_ball_jnt') + '", "' + character_name + '", 16,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_ball_jnt') + '", "' + character_name + '", 17,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_clavicle_jnt') + '", "' + character_name + '", 18,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_clavicle_jnt') + '", "' + character_name + '", 19,0);')
-            mel.eval('setCharacterObject("' + joints.get('neck_base_jnt') + '", "' + character_name + '", 20,0);')
-            mel.eval('setCharacterObject("' + joints.get('neck_mid_jnt') + '", "' + character_name + '", 32,0);')
+            mel.eval('setCharacterObject("' + joints.get("main_jnt") + '", "' + character_name + '", 0,0);')
+            mel.eval('setCharacterObject("' + joints.get("hip_jnt") + '", "' + character_name + '", 1,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_hip_jnt") + '", "' + character_name + '", 2,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_knee_jnt") + '", "' + character_name + '", 3,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_ankle_jnt") + '", "' + character_name + '", 4,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_hip_jnt") + '", "' + character_name + '", 5,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_knee_jnt") + '", "' + character_name + '", 6,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_ankle_jnt") + '", "' + character_name + '", 7,0);')
+            mel.eval('setCharacterObject("' + joints.get("cog_jnt") + '", "' + character_name + '", 8,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_shoulder_jnt") + '", "' + character_name + '", 9,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_elbow_jnt") + '", "' + character_name + '", 10,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_wrist_jnt") + '", "' + character_name + '", 11,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_shoulder_jnt") + '", "' + character_name + '", 12,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_elbow_jnt") + '", "' + character_name + '", 13,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_wrist_jnt") + '", "' + character_name + '", 14,0);')
+            mel.eval('setCharacterObject("' + joints.get("head_jnt") + '", "' + character_name + '", 15,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_ball_jnt") + '", "' + character_name + '", 16,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_ball_jnt") + '", "' + character_name + '", 17,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_clavicle_jnt") + '", "' + character_name + '", 18,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_clavicle_jnt") + '", "' + character_name + '", 19,0);')
+            mel.eval('setCharacterObject("' + joints.get("neck_base_jnt") + '", "' + character_name + '", 20,0);')
+            mel.eval('setCharacterObject("' + joints.get("neck_mid_jnt") + '", "' + character_name + '", 32,0);')
 
             # Simplified Spine:
-            mel.eval('setCharacterObject("' + joints.get('spine01_jnt') + '", "' + character_name + '", 23,0);')
-            if cmds.objExists(joints.get('spine02_jnt')):
-                mel.eval('setCharacterObject("' + joints.get('spine02_jnt') + '", "' + character_name + '", 24,0);')
+            mel.eval('setCharacterObject("' + joints.get("spine01_jnt") + '", "' + character_name + '", 23,0);')
+            if cmds.objExists(joints.get("spine02_jnt")):
+                mel.eval('setCharacterObject("' + joints.get("spine02_jnt") + '", "' + character_name + '", 24,0);')
             else:
-                joint_name = re.sub(r'[0-9]+', '', joints.get('spine02_jnt'))
+                joint_name = re.sub(r"[0-9]+", "", joints.get("spine02_jnt"))
                 mel.eval('setCharacterObject("' + joint_name + '", "' + character_name + '", 24,0);')
-            mel.eval('setCharacterObject("' + joints.get('spine03_jnt') + '", "' + character_name + '", 25,0);')
-            mel.eval('setCharacterObject("' + joints.get('spine04_jnt') + '", "' + character_name + '", 26,0);')
+            mel.eval('setCharacterObject("' + joints.get("spine03_jnt") + '", "' + character_name + '", 25,0);')
+            mel.eval('setCharacterObject("' + joints.get("spine04_jnt") + '", "' + character_name + '", 26,0);')
 
             # Fingers
-            mel.eval('setCharacterObject("' + joints.get('left_thumb01_jnt') + '", "' + character_name + '", 50,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_thumb02_jnt') + '", "' + character_name + '", 51,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_thumb03_jnt') + '", "' + character_name + '", 52,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_thumb01_jnt") + '", "' + character_name + '", 50,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_thumb02_jnt") + '", "' + character_name + '", 51,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_thumb03_jnt") + '", "' + character_name + '", 52,0);')
 
-            mel.eval('setCharacterObject("' + joints.get('left_index01_jnt') + '", "' + character_name + '", 54,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_index02_jnt') + '", "' + character_name + '", 55,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_index03_jnt') + '", "' + character_name + '", 56,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_index01_jnt") + '", "' + character_name + '", 54,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_index02_jnt") + '", "' + character_name + '", 55,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_index03_jnt") + '", "' + character_name + '", 56,0);')
 
-            mel.eval('setCharacterObject("' + joints.get('left_middle01_jnt') + '", "' + character_name + '", 58,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_middle02_jnt') + '", "' + character_name + '", 59,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_middle03_jnt') + '", "' + character_name + '", 60,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_middle01_jnt") + '", "' + character_name + '", 58,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_middle02_jnt") + '", "' + character_name + '", 59,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_middle03_jnt") + '", "' + character_name + '", 60,0);')
 
-            mel.eval('setCharacterObject("' + joints.get('left_ring01_jnt') + '", "' + character_name + '", 62,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_ring02_jnt') + '", "' + character_name + '", 63,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_ring03_jnt') + '", "' + character_name + '", 64,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_ring01_jnt") + '", "' + character_name + '", 62,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_ring02_jnt") + '", "' + character_name + '", 63,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_ring03_jnt") + '", "' + character_name + '", 64,0);')
 
-            mel.eval('setCharacterObject("' + joints.get('left_pinky01_jnt') + '", "' + character_name + '", 66,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_pinky02_jnt') + '", "' + character_name + '", 67,0);')
-            mel.eval('setCharacterObject("' + joints.get('left_pinky03_jnt') + '", "' + character_name + '", 68,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_pinky01_jnt") + '", "' + character_name + '", 66,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_pinky02_jnt") + '", "' + character_name + '", 67,0);')
+            mel.eval('setCharacterObject("' + joints.get("left_pinky03_jnt") + '", "' + character_name + '", 68,0);')
 
-            mel.eval('setCharacterObject("' + joints.get('right_thumb01_jnt') + '", "' + character_name + '", 74,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_thumb02_jnt') + '", "' + character_name + '", 75,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_thumb03_jnt') + '", "' + character_name + '", 76,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_thumb01_jnt") + '", "' + character_name + '", 74,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_thumb02_jnt") + '", "' + character_name + '", 75,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_thumb03_jnt") + '", "' + character_name + '", 76,0);')
 
-            mel.eval('setCharacterObject("' + joints.get('right_index01_jnt') + '", "' + character_name + '", 78,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_index02_jnt') + '", "' + character_name + '", 79,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_index03_jnt') + '", "' + character_name + '", 80,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_index01_jnt") + '", "' + character_name + '", 78,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_index02_jnt") + '", "' + character_name + '", 79,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_index03_jnt") + '", "' + character_name + '", 80,0);')
 
-            mel.eval('setCharacterObject("' + joints.get('right_middle01_jnt') + '", "' + character_name + '", 82,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_middle02_jnt') + '", "' + character_name + '", 83,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_middle03_jnt') + '", "' + character_name + '", 84,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_middle01_jnt") + '", "' + character_name + '", 82,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_middle02_jnt") + '", "' + character_name + '", 83,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_middle03_jnt") + '", "' + character_name + '", 84,0);')
 
-            mel.eval('setCharacterObject("' + joints.get('right_ring01_jnt') + '", "' + character_name + '", 86,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_ring02_jnt') + '", "' + character_name + '", 87,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_ring03_jnt') + '", "' + character_name + '", 88,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_ring01_jnt") + '", "' + character_name + '", 86,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_ring02_jnt") + '", "' + character_name + '", 87,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_ring03_jnt") + '", "' + character_name + '", 88,0);')
 
-            mel.eval('setCharacterObject("' + joints.get('right_pinky01_jnt') + '", "' + character_name + '", 90,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_pinky02_jnt') + '", "' + character_name + '", 91,0);')
-            mel.eval('setCharacterObject("' + joints.get('right_pinky03_jnt') + '", "' + character_name + '", 92,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_pinky01_jnt") + '", "' + character_name + '", 90,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_pinky02_jnt") + '", "' + character_name + '", 91,0);')
+            mel.eval('setCharacterObject("' + joints.get("right_pinky03_jnt") + '", "' + character_name + '", 92,0);')
 
             try:
                 mel.eval(
-                    'setCharacterObject("' + joints.get('left_forearm_jnt') + '", "' + character_name + '", 193,0);')
+                    'setCharacterObject("' + joints.get("left_forearm_jnt") + '", "' + character_name + '", 193,0);'
+                )
                 mel.eval(
-                    'setCharacterObject("' + joints.get('right_forearm_jnt') + '", "' + character_name + '", 195,0);')
+                    'setCharacterObject("' + joints.get("right_forearm_jnt") + '", "' + character_name + '", 195,0);'
+                )
             except Exception as exception:
                 logger.info(str(exception))
                 pass
 
-            mel.eval('hikUpdateDefinitionUI;')
-            mel.eval('hikToggleLockDefinition();')
+            mel.eval("hikUpdateDefinitionUI;")
+            mel.eval("hikToggleLockDefinition();")
 
             cmds.select(d=True)
 
-            unique_message = '<' + str(random.random()) + '>'
+            unique_message = "<" + str(random.random()) + ">"
             cmds.inViewMessage(
-                amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">HumanIK</span>'
-                                     '<span style=\"color:#FFFFFF;\"> character and definition created!</span>',
-                pos='botLeft', fade=True, alpha=.9)
+                amg=unique_message + '<span style="color:#FF0000;text-decoration:underline;">HumanIK</span>'
+                '<span style="color:#FFFFFF;"> character and definition created!</span>',
+                pos="botLeft",
+                fade=True,
+                alpha=0.9,
+            )
 
         except Exception as exception:
             logger.info(str(exception))
-            cmds.warning('An error happened when creating the definition. '
-                         'You might have to assign your joints manually.')
+            cmds.warning(
+                "An error happened when creating the definition. " "You might have to assign your joints manually."
+            )
 
 
-def export_biped_proxy_pose(method='world-space'):
+def export_biped_proxy_pose(method="world-space"):
     """
     Exports a JSON file containing the translation, rotation and scale data from every proxy curve (to export a pose)
     Added a variable called "gt_rigger_biped_export_method" after v1.3, so the extraction method can be stored.
@@ -1480,72 +1720,85 @@ def export_biped_proxy_pose(method='world-space'):
     successfully_created_file = False
     pose_file = None
     script_name = data_biped.script_name
-    file_extension = data_biped.proxy_storage_variables.get('file_extension')
+    file_extension = data_biped.proxy_storage_variables.get("file_extension")
 
-    proxy_elements = [data_biped.elements.get('main_proxy_grp')]
+    proxy_elements = [data_biped.elements.get("main_proxy_grp")]
     for proxy in data_biped.elements_default:
-        if '_crv' in proxy:
+        if "_crv" in proxy:
             proxy_elements.append(data_biped.elements.get(proxy))
     for obj in proxy_elements:
         if not cmds.objExists(obj) and is_valid:
             is_valid = False
             warning = '"' + obj + '"'
-            warning += ' is missing. Create a new proxy and make sure NOT to rename or delete any of its elements.'
+            warning += " is missing. Create a new proxy and make sure NOT to rename or delete any of its elements."
             cmds.warning(warning)
 
     if is_valid:
-        file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
-        file_filter += script_name + ' - JSON File (*.json)'
-        file_name = cmds.fileDialog2(fileFilter=file_filter,
-                                     dialogStyle=2, okCaption='Export',
-                                     caption='Exporting Proxy Pose for "' + script_name + '"') or []
+        file_filter = script_name + " - " + file_extension.upper() + " File (*." + file_extension + ");;"
+        file_filter += script_name + " - JSON File (*.json)"
+        file_name = (
+            cmds.fileDialog2(
+                fileFilter=file_filter,
+                dialogStyle=2,
+                okCaption="Export",
+                caption='Exporting Proxy Pose for "' + script_name + '"',
+            )
+            or []
+        )
         if len(file_name) > 0:
             pose_file = file_name[0]
             successfully_created_file = True
 
     if successfully_created_file and is_valid:
-        export_dict = {data_biped.proxy_storage_variables.get('script_source'): data_biped.script_version,
-                       data_biped.proxy_storage_variables.get('export_method'): method}
+        export_dict = {
+            data_biped.proxy_storage_variables.get("script_source"): data_biped.script_version,
+            data_biped.proxy_storage_variables.get("export_method"): method,
+        }
         for obj in data_biped.elements_default:
-            if method == 'object-space':
-                if '_crv' in obj or 'main_root' in obj:
-                    translate = cmds.getAttr(data_biped.elements_default.get(obj) + '.translate')[0]
-                    rotate = cmds.getAttr(data_biped.elements_default.get(obj) + '.rotate')[0]
-                    scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
+            if method == "object-space":
+                if "_crv" in obj or "main_root" in obj:
+                    translate = cmds.getAttr(data_biped.elements_default.get(obj) + ".translate")[0]
+                    rotate = cmds.getAttr(data_biped.elements_default.get(obj) + ".rotate")[0]
+                    scale = cmds.getAttr(data_biped.elements_default.get(obj) + ".scale")[0]
                     to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
                     export_dict[obj] = to_save
 
-                if obj.endswith('_pivot'):
+                if obj.endswith("_pivot"):
                     if cmds.objExists(data_biped.elements_default.get(obj)):
-                        translate = cmds.getAttr(data_biped.elements_default.get(obj) + '.translate')[0]
-                        rotate = cmds.getAttr(data_biped.elements_default.get(obj) + '.rotate')[0]
-                        scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
+                        translate = cmds.getAttr(data_biped.elements_default.get(obj) + ".translate")[0]
+                        rotate = cmds.getAttr(data_biped.elements_default.get(obj) + ".rotate")[0]
+                        scale = cmds.getAttr(data_biped.elements_default.get(obj) + ".scale")[0]
                         to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
                         export_dict[obj] = to_save
-            elif method == 'world-space':
-                if '_crv' in obj or 'main_root' in obj:
+            elif method == "world-space":
+                if "_crv" in obj or "main_root" in obj:
                     translate = cmds.xform(data_biped.elements_default.get(obj), q=True, t=True, ws=True)
                     rotate = cmds.xform(data_biped.elements_default.get(obj), q=True, ro=True, ws=True)
-                    scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
+                    scale = cmds.getAttr(data_biped.elements_default.get(obj) + ".scale")[0]
                     to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
                     export_dict[obj] = to_save
 
-                if obj.endswith('_pivot'):
+                if obj.endswith("_pivot"):
                     if cmds.objExists(data_biped.elements_default.get(obj)):
                         translate = cmds.xform(data_biped.elements_default.get(obj), q=True, t=True, ws=True)
                         rotate = cmds.xform(data_biped.elements_default.get(obj), q=True, ro=True, ws=True)
-                        scale = cmds.getAttr(data_biped.elements_default.get(obj) + '.scale')[0]
+                        scale = cmds.getAttr(data_biped.elements_default.get(obj) + ".scale")[0]
                         to_save = [data_biped.elements_default.get(obj), translate, rotate, scale]
                         export_dict[obj] = to_save
 
         try:
-            with open(pose_file, 'w') as outfile:
+            with open(pose_file, "w") as outfile:
                 json.dump(export_dict, outfile, indent=4)
 
-            unique_message = '<' + str(random.random()) + '>'
-            cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'
-                                                    'Proxy Pose</span><span style=\"color:#FFFFFF;\"> '
-                                                    'exported.</span>', pos='botLeft', fade=True, alpha=.9)
+            unique_message = "<" + str(random.random()) + ">"
+            cmds.inViewMessage(
+                amg=unique_message + '<span style="color:#FF0000;text-decoration:underline;">'
+                'Proxy Pose</span><span style="color:#FFFFFF;"> '
+                "exported.</span>",
+                pos="botLeft",
+                fade=True,
+                alpha=0.9,
+            )
             sys.stdout.write('Pose exported to the file "' + pose_file + '".')
         except Exception as exception:
             successfully_created_file = False
@@ -1554,7 +1807,7 @@ def export_biped_proxy_pose(method='world-space'):
             cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
 
 
-def export_facial_proxy_pose(method='world-space'):
+def export_facial_proxy_pose(method="world-space"):
     """
     Exports a JSON file containing the translation, rotation and scale data from every proxy curve (to export a pose)
     Added a variable called "gt_rigger_facial_export_method" after v1.3, so the extraction method can be stored.
@@ -1567,56 +1820,69 @@ def export_facial_proxy_pose(method='world-space'):
     is_valid = True
     successfully_created_file = False
     pose_file = None
-    file_extension = data_facial.proxy_storage_variables.get('file_extension')
+    file_extension = data_facial.proxy_storage_variables.get("file_extension")
     script_name = data_facial.script_name
 
-    proxy_elements = [data_facial.elements.get('main_proxy_grp')]
+    proxy_elements = [data_facial.elements.get("main_proxy_grp")]
     for proxy in data_facial.elements_default:
-        if '_crv' in proxy:
+        if "_crv" in proxy:
             proxy_elements.append(data_facial.elements.get(proxy))
     for obj in proxy_elements:
         if not cmds.objExists(obj) and is_valid:
             is_valid = False
             warning = '"' + obj + '"'
-            warning += ' is missing. Create a new proxy and make sure NOT to rename or delete any of its elements.'
+            warning += " is missing. Create a new proxy and make sure NOT to rename or delete any of its elements."
             cmds.warning(warning)
 
     if is_valid:
-        file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
-        file_filter += script_name + ' - JSON File (*.json)'
-        file_name = cmds.fileDialog2(fileFilter=file_filter,
-                                     dialogStyle=2, okCaption='Export',
-                                     caption='Exporting Proxy Pose for "' + script_name + '"') or []
+        file_filter = script_name + " - " + file_extension.upper() + " File (*." + file_extension + ");;"
+        file_filter += script_name + " - JSON File (*.json)"
+        file_name = (
+            cmds.fileDialog2(
+                fileFilter=file_filter,
+                dialogStyle=2,
+                okCaption="Export",
+                caption='Exporting Proxy Pose for "' + script_name + '"',
+            )
+            or []
+        )
         if len(file_name) > 0:
             pose_file = file_name[0]
             successfully_created_file = True
 
     if successfully_created_file and is_valid:
-        export_dict = {data_facial.proxy_storage_variables.get('script_source'): data_facial.script_version,
-                       data_facial.proxy_storage_variables.get('export_method'): method}
+        export_dict = {
+            data_facial.proxy_storage_variables.get("script_source"): data_facial.script_version,
+            data_facial.proxy_storage_variables.get("export_method"): method,
+        }
         for obj in data_facial.elements_default:
-            if method == 'object-space':
-                if '_crv' in obj or 'main_root' in obj:
-                    translate = cmds.getAttr(data_facial.elements_default.get(obj) + '.translate')[0]
-                    rotate = cmds.getAttr(data_facial.elements_default.get(obj) + '.rotate')[0]
-                    scale = cmds.getAttr(data_facial.elements_default.get(obj) + '.scale')[0]
+            if method == "object-space":
+                if "_crv" in obj or "main_root" in obj:
+                    translate = cmds.getAttr(data_facial.elements_default.get(obj) + ".translate")[0]
+                    rotate = cmds.getAttr(data_facial.elements_default.get(obj) + ".rotate")[0]
+                    scale = cmds.getAttr(data_facial.elements_default.get(obj) + ".scale")[0]
                     to_save = [data_facial.elements_default.get(obj), translate, rotate, scale]
                     export_dict[obj] = to_save
-            elif method == 'world-space':
-                if '_crv' in obj or 'main_root' in obj:
+            elif method == "world-space":
+                if "_crv" in obj or "main_root" in obj:
                     translate = cmds.xform(data_facial.elements_default.get(obj), q=True, t=True, ws=True)
                     rotate = cmds.xform(data_facial.elements_default.get(obj), q=True, ro=True, ws=True)
-                    scale = cmds.getAttr(data_facial.elements_default.get(obj) + '.scale')[0]
+                    scale = cmds.getAttr(data_facial.elements_default.get(obj) + ".scale")[0]
                     to_save = [data_facial.elements_default.get(obj), translate, rotate, scale]
                     export_dict[obj] = to_save
         try:
-            with open(pose_file, 'w') as outfile:
+            with open(pose_file, "w") as outfile:
                 json.dump(export_dict, outfile, indent=4)
 
-            unique_message = '<' + str(random.random()) + '>'
-            cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'
-                                                    'Proxy Pose</span><span style=\"color:#FFFFFF;\"> '
-                                                    'exported.</span>', pos='botLeft', fade=True, alpha=.9)
+            unique_message = "<" + str(random.random()) + ">"
+            cmds.inViewMessage(
+                amg=unique_message + '<span style="color:#FF0000;text-decoration:underline;">'
+                'Proxy Pose</span><span style="color:#FFFFFF;"> '
+                "exported.</span>",
+                pos="botLeft",
+                fade=True,
+                alpha=0.9,
+            )
             sys.stdout.write('Pose exported to the file "' + pose_file + '".')
         except Exception as exception:
             successfully_created_file = False
@@ -1625,7 +1891,7 @@ def export_facial_proxy_pose(method='world-space'):
             cmds.warning("Couldn't write to file. Please make sure the exporting directory is accessible.")
 
 
-def export_corrective_proxy_pose(method='world-space'):
+def export_corrective_proxy_pose(method="world-space"):
     """
     Exports a JSON file containing the translation, rotation and scale data from every proxy curve (to export a pose)
     Added a variable called "gt_rigger_facial_export_method" after v1.3, so the extraction method can be stored.
@@ -1638,56 +1904,69 @@ def export_corrective_proxy_pose(method='world-space'):
     is_valid = True
     successfully_created_file = False
     pose_file = None
-    file_extension = data_corrective.proxy_storage_variables.get('file_extension')
+    file_extension = data_corrective.proxy_storage_variables.get("file_extension")
     script_name = data_corrective.script_name
 
-    proxy_elements = [data_corrective.elements.get('main_proxy_grp')]
+    proxy_elements = [data_corrective.elements.get("main_proxy_grp")]
     for proxy in data_corrective.elements_default:
-        if '_crv' in proxy:
+        if "_crv" in proxy:
             proxy_elements.append(data_corrective.elements.get(proxy))
     for obj in proxy_elements:
         if not cmds.objExists(obj) and is_valid:
             is_valid = False
             warning = '"' + obj + '"'
-            warning += ' is missing. Create a new proxy and make sure NOT to rename or delete any of its elements.'
+            warning += " is missing. Create a new proxy and make sure NOT to rename or delete any of its elements."
             cmds.warning(warning)
 
     if is_valid:
-        file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
-        file_filter += script_name + ' - JSON File (*.json)'
-        file_name = cmds.fileDialog2(fileFilter=file_filter,
-                                     dialogStyle=2, okCaption='Export',
-                                     caption='Exporting Proxy Pose for "' + script_name + '"') or []
+        file_filter = script_name + " - " + file_extension.upper() + " File (*." + file_extension + ");;"
+        file_filter += script_name + " - JSON File (*.json)"
+        file_name = (
+            cmds.fileDialog2(
+                fileFilter=file_filter,
+                dialogStyle=2,
+                okCaption="Export",
+                caption='Exporting Proxy Pose for "' + script_name + '"',
+            )
+            or []
+        )
         if len(file_name) > 0:
             pose_file = file_name[0]
             successfully_created_file = True
 
     if successfully_created_file and is_valid:
-        export_dict = {data_corrective.proxy_storage_variables.get('script_source'): data_corrective.script_version,
-                       data_corrective.proxy_storage_variables.get('export_method'): method}
+        export_dict = {
+            data_corrective.proxy_storage_variables.get("script_source"): data_corrective.script_version,
+            data_corrective.proxy_storage_variables.get("export_method"): method,
+        }
         for obj in data_corrective.elements_default:
-            if method == 'object-space':
-                if '_crv' in obj or 'main_root' in obj:
-                    translate = cmds.getAttr(data_corrective.elements_default.get(obj) + '.translate')[0]
-                    rotate = cmds.getAttr(data_corrective.elements_default.get(obj) + '.rotate')[0]
-                    scale = cmds.getAttr(data_corrective.elements_default.get(obj) + '.scale')[0]
+            if method == "object-space":
+                if "_crv" in obj or "main_root" in obj:
+                    translate = cmds.getAttr(data_corrective.elements_default.get(obj) + ".translate")[0]
+                    rotate = cmds.getAttr(data_corrective.elements_default.get(obj) + ".rotate")[0]
+                    scale = cmds.getAttr(data_corrective.elements_default.get(obj) + ".scale")[0]
                     to_save = [data_corrective.elements_default.get(obj), translate, rotate, scale]
                     export_dict[obj] = to_save
-            elif method == 'world-space':
-                if '_crv' in obj or 'main_root' in obj:
+            elif method == "world-space":
+                if "_crv" in obj or "main_root" in obj:
                     translate = cmds.xform(data_corrective.elements_default.get(obj), q=True, t=True, ws=True)
                     rotate = cmds.xform(data_corrective.elements_default.get(obj), q=True, ro=True, ws=True)
-                    scale = cmds.getAttr(data_corrective.elements_default.get(obj) + '.scale')[0]
+                    scale = cmds.getAttr(data_corrective.elements_default.get(obj) + ".scale")[0]
                     to_save = [data_corrective.elements_default.get(obj), translate, rotate, scale]
                     export_dict[obj] = to_save
         try:
-            with open(pose_file, 'w') as outfile:
+            with open(pose_file, "w") as outfile:
                 json.dump(export_dict, outfile, indent=4)
 
-            unique_message = '<' + str(random.random()) + '>'
-            cmds.inViewMessage(amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'
-                                                    'Proxy Pose</span><span style=\"color:#FFFFFF;\"> '
-                                                    'exported.</span>', pos='botLeft', fade=True, alpha=.9)
+            unique_message = "<" + str(random.random()) + ">"
+            cmds.inViewMessage(
+                amg=unique_message + '<span style="color:#FF0000;text-decoration:underline;">'
+                'Proxy Pose</span><span style="color:#FFFFFF;"> '
+                "exported.</span>",
+                pos="botLeft",
+                fade=True,
+                alpha=0.9,
+            )
             sys.stdout.write('Pose exported to the file "' + pose_file + '".')
         except Exception as exception:
             successfully_created_file = False
@@ -1713,7 +1992,7 @@ def import_biped_proxy_pose(source_path=None, source_dict=None):
     """
 
     def import_biped_proxy_pose_json(json_data):
-        import_method = 'object-space'
+        import_method = "object-space"
         try:
             is_valid_file = True
             if not json_data.get(script_source):
@@ -1729,7 +2008,7 @@ def import_biped_proxy_pose(source_path=None, source_dict=None):
 
             is_valid_scene = True
             # Check for existing rig or conflicting names
-            undesired_elements = ['rig_grp', 'skeleton_grp', 'controls_grp', 'rig_setup_grp']
+            undesired_elements = ["rig_grp", "skeleton_grp", "controls_grp", "rig_setup_grp"]
             for jnt in data_biped.joints_default:
                 undesired_elements.append(data_biped.joints_default.get(jnt))
             for obj in undesired_elements:
@@ -1737,8 +2016,9 @@ def import_biped_proxy_pose(source_path=None, source_dict=None):
                     is_valid_scene = False
                     cmds.warning(
                         '"' + obj + '" found in the scene. This means that you either already created a '
-                                    'rig or you have conflicting names on your objects. '
-                                    '(Click on "Help" for more details)')
+                        "rig or you have conflicting names on your objects. "
+                        '(Click on "Help" for more details)'
+                    )
 
             if is_valid_scene:
                 # Check for Proxy
@@ -1746,17 +2026,17 @@ def import_biped_proxy_pose(source_path=None, source_dict=None):
 
                 proxy_elements = []
                 for proxy in data_biped.elements_default:
-                    if '_crv' in proxy:
+                    if "_crv" in proxy:
                         proxy_elements.append(data_biped.elements.get(proxy))
                 for obj in proxy_elements:
                     if not cmds.objExists(obj) and proxy_exists:
                         proxy_exists = False
                         delete_proxy(suppress_warning=True)
-                        validate_biped_operation('create_biped_proxy')
-                        cmds.warning('Current proxy was missing elements, a new one was created.')
+                        validate_biped_operation("create_biped_proxy")
+                        cmds.warning("Current proxy was missing elements, a new one was created.")
 
             if is_valid_file and is_valid_scene:
-                if import_method == 'world-space':
+                if import_method == "world-space":
                     reset_proxy(suppress_warning=True)
                     sorted_pairs = []
                     for proxy in json_data:
@@ -1764,7 +2044,7 @@ def import_biped_proxy_pose(source_path=None, source_dict=None):
                             current_object = json_data.get(proxy)  # Name, T, R, S
                             if cmds.objExists(current_object[0]):
                                 long_name = cmds.ls(current_object[0], l=True) or []
-                                number_of_parents = len(long_name[0].split('|'))
+                                number_of_parents = len(long_name[0].split("|"))
                                 sorted_pairs.append((current_object, number_of_parents))
 
                             sorted_pairs.sort(key=lambda x: x[1], reverse=True)
@@ -1773,57 +2053,65 @@ def import_biped_proxy_pose(source_path=None, source_dict=None):
                     for obj in sorted_pairs:
                         current_object = obj[0]
                         if cmds.objExists(current_object[0]):
-                            set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
-                            set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
-                            set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
+                            set_unlocked_os_attr(current_object[0], "sx", current_object[3][0])
+                            set_unlocked_os_attr(current_object[0], "sy", current_object[3][1])
+                            set_unlocked_os_attr(current_object[0], "sz", current_object[3][2])
 
                     # Translate and Rotate (Parents First)
                     for obj in reversed(sorted_pairs):
                         current_object = obj[0]
                         if cmds.objExists(current_object[0]):
-                            set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
-                            set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
+                            set_unlocked_ws_attr(current_object[0], "translate", current_object[1])
+                            set_unlocked_ws_attr(current_object[0], "rotate", current_object[2])
 
                     # Set Transfer Pole Vectors and Spine Again
                     for obj in reversed(sorted_pairs):
                         current_object = obj[0]
-                        if 'knee' in current_object[0] or 'elbow' in current_object[0] or \
-                                current_object[0].startswith('spine'):
+                        if (
+                            "knee" in current_object[0]
+                            or "elbow" in current_object[0]
+                            or current_object[0].startswith("spine")
+                        ):
                             if cmds.objExists(current_object[0]):
-                                set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
-                                set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
+                                set_unlocked_ws_attr(current_object[0], "translate", current_object[1])
+                                set_unlocked_ws_attr(current_object[0], "rotate", current_object[2])
 
                 else:  # Object-Space
                     for proxy in json_data:
                         if proxy != script_source and proxy != export_method:
                             current_object = json_data.get(proxy)  # Name, T, R, S
                             if cmds.objExists(current_object[0]):
-                                set_unlocked_os_attr(current_object[0], 'tx', current_object[1][0])
-                                set_unlocked_os_attr(current_object[0], 'ty', current_object[1][1])
-                                set_unlocked_os_attr(current_object[0], 'tz', current_object[1][2])
-                                set_unlocked_os_attr(current_object[0], 'rx', current_object[2][0])
-                                set_unlocked_os_attr(current_object[0], 'ry', current_object[2][1])
-                                set_unlocked_os_attr(current_object[0], 'rz', current_object[2][2])
-                                set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
-                                set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
-                                set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
+                                set_unlocked_os_attr(current_object[0], "tx", current_object[1][0])
+                                set_unlocked_os_attr(current_object[0], "ty", current_object[1][1])
+                                set_unlocked_os_attr(current_object[0], "tz", current_object[1][2])
+                                set_unlocked_os_attr(current_object[0], "rx", current_object[2][0])
+                                set_unlocked_os_attr(current_object[0], "ry", current_object[2][1])
+                                set_unlocked_os_attr(current_object[0], "rz", current_object[2][2])
+                                set_unlocked_os_attr(current_object[0], "sx", current_object[3][0])
+                                set_unlocked_os_attr(current_object[0], "sy", current_object[3][1])
+                                set_unlocked_os_attr(current_object[0], "sz", current_object[3][2])
 
                 if not source_path_exists and not source_dict:
-                    unique_message = '<' + str(random.random()) + '>'
+                    unique_message = "<" + str(random.random()) + ">"
                     cmds.inViewMessage(
-                        amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy'
-                                             ' Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>',
-                        pos='botLeft', fade=True, alpha=.9)
+                        amg=unique_message + '<span style="color:#FF0000;text-decoration:underline;">Proxy'
+                        ' Pose</span><span style="color:#FFFFFF;"> imported!</span>',
+                        pos="botLeft",
+                        fade=True,
+                        alpha=0.9,
+                    )
                     sys.stdout.write('Pose imported from the file "' + pose_file + '".')
         except Exception as e:
             logger.info(str(e))
-            cmds.warning('An error occurred when importing the pose. Make sure you imported the correct JSON '
-                         'file. (Click on "Help" for more info)')
+            cmds.warning(
+                "An error occurred when importing the pose. Make sure you imported the correct JSON "
+                'file. (Click on "Help" for more info)'
+            )
 
     _proxy_storage = data_biped.proxy_storage_variables
-    script_source = _proxy_storage.get('script_source')
-    export_method = _proxy_storage.get('export_method')
-    file_extension = _proxy_storage.get('file_extension')
+    script_source = _proxy_storage.get("script_source")
+    export_method = _proxy_storage.get("export_method")
+    file_extension = _proxy_storage.get("file_extension")
     script_name = data_biped.script_name
     source_path_exists = False
     if source_path:
@@ -1833,11 +2121,18 @@ def import_biped_proxy_pose(source_path=None, source_dict=None):
         source_path_exists = True
 
     if not source_path_exists:
-        file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
-        file_filter += script_name + ' - JSON File (*.json)'
-        file_name = cmds.fileDialog2(fileFilter=file_filter,
-                                     dialogStyle=2, fileMode=1, okCaption='Import',
-                                     caption='Importing Proxy Pose for "' + script_name + '"') or []
+        file_filter = script_name + " - " + file_extension.upper() + " File (*." + file_extension + ");;"
+        file_filter += script_name + " - JSON File (*.json)"
+        file_name = (
+            cmds.fileDialog2(
+                fileFilter=file_filter,
+                dialogStyle=2,
+                fileMode=1,
+                okCaption="Import",
+                caption='Importing Proxy Pose for "' + script_name + '"',
+            )
+            or []
+        )
     else:
         file_name = [source_path]
 
@@ -1854,7 +2149,7 @@ def import_biped_proxy_pose(source_path=None, source_dict=None):
         except Exception as exception:
             file_exists = False
             logger.debug(exception)
-            logger.debug('File exists:', str(file_exists))
+            logger.debug("File exists:", str(file_exists))
             cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
 
 
@@ -1878,7 +2173,7 @@ def import_facial_proxy_pose(source_path=None, source_dict=None):
     def import_facial_proxy_pose_json(json_data):
         try:
             is_valid_file = True
-            import_method = 'world-space'
+            import_method = "world-space"
 
             if not json_data.get(script_source):
                 is_valid_file = False
@@ -1893,7 +2188,7 @@ def import_facial_proxy_pose(source_path=None, source_dict=None):
 
             is_valid_scene = True
             # Check for existing rig or conflicting names
-            undesired_elements = ['facial_rig_grp']
+            undesired_elements = ["facial_rig_grp"]
             for jnt in data_facial.joints_default:
                 undesired_elements.append(data_facial.joints_default.get(jnt))
             for obj in undesired_elements:
@@ -1901,8 +2196,9 @@ def import_facial_proxy_pose(source_path=None, source_dict=None):
                     is_valid_scene = False
                     cmds.warning(
                         '"' + obj + '" found in the scene. This means that you either already created a '
-                                    'rig or you have conflicting names on your objects. '
-                                    '(Click on "Help" for more details)')
+                        "rig or you have conflicting names on your objects. "
+                        '(Click on "Help" for more details)'
+                    )
 
             if is_valid_scene:
                 # Check for Proxy
@@ -1910,25 +2206,25 @@ def import_facial_proxy_pose(source_path=None, source_dict=None):
 
                 proxy_elements = []
                 for proxy in data_facial.elements_default:
-                    if '_crv' in proxy or 'main_root' in proxy:
+                    if "_crv" in proxy or "main_root" in proxy:
                         proxy_elements.append(data_facial.elements.get(proxy))
                 for obj in proxy_elements:
                     if not cmds.objExists(obj) and proxy_exists:
                         proxy_exists = False
-                        delete_proxy(suppress_warning=True, proxy_target='facial')
-                        validate_facial_operation('create_facial_proxy')
-                        cmds.warning('Current proxy was missing elements, a new one was created.')
+                        delete_proxy(suppress_warning=True, proxy_target="facial")
+                        validate_facial_operation("create_facial_proxy")
+                        cmds.warning("Current proxy was missing elements, a new one was created.")
 
             if is_valid_file and is_valid_scene:
-                if import_method == 'world-space':
-                    reset_proxy(suppress_warning=True, proxy_target='facial')
+                if import_method == "world-space":
+                    reset_proxy(suppress_warning=True, proxy_target="facial")
                     sorted_pairs = []
                     for proxy in json_data:
                         if proxy != script_source and proxy != export_method:
                             current_object = json_data.get(proxy)  # Name, T, R, S
                             if cmds.objExists(current_object[0]):
                                 long_name = cmds.ls(current_object[0], l=True) or []
-                                number_of_parents = len(long_name[0].split('|'))
+                                number_of_parents = len(long_name[0].split("|"))
                                 sorted_pairs.append((current_object, number_of_parents))
 
                             sorted_pairs.sort(key=lambda x: x[1], reverse=True)
@@ -1937,58 +2233,63 @@ def import_facial_proxy_pose(source_path=None, source_dict=None):
                     for obj in sorted_pairs:
                         current_object = obj[0]
                         if cmds.objExists(current_object[0]):
-                            set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
-                            set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
-                            set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
+                            set_unlocked_os_attr(current_object[0], "sx", current_object[3][0])
+                            set_unlocked_os_attr(current_object[0], "sy", current_object[3][1])
+                            set_unlocked_os_attr(current_object[0], "sz", current_object[3][2])
 
                     # Translate and Rotate (Parents First)
                     for obj in reversed(sorted_pairs):
                         current_object = obj[0]
                         if cmds.objExists(current_object[0]):
-                            set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
-                            set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
+                            set_unlocked_ws_attr(current_object[0], "translate", current_object[1])
+                            set_unlocked_ws_attr(current_object[0], "rotate", current_object[2])
 
                     # Set brows and eyelids again
                     for obj in reversed(sorted_pairs):
                         current_object = obj[0]
-                        if 'Eyelid' in current_object[0] or 'Brow' in current_object[0]:
+                        if "Eyelid" in current_object[0] or "Brow" in current_object[0]:
                             if cmds.objExists(current_object[0]):
-                                set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
-                                set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
-                elif import_method == 'world-space':
+                                set_unlocked_ws_attr(current_object[0], "translate", current_object[1])
+                                set_unlocked_ws_attr(current_object[0], "rotate", current_object[2])
+                elif import_method == "world-space":
                     for proxy in json_data:
                         if proxy != script_source and proxy != export_method:
                             current_object = json_data.get(proxy)  # Name, T, R, S
                             if cmds.objExists(current_object[0]):
-                                set_unlocked_os_attr(current_object[0], 'tx', current_object[1][0])
-                                set_unlocked_os_attr(current_object[0], 'ty', current_object[1][1])
-                                set_unlocked_os_attr(current_object[0], 'tz', current_object[1][2])
-                                set_unlocked_os_attr(current_object[0], 'rx', current_object[2][0])
-                                set_unlocked_os_attr(current_object[0], 'ry', current_object[2][1])
-                                set_unlocked_os_attr(current_object[0], 'rz', current_object[2][2])
-                                set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
-                                set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
-                                set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
+                                set_unlocked_os_attr(current_object[0], "tx", current_object[1][0])
+                                set_unlocked_os_attr(current_object[0], "ty", current_object[1][1])
+                                set_unlocked_os_attr(current_object[0], "tz", current_object[1][2])
+                                set_unlocked_os_attr(current_object[0], "rx", current_object[2][0])
+                                set_unlocked_os_attr(current_object[0], "ry", current_object[2][1])
+                                set_unlocked_os_attr(current_object[0], "rz", current_object[2][2])
+                                set_unlocked_os_attr(current_object[0], "sx", current_object[3][0])
+                                set_unlocked_os_attr(current_object[0], "sy", current_object[3][1])
+                                set_unlocked_os_attr(current_object[0], "sz", current_object[3][2])
                 else:
                     cmds.warning('Unable to import pose. Unknown import method: "' + str(import_method) + '".')
 
                 if not source_path_exists:
-                    unique_message = '<' + str(random.random()) + '>'
+                    unique_message = "<" + str(random.random()) + ">"
                     cmds.inViewMessage(
-                        amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy'
-                                             ' Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>',
-                        pos='botLeft', fade=True, alpha=.9)
+                        amg=unique_message + '<span style="color:#FF0000;text-decoration:underline;">Proxy'
+                        ' Pose</span><span style="color:#FFFFFF;"> imported!</span>',
+                        pos="botLeft",
+                        fade=True,
+                        alpha=0.9,
+                    )
                     sys.stdout.write('\nPose imported from the file "' + pose_file + '".')
 
         except Exception as e:
             logger.info(str(e))
-            cmds.warning('An error occurred when importing the pose. Make sure you imported the correct JSON '
-                         'file. (Click on "Help" for more info)')
+            cmds.warning(
+                "An error occurred when importing the pose. Make sure you imported the correct JSON "
+                'file. (Click on "Help" for more info)'
+            )
 
     _proxy_storage = data_facial.proxy_storage_variables
-    script_source = _proxy_storage.get('script_source')
-    export_method = _proxy_storage.get('export_method')
-    file_extension = _proxy_storage.get('file_extension')
+    script_source = _proxy_storage.get("script_source")
+    export_method = _proxy_storage.get("export_method")
+    file_extension = _proxy_storage.get("file_extension")
     script_name = data_facial.script_name
 
     source_path_exists = False
@@ -1999,11 +2300,18 @@ def import_facial_proxy_pose(source_path=None, source_dict=None):
         source_path_exists = True
 
     if not source_path_exists:
-        file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
-        file_filter += script_name + ' - JSON File (*.json)'
-        file_name = cmds.fileDialog2(fileFilter=file_filter,
-                                     dialogStyle=2, fileMode=1, okCaption='Import',
-                                     caption='Importing Proxy Pose for "' + script_name + '"') or []
+        file_filter = script_name + " - " + file_extension.upper() + " File (*." + file_extension + ");;"
+        file_filter += script_name + " - JSON File (*.json)"
+        file_name = (
+            cmds.fileDialog2(
+                fileFilter=file_filter,
+                dialogStyle=2,
+                fileMode=1,
+                okCaption="Import",
+                caption='Importing Proxy Pose for "' + script_name + '"',
+            )
+            or []
+        )
     else:
         file_name = [source_path]
 
@@ -2020,7 +2328,7 @@ def import_facial_proxy_pose(source_path=None, source_dict=None):
         except Exception as exception:
             file_exists = False
             logger.debug(exception)
-            logger.debug('File exists:', str(file_exists))
+            logger.debug("File exists:", str(file_exists))
             cmds.warning("Couldn't read the file. Please make sure the selected file is accessible.")
 
 
@@ -2041,7 +2349,7 @@ def import_corrective_proxy_pose(source_path=None, source_dict=None):
     """
 
     def import_corrective_proxy_pose_json(json_data):
-        import_method = 'world-space'
+        import_method = "world-space"
         try:
             is_valid_file = True
 
@@ -2058,7 +2366,7 @@ def import_corrective_proxy_pose(source_path=None, source_dict=None):
 
             is_valid_scene = True
             # Check for existing rig or conflicting names
-            undesired_elements = ['facial_rig_grp']
+            undesired_elements = ["facial_rig_grp"]
             for jnt in data_corrective.joints_default:
                 undesired_elements.append(data_corrective.joints_default.get(jnt))
             for obj in undesired_elements:
@@ -2066,8 +2374,9 @@ def import_corrective_proxy_pose(source_path=None, source_dict=None):
                     is_valid_scene = False
                     cmds.warning(
                         '"' + obj + '" found in the scene. This means that you either already created a '
-                                    'rig or you have conflicting names on your objects. '
-                                    '(Click on "Help" for more details)')
+                        "rig or you have conflicting names on your objects. "
+                        '(Click on "Help" for more details)'
+                    )
 
             if is_valid_scene:
                 # Check for Proxy
@@ -2075,25 +2384,25 @@ def import_corrective_proxy_pose(source_path=None, source_dict=None):
 
                 proxy_elements = []
                 for proxy in data_corrective.elements_default:
-                    if '_crv' in proxy or 'main_root' in proxy:
+                    if "_crv" in proxy or "main_root" in proxy:
                         proxy_elements.append(data_corrective.elements.get(proxy))
                 for obj in proxy_elements:
                     if not cmds.objExists(obj) and proxy_exists:
                         proxy_exists = False
-                        delete_proxy(suppress_warning=True, proxy_target='corrective')
-                        validate_corrective_operation('create_corrective_proxy')
-                        cmds.warning('Current proxy was missing elements, a new one was created.')
+                        delete_proxy(suppress_warning=True, proxy_target="corrective")
+                        validate_corrective_operation("create_corrective_proxy")
+                        cmds.warning("Current proxy was missing elements, a new one was created.")
 
             if is_valid_file and is_valid_scene:
-                if import_method == 'world-space':
-                    reset_proxy(suppress_warning=True, proxy_target='corrective')
+                if import_method == "world-space":
+                    reset_proxy(suppress_warning=True, proxy_target="corrective")
                     sorted_pairs = []
                     for proxy in json_data:
                         if proxy != script_source and proxy != export_method:
                             current_object = json_data.get(proxy)  # Name, T, R, S
                             if cmds.objExists(current_object[0]):
                                 long_name = cmds.ls(current_object[0], l=True) or []
-                                number_of_parents = len(long_name[0].split('|'))
+                                number_of_parents = len(long_name[0].split("|"))
                                 sorted_pairs.append((current_object, number_of_parents))
 
                             sorted_pairs.sort(key=lambda x: x[1], reverse=True)
@@ -2102,58 +2411,63 @@ def import_corrective_proxy_pose(source_path=None, source_dict=None):
                     for obj in sorted_pairs:
                         current_object = obj[0]
                         if cmds.objExists(current_object[0]):
-                            set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
-                            set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
-                            set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
+                            set_unlocked_os_attr(current_object[0], "sx", current_object[3][0])
+                            set_unlocked_os_attr(current_object[0], "sy", current_object[3][1])
+                            set_unlocked_os_attr(current_object[0], "sz", current_object[3][2])
 
                     # Translate and Rotate (Parents First)
                     for obj in reversed(sorted_pairs):
                         current_object = obj[0]
                         if cmds.objExists(current_object[0]):
-                            set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
-                            set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
+                            set_unlocked_ws_attr(current_object[0], "translate", current_object[1])
+                            set_unlocked_ws_attr(current_object[0], "rotate", current_object[2])
 
                     # Set brows and eyelids again
                     for obj in reversed(sorted_pairs):
                         current_object = obj[0]
-                        if 'Eyelid' in current_object[0] or 'Brow' in current_object[0]:
+                        if "Eyelid" in current_object[0] or "Brow" in current_object[0]:
                             if cmds.objExists(current_object[0]):
-                                set_unlocked_ws_attr(current_object[0], 'translate', current_object[1])
-                                set_unlocked_ws_attr(current_object[0], 'rotate', current_object[2])
-                elif import_method == 'world-space':
+                                set_unlocked_ws_attr(current_object[0], "translate", current_object[1])
+                                set_unlocked_ws_attr(current_object[0], "rotate", current_object[2])
+                elif import_method == "world-space":
                     for proxy in json_data:
                         if proxy != script_source and proxy != export_method:
                             current_object = json_data.get(proxy)  # Name, T, R, S
                             if cmds.objExists(current_object[0]):
-                                set_unlocked_os_attr(current_object[0], 'tx', current_object[1][0])
-                                set_unlocked_os_attr(current_object[0], 'ty', current_object[1][1])
-                                set_unlocked_os_attr(current_object[0], 'tz', current_object[1][2])
-                                set_unlocked_os_attr(current_object[0], 'rx', current_object[2][0])
-                                set_unlocked_os_attr(current_object[0], 'ry', current_object[2][1])
-                                set_unlocked_os_attr(current_object[0], 'rz', current_object[2][2])
-                                set_unlocked_os_attr(current_object[0], 'sx', current_object[3][0])
-                                set_unlocked_os_attr(current_object[0], 'sy', current_object[3][1])
-                                set_unlocked_os_attr(current_object[0], 'sz', current_object[3][2])
+                                set_unlocked_os_attr(current_object[0], "tx", current_object[1][0])
+                                set_unlocked_os_attr(current_object[0], "ty", current_object[1][1])
+                                set_unlocked_os_attr(current_object[0], "tz", current_object[1][2])
+                                set_unlocked_os_attr(current_object[0], "rx", current_object[2][0])
+                                set_unlocked_os_attr(current_object[0], "ry", current_object[2][1])
+                                set_unlocked_os_attr(current_object[0], "rz", current_object[2][2])
+                                set_unlocked_os_attr(current_object[0], "sx", current_object[3][0])
+                                set_unlocked_os_attr(current_object[0], "sy", current_object[3][1])
+                                set_unlocked_os_attr(current_object[0], "sz", current_object[3][2])
                 else:
                     cmds.warning('Unable to import pose. Unknown import method: "' + str(import_method) + '".')
 
                 if not source_path_exists:
-                    unique_message = '<' + str(random.random()) + '>'
+                    unique_message = "<" + str(random.random()) + ">"
                     cmds.inViewMessage(
-                        amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">Proxy'
-                                             ' Pose</span><span style=\"color:#FFFFFF;\"> imported!</span>',
-                        pos='botLeft', fade=True, alpha=.9)
+                        amg=unique_message + '<span style="color:#FF0000;text-decoration:underline;">Proxy'
+                        ' Pose</span><span style="color:#FFFFFF;"> imported!</span>',
+                        pos="botLeft",
+                        fade=True,
+                        alpha=0.9,
+                    )
                     sys.stdout.write('\nPose imported from the file "' + pose_file + '".')
 
         except Exception as e:
             logger.info(str(e))
-            cmds.warning('An error occurred when importing the pose. Make sure you imported the correct JSON '
-                         'file. (Click on "Help" for more info)')
+            cmds.warning(
+                "An error occurred when importing the pose. Make sure you imported the correct JSON "
+                'file. (Click on "Help" for more info)'
+            )
 
     _proxy_storage = data_corrective.proxy_storage_variables
-    script_source = _proxy_storage.get('script_source')
-    export_method = _proxy_storage.get('export_method')
-    file_extension = _proxy_storage.get('file_extension')
+    script_source = _proxy_storage.get("script_source")
+    export_method = _proxy_storage.get("export_method")
+    file_extension = _proxy_storage.get("file_extension")
     script_name = data_corrective.script_name
 
     source_path_exists = False
@@ -2164,11 +2478,18 @@ def import_corrective_proxy_pose(source_path=None, source_dict=None):
         source_path_exists = True
 
     if not source_path_exists:
-        file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
-        file_filter += script_name + ' - JSON File (*.json)'
-        file_name = cmds.fileDialog2(fileFilter=file_filter,
-                                     dialogStyle=2, fileMode=1, okCaption='Import',
-                                     caption='Importing Proxy Pose for "' + script_name + '"') or []
+        file_filter = script_name + " - " + file_extension.upper() + " File (*." + file_extension + ");;"
+        file_filter += script_name + " - JSON File (*.json)"
+        file_name = (
+            cmds.fileDialog2(
+                fileFilter=file_filter,
+                dialogStyle=2,
+                fileMode=1,
+                okCaption="Import",
+                caption='Importing Proxy Pose for "' + script_name + '"',
+            )
+            or []
+        )
     else:
         file_name = [source_path]
 
@@ -2197,20 +2518,20 @@ def extract_facial_proxy_pose():
     successfully_created_file = False
     pose_file = None
     script_name = data_facial.script_name
-    file_extension = data_facial.proxy_storage_variables.get('file_extension')
-    proxy_attr_name = data_facial.proxy_storage_variables.get('attr_name')
+    file_extension = data_facial.proxy_storage_variables.get("file_extension")
+    proxy_attr_name = data_facial.proxy_storage_variables.get("attr_name")
 
     # Easy method (main_ctrl string)
-    main_ctrl = 'head_ctrl'
+    main_ctrl = "head_ctrl"
     if cmds.objExists(main_ctrl):
-        proxy_attr = main_ctrl + '.' + proxy_attr_name
+        proxy_attr = main_ctrl + "." + proxy_attr_name
         if cmds.objExists(proxy_attr):
             export_dict = cmds.getAttr(proxy_attr)
             try:
                 export_dict = json.loads(str(export_dict))
             except Exception as e:
                 logger.warning(str(e))
-                cmds.warning('Failed to decode JSON data.')
+                cmds.warning("Failed to decode JSON data.")
                 return
         else:
             cmds.warning('Missing required attribute: "' + proxy_attr + '"')
@@ -2219,26 +2540,34 @@ def extract_facial_proxy_pose():
         cmds.warning('Missing required control: "' + main_ctrl + '"')
         return
 
-    file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
-    file_filter += script_name + ' - JSON File (*.json)'
-    file_name = cmds.fileDialog2(
-        fileFilter=file_filter,
-        dialogStyle=2, okCaption='Export',
-        caption='Exporting Proxy Pose for "' + script_name + '"') or []
+    file_filter = script_name + " - " + file_extension.upper() + " File (*." + file_extension + ");;"
+    file_filter += script_name + " - JSON File (*.json)"
+    file_name = (
+        cmds.fileDialog2(
+            fileFilter=file_filter,
+            dialogStyle=2,
+            okCaption="Export",
+            caption='Exporting Proxy Pose for "' + script_name + '"',
+        )
+        or []
+    )
     if len(file_name) > 0:
         pose_file = file_name[0]
         successfully_created_file = True
 
     if successfully_created_file:
         try:
-            with open(pose_file, 'w') as outfile:
+            with open(pose_file, "w") as outfile:
                 json.dump(export_dict, outfile, indent=4)
 
-            unique_message = '<' + str(random.random()) + '>'
+            unique_message = "<" + str(random.random()) + ">"
             cmds.inViewMessage(
-                amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'
-                                     'Proxy Pose</span><span style=\"color:#FFFFFF;\"> extracted.</span>',
-                pos='botLeft', fade=True, alpha=.9)
+                amg=unique_message + '<span style="color:#FF0000;text-decoration:underline;">'
+                'Proxy Pose</span><span style="color:#FFFFFF;"> extracted.</span>',
+                pos="botLeft",
+                fade=True,
+                alpha=0.9,
+            )
             sys.stdout.write('Pose extracted to the file "' + pose_file + '".')
         except Exception as exception:
             logger.info(str(exception))
@@ -2255,8 +2584,9 @@ def extract_biped_proxy_pose():
 
     """
 
-    def extract_transform_joint_to_proxy(joint_name, ignore_translate=False, ignore_rotate=False, ignore_scale=False,
-                                         no_jnt_extraction=None):
+    def extract_transform_joint_to_proxy(
+        joint_name, ignore_translate=False, ignore_rotate=False, ignore_scale=False, no_jnt_extraction=None
+    ):
         """
         Extracts the world-space for Translate and Rotate and the object-space Scale of the provided joint
         then returns a list with proxy name, translate list, rotate list, and scale list
@@ -2273,8 +2603,9 @@ def extract_biped_proxy_pose():
             extracted_pair (list): [proxy_name, translate_xyz, rotate_xyz, scale_xyz]
         """
 
-        proxy_name = joint_name.replace(JNT_SUFFIX, PROXY_SUFFIX).replace('end' + JNT_SUFFIX.capitalize(),
-                                                                          'end' + PROXY_SUFFIX.capitalize())
+        proxy_name = joint_name.replace(JNT_SUFFIX, PROXY_SUFFIX).replace(
+            "end" + JNT_SUFFIX.capitalize(), "end" + PROXY_SUFFIX.capitalize()
+        )
 
         if no_jnt_extraction:
             joint_name = no_jnt_extraction
@@ -2292,7 +2623,7 @@ def extract_biped_proxy_pose():
         if ignore_scale:
             scale = (1, 1, 1)
         else:
-            scale = cmds.getAttr(joint_name + '.scale')[0]
+            scale = cmds.getAttr(joint_name + ".scale")[0]
 
         return [proxy_name, translate, rotate, scale]
 
@@ -2303,12 +2634,14 @@ def extract_biped_proxy_pose():
             extracted_export_dict (dict): Proxy dictionary to be written on to a file
         """
         _proxy_storage = data_biped.proxy_storage_variables
-        extracted_export_dict = {_proxy_storage.get('script_source'): data_biped.script_version,
-                                 _proxy_storage.get('export_method'): 'world-space'}
+        extracted_export_dict = {
+            _proxy_storage.get("script_source"): data_biped.script_version,
+            _proxy_storage.get("export_method"): "world-space",
+        }
 
-        no_rot_string_list = ['elbow', 'spine', 'neck', 'head', 'jaw', 'cog', 'eye', 'shoulder', 'ankle', 'knee', 'hip']
-        left_offset_rot_string_list = ['left_clavicle', 'left_wrist']
-        right_offset_rot_string_list = ['right_clavicle', 'right_wrist']
+        no_rot_string_list = ["elbow", "spine", "neck", "head", "jaw", "cog", "eye", "shoulder", "ankle", "knee", "hip"]
+        left_offset_rot_string_list = ["left_clavicle", "left_wrist"]
+        right_offset_rot_string_list = ["right_clavicle", "right_wrist"]
         no_rot_list = []
         left_offset_rot_list = []
         right_offset_rot_list = []
@@ -2330,37 +2663,73 @@ def extract_biped_proxy_pose():
             if jnt_key in no_rot_list:
                 values_to_store = extract_transform_joint_to_proxy(current_jnt, ignore_rotate=True)
             elif jnt_key in left_offset_rot_list:
-                temp_grp = cmds.group(name='temp_' + str(random.random()), world=True, empty=True)
-                temp_grp_dir = cmds.group(name='temp_dir' + str(random.random()), world=True, empty=True)
-                temp_grp_up = cmds.group(name='temp_up' + str(random.random()), world=True, empty=True)
+                temp_grp = cmds.group(name="temp_" + str(random.random()), world=True, empty=True)
+                temp_grp_dir = cmds.group(name="temp_dir" + str(random.random()), world=True, empty=True)
+                temp_grp_up = cmds.group(name="temp_up" + str(random.random()), world=True, empty=True)
                 cmds.delete(cmds.parentConstraint(current_jnt, temp_grp))
                 cmds.delete(cmds.parentConstraint(current_jnt, temp_grp_dir))
                 cmds.delete(cmds.parentConstraint(current_jnt, temp_grp_up))
                 cmds.move(1, temp_grp_dir, x=True, relative=True, objectSpace=True)
                 cmds.move(1, temp_grp_up, z=True, relative=True, objectSpace=True)
-                cmds.delete(cmds.aimConstraint(temp_grp_dir, temp_grp, offset=(0, 0, 0), aimVector=(1, 0, 0),
-                                               upVector=(0, 1, 0), worldUpType='vector', worldUpVector=(0, 1, 0)))
                 cmds.delete(
-                    cmds.aimConstraint(temp_grp_up, temp_grp, offset=(0, 0, 0), aimVector=(0, 1, 0), upVector=(0, 1, 0),
-                                       worldUpType='vector', worldUpVector=(0, 1, 0), skip=('y', 'z')))
+                    cmds.aimConstraint(
+                        temp_grp_dir,
+                        temp_grp,
+                        offset=(0, 0, 0),
+                        aimVector=(1, 0, 0),
+                        upVector=(0, 1, 0),
+                        worldUpType="vector",
+                        worldUpVector=(0, 1, 0),
+                    )
+                )
+                cmds.delete(
+                    cmds.aimConstraint(
+                        temp_grp_up,
+                        temp_grp,
+                        offset=(0, 0, 0),
+                        aimVector=(0, 1, 0),
+                        upVector=(0, 1, 0),
+                        worldUpType="vector",
+                        worldUpVector=(0, 1, 0),
+                        skip=("y", "z"),
+                    )
+                )
                 values_to_store = extract_transform_joint_to_proxy(current_jnt, no_jnt_extraction=temp_grp)
                 cmds.delete(temp_grp)
                 cmds.delete(temp_grp_dir)
                 cmds.delete(temp_grp_up)
             elif jnt_key in right_offset_rot_list:
-                temp_grp = cmds.group(name='temp_' + str(random.random()), world=True, empty=True)
-                temp_grp_dir = cmds.group(name='temp_dir' + str(random.random()), world=True, empty=True)
-                temp_grp_up = cmds.group(name='temp_up' + str(random.random()), world=True, empty=True)
+                temp_grp = cmds.group(name="temp_" + str(random.random()), world=True, empty=True)
+                temp_grp_dir = cmds.group(name="temp_dir" + str(random.random()), world=True, empty=True)
+                temp_grp_up = cmds.group(name="temp_up" + str(random.random()), world=True, empty=True)
                 cmds.delete(cmds.parentConstraint(current_jnt, temp_grp))
                 cmds.delete(cmds.parentConstraint(current_jnt, temp_grp_dir))
                 cmds.delete(cmds.parentConstraint(current_jnt, temp_grp_up))
                 cmds.move(1, temp_grp_dir, x=True, relative=True, objectSpace=True)
                 cmds.move(-1, temp_grp_up, z=True, relative=True, objectSpace=True)
-                cmds.delete(cmds.aimConstraint(temp_grp_dir, temp_grp, offset=(0, 0, 0), aimVector=(1, 0, 0),
-                                               upVector=(0, 1, 0), worldUpType='vector', worldUpVector=(0, 1, 0)))
                 cmds.delete(
-                    cmds.aimConstraint(temp_grp_up, temp_grp, offset=(0, 0, 0), aimVector=(0, 1, 0), upVector=(0, 1, 0),
-                                       worldUpType='vector', worldUpVector=(0, 1, 0), skip=('y', 'z')))
+                    cmds.aimConstraint(
+                        temp_grp_dir,
+                        temp_grp,
+                        offset=(0, 0, 0),
+                        aimVector=(1, 0, 0),
+                        upVector=(0, 1, 0),
+                        worldUpType="vector",
+                        worldUpVector=(0, 1, 0),
+                    )
+                )
+                cmds.delete(
+                    cmds.aimConstraint(
+                        temp_grp_up,
+                        temp_grp,
+                        offset=(0, 0, 0),
+                        aimVector=(0, 1, 0),
+                        upVector=(0, 1, 0),
+                        worldUpType="vector",
+                        worldUpVector=(0, 1, 0),
+                        skip=("y", "z"),
+                    )
+                )
                 values_to_store = extract_transform_joint_to_proxy(current_jnt, no_jnt_extraction=temp_grp)
                 cmds.delete(temp_grp)
                 cmds.delete(temp_grp_dir)
@@ -2369,19 +2738,24 @@ def extract_biped_proxy_pose():
                 values_to_store = extract_transform_joint_to_proxy(current_jnt)
 
             for proxy_key in data_biped.elements_default:
-                if jnt_key.replace('_' + JNT_SUFFIX, '_proxy_crv') == proxy_key:
+                if jnt_key.replace("_" + JNT_SUFFIX, "_proxy_crv") == proxy_key:
                     extracted_export_dict[proxy_key] = values_to_store
 
         # Heel Pivot Extraction
-        for pivot in ['left_heel_pivotGrp', 'right_heel_pivotGrp']:
+        for pivot in ["left_heel_pivotGrp", "right_heel_pivotGrp"]:
             if cmds.objExists(pivot):
-                temp_grp = cmds.group(name='temp_' + str(random.random()), world=True, empty=True)
+                temp_grp = cmds.group(name="temp_" + str(random.random()), world=True, empty=True)
                 cmds.delete(cmds.parentConstraint(pivot, temp_grp))
-                pivot_pos = extract_transform_joint_to_proxy(temp_grp, ignore_translate=False, ignore_rotate=True,
-                                                             ignore_scale=True)
+                pivot_pos = extract_transform_joint_to_proxy(
+                    temp_grp, ignore_translate=False, ignore_rotate=True, ignore_scale=True
+                )
                 cmds.delete(temp_grp)
-                extracted_export_dict[pivot.replace('_pivotGrp', '_proxy_pivot')] = (
-                    pivot.replace('_pivotGrp', '_pivot_proxy'), pivot_pos[1], pivot_pos[2], pivot_pos[3])
+                extracted_export_dict[pivot.replace("_pivotGrp", "_proxy_pivot")] = (
+                    pivot.replace("_pivotGrp", "_pivot_proxy"),
+                    pivot_pos[1],
+                    pivot_pos[2],
+                    pivot_pos[3],
+                )
 
         return extracted_export_dict
 
@@ -2393,14 +2767,14 @@ def extract_biped_proxy_pose():
     pose_file = None
     needs_joints = True
     export_dict = {}
-    file_extension = data_biped.proxy_storage_variables.get('file_extension')
-    proxy_attr_name = data_biped.proxy_storage_variables.get('attr_name')
+    file_extension = data_biped.proxy_storage_variables.get("file_extension")
+    proxy_attr_name = data_biped.proxy_storage_variables.get("attr_name")
     script_name = data_biped.script_name
 
     # Easy method (main_ctrl string)
-    main_ctrl = 'main_ctrl'
+    main_ctrl = "main_ctrl"
     if cmds.objExists(main_ctrl):
-        proxy_attr = main_ctrl + '.' + proxy_attr_name
+        proxy_attr = main_ctrl + "." + proxy_attr_name
         if cmds.objExists(proxy_attr):
             export_dict = cmds.getAttr(proxy_attr)
             try:
@@ -2411,22 +2785,29 @@ def extract_biped_proxy_pose():
 
     # Check for existing rig
     if needs_joints:
-        desired_elements = ['main_ctrl']
+        desired_elements = ["main_ctrl"]
         for jnt in data_biped.joints_default:
             desired_elements.append(data_biped.joints_default.get(jnt))
         for obj in desired_elements:
             if not cmds.objExists(obj) and is_valid:
                 is_valid = False
-                cmds.warning('"' + obj + '" is missing. This means that it was already renamed or deleted. '
-                                         '(Click on "Help" for more details)')
+                cmds.warning(
+                    '"' + obj + '" is missing. This means that it was already renamed or deleted. '
+                    '(Click on "Help" for more details)'
+                )
 
     if is_valid:
-        file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
-        file_filter += script_name + ' - JSON File (*.json)'
-        file_name = cmds.fileDialog2(
-            fileFilter=file_filter,
-            dialogStyle=2, okCaption='Export',
-            caption='Exporting Proxy Pose for "' + script_name + '"') or []
+        file_filter = script_name + " - " + file_extension.upper() + " File (*." + file_extension + ");;"
+        file_filter += script_name + " - JSON File (*.json)"
+        file_name = (
+            cmds.fileDialog2(
+                fileFilter=file_filter,
+                dialogStyle=2,
+                okCaption="Export",
+                caption='Exporting Proxy Pose for "' + script_name + '"',
+            )
+            or []
+        )
         if len(file_name) > 0:
             pose_file = file_name[0]
             successfully_created_file = True
@@ -2435,14 +2816,17 @@ def extract_biped_proxy_pose():
         if needs_joints:
             export_dict = force_extract_from_joints()
         try:
-            with open(pose_file, 'w') as outfile:
+            with open(pose_file, "w") as outfile:
                 json.dump(export_dict, outfile, indent=4)
 
-            unique_message = '<' + str(random.random()) + '>'
+            unique_message = "<" + str(random.random()) + ">"
             cmds.inViewMessage(
-                amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'
-                                     'Proxy Pose</span><span style=\"color:#FFFFFF;\"> extracted.</span>',
-                pos='botLeft', fade=True, alpha=.9)
+                amg=unique_message + '<span style="color:#FF0000;text-decoration:underline;">'
+                'Proxy Pose</span><span style="color:#FFFFFF;"> extracted.</span>',
+                pos="botLeft",
+                fade=True,
+                alpha=0.9,
+            )
             sys.stdout.write('Pose extracted to the file "' + pose_file + '".')
         except Exception as exception:
             logger.info(str(exception))
@@ -2460,20 +2844,20 @@ def extract_corrective_proxy_pose():
     successfully_created_file = False
     pose_file = None
     script_name = data_corrective.script_name
-    file_extension = data_corrective.proxy_storage_variables.get('file_extension')
-    proxy_attr_name = data_corrective.proxy_storage_variables.get('attr_name')
+    file_extension = data_corrective.proxy_storage_variables.get("file_extension")
+    proxy_attr_name = data_corrective.proxy_storage_variables.get("attr_name")
 
     # Easy method (main_ctrl string)
-    main_ctrl = 'main_ctrl'
+    main_ctrl = "main_ctrl"
     if cmds.objExists(main_ctrl):
-        proxy_attr = main_ctrl + '.' + proxy_attr_name
+        proxy_attr = main_ctrl + "." + proxy_attr_name
         if cmds.objExists(proxy_attr):
             export_dict = cmds.getAttr(proxy_attr)
             try:
                 export_dict = json.loads(str(export_dict))
             except Exception as e:
                 logger.warning(str(e))
-                cmds.warning('Failed to decode JSON data.')
+                cmds.warning("Failed to decode JSON data.")
                 return
         else:
             cmds.warning('Missing required attribute: "' + proxy_attr + '"')
@@ -2482,26 +2866,34 @@ def extract_corrective_proxy_pose():
         cmds.warning('Missing required control: "' + main_ctrl + '"')
         return
 
-    file_filter = script_name + ' - ' + file_extension.upper() + ' File (*.' + file_extension + ');;'
-    file_filter += script_name + ' - JSON File (*.json)'
-    file_name = cmds.fileDialog2(
-        fileFilter=file_filter,
-        dialogStyle=2, okCaption='Export',
-        caption='Exporting Proxy Pose for "' + script_name + '"') or []
+    file_filter = script_name + " - " + file_extension.upper() + " File (*." + file_extension + ");;"
+    file_filter += script_name + " - JSON File (*.json)"
+    file_name = (
+        cmds.fileDialog2(
+            fileFilter=file_filter,
+            dialogStyle=2,
+            okCaption="Export",
+            caption='Exporting Proxy Pose for "' + script_name + '"',
+        )
+        or []
+    )
     if len(file_name) > 0:
         pose_file = file_name[0]
         successfully_created_file = True
 
     if successfully_created_file:
         try:
-            with open(pose_file, 'w') as outfile:
+            with open(pose_file, "w") as outfile:
                 json.dump(export_dict, outfile, indent=4)
 
-            unique_message = '<' + str(random.random()) + '>'
+            unique_message = "<" + str(random.random()) + ">"
             cmds.inViewMessage(
-                amg=unique_message + '<span style=\"color:#FF0000;text-decoration:underline;\">'
-                                     'Proxy Pose</span><span style=\"color:#FFFFFF;\"> extracted.</span>',
-                pos='botLeft', fade=True, alpha=.9)
+                amg=unique_message + '<span style="color:#FF0000;text-decoration:underline;">'
+                'Proxy Pose</span><span style="color:#FFFFFF;"> extracted.</span>',
+                pos="botLeft",
+                fade=True,
+                alpha=0.9,
+            )
             sys.stdout.write('Pose extracted to the file "' + pose_file + '".')
         except Exception as exception:
             logger.info(str(exception))
@@ -2513,10 +2905,11 @@ def rebuild_rig():
     A button call for rig rebuild (Temporary)
     """
     from tools.biped_rigger_legacy import rigger_rebuild
+
     rigger_rebuild.validate_rebuild()
 
 
 # Build UI
-if __name__ == '__main__':
+if __name__ == "__main__":
     # logger.setLevel(logging.DEBUG)
     build_gui_auto_biped_rig()

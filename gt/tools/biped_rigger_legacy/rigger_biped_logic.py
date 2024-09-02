@@ -10429,7 +10429,7 @@ def build_test_biped_rig(create_rig_ctrls=True, debugging=True):
 # Test it
 if __name__ == '__main__':
     # build_test_biped_rig(create_rig_ctrls=False, debugging=True)
-    from gt.utils.scene_utils import force_reload_file
+    from gt.core.scene import force_reload_file
     force_reload_file()
     biped_obj = GTBipedRiggerData()
     biped_obj.debugging = False

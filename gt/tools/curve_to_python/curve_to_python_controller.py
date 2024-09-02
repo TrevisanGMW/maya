@@ -1,10 +1,10 @@
 """
 Curve To Python Controller
 """
-from gt.utils.curve_utils import get_python_shape_code, get_python_curve_code
-from gt.utils.system_utils import execute_python_code
-from gt.utils.misc_utils import create_shelf_button
-from gt.utils.feedback_utils import FeedbackMessage
+from gt.core.curve import get_python_shape_code, get_python_curve_code
+from gt.utils.system import execute_python_code
+from gt.core.misc import create_shelf_button
+from gt.core.feedback import FeedbackMessage
 import logging
 
 # Logging Setup
@@ -37,7 +37,7 @@ class CurveToPythonController:
     @staticmethod
     def open_help():
         """ Opens package docs """
-        from gt.utils.request_utils import open_package_docs_url_in_browser
+        from gt.utils.request import open_package_docs_url_in_browser
         open_package_docs_url_in_browser()
 
     @staticmethod

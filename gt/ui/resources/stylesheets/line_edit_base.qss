@@ -9,4 +9,15 @@ QLineEdit {
 
 QLineEdit:focus {
 	border: 2px solid @focus_border_color;
+	outline: none;
+}
+
+QLineEdit:hover {
+    border: 1px solid @hover_border_color;
+}
+
+
+QLineEdit:disabled {
+    background-color: @background_disabled;
+    color: @text_color_disabled; 
 }

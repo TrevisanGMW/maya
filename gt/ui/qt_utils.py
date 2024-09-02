@@ -1,9 +1,6 @@
-from PySide2.QtWidgets import QApplication, QWidget, QDesktopWidget, QDialog, QMainWindow, QHeaderView, QLineEdit
-from PySide2.QtGui import QFontDatabase, QColor, QFont, QPixmap, QIcon, QKeyEvent
-from gt.utils.session_utils import is_script_in_interactive_maya
-from gt.utils.system_utils import is_system_macos
-from PySide2 import QtGui, QtCore, QtWidgets
-from PySide2.QtCore import QPoint, Qt
+import gt.utils.system as utils_system
+import gt.core.session as core_session
+import gt.ui.qt_import as ui_qt
 import logging
 import sys
 import os
@@ -24,6 +21,7 @@ class MayaWindowMeta(type):
     It dynamically adjusts the class inheritance to include "MayaQWidgetDockableMixin" based on the context
     (interactive Maya session or not).
     """
+
     def __new__(mcs, name, bases, attrs, base_inheritance=None, dockable=True):
         """
         Create a new class with modified inheritance for the dock ability in Maya.
@@ -52,16 +50,17 @@ class MayaWindowMeta(type):
             or
             class ToolView(metaclass=MayaWindowMeta):
         """
-        if not is_script_in_interactive_maya():
+        if not core_session.is_script_in_interactive_maya():
             dockable = False
         if not base_inheritance:
-            base_inheritance = (QDialog, )
-            if is_system_macos():
-                base_inheritance = (QDialog, )
+            base_inheritance = (ui_qt.QtWidgets.QDialog,)
+            if utils_system.is_system_macos():
+                base_inheritance = (ui_qt.QtWidgets.QDialog,)
         if not isinstance(base_inheritance, tuple):
             base_inheritance = (base_inheritance,)
         if dockable:
             from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+
             bases = (MayaQWidgetDockableMixin,) + base_inheritance
         else:
             bases = base_inheritance
@@ -97,7 +96,7 @@ class MayaWindowMeta(type):
                             *args_show: Additional positional arguments for the "show" method.
                             **kwargs_show: Additional keyword arguments for the "show" method.
                         """
-                        if not hasattr(self, '_original_geometry'):
+                        if not hasattr(self, "_original_geometry"):
                             width = self.geometry().width()
                             height = self.geometry().height()
                             pos_x = self.pos().x()
@@ -106,45 +105,48 @@ class MayaWindowMeta(type):
                         original_show(*args_show, **kwargs_show, dockable=True)
                         try:
                             window_parent = self.parent().parent().parent().parent().parent()
-                            QWidget.setWindowIcon(window_parent, self.windowIcon())
-                            if hasattr(self, '_original_geometry'):
+                            ui_qt.QtWidgets.QWidget.setWindowIcon(window_parent, self.windowIcon())
+                            if hasattr(self, "_original_geometry"):
                                 x, y, width, height = self._original_geometry
                                 window_parent.move(x, y)
                                 window_parent.resize(width, height)
                         except (AttributeError, ValueError):
                             pass
+
                     self.show = custom_show
                 # Call Original Init
                 original_init(self, *args, **kwargs)
                 # Stay On Top macOS Tool Modality
                 try:
-                    if is_system_macos() and not dockable:
-                        self.setWindowFlag(QtCore.Qt.Tool, True)
+                    if utils_system.is_system_macos() and not dockable:
+                        self.setWindowFlag(ui_qt.QtLib.WindowFlag.Tool, True)
                 except Exception as e:
                     logger.debug(f'Unable to set MacOS Tool Modality. Issue: "{str(e)}".')
+
             new_class.__init__ = custom_init
         return new_class
 
 
 def get_maya_main_window_qt_elements(class_object):
     """
-    Get PySide2.QtWidgets.QWidget elements of a specific class from the main Maya window.
+    Get QtWidgets.QWidget elements of a specific class from the main Maya window.
 
     Args:
         class_object (type or str): The class type or fully qualified string name of the class.
 
     Returns:
-        list: A list of PySide2.QtWidgets.QWidget elements matching the given class in the Maya window.
+        list: A list of QtWidgets.QWidget elements matching the given class in the Maya window.
     """
     if isinstance(class_object, str):
-        from gt.utils.system_utils import import_from_path
+        from gt.utils.system import import_from_path
+
         class_object = import_from_path(class_object)
     if not class_object:
         logger.debug(f'The requested class was not found or is "None".')
         return []
     maya_win = get_maya_main_window()
     if not maya_win:
-        logger.debug(f'Maya window was not found.')
+        logger.debug(f"Maya window was not found.")
         return []
     return maya_win.findChildren(class_object)
 
@@ -161,7 +163,7 @@ def close_ui_elements(obj_list):
             obj.close()
             obj.deleteLater()
         except Exception as e:
-            logger.debug(f'Unable to close and delete window object. Issue: {str(e)}')
+            logger.debug(f"Unable to close and delete window object. Issue: {str(e)}")
             pass
 
 
@@ -177,8 +179,8 @@ def get_cursor_position(offset_x=0, offset_y=0):
         QPoint: the current cursor position, offset by the given x and y offset values>
 
     """
-    cursor_position = QtGui.QCursor().pos()
-    return QtCore.QPoint(cursor_position.x() + offset_x, cursor_position.y() + offset_y)
+    cursor_position = ui_qt.QtGui.QCursor().pos()
+    return ui_qt.QtCore.QPoint(cursor_position.x() + offset_x, cursor_position.y() + offset_y)
 
 
 def get_screen_center():
@@ -189,10 +191,10 @@ def get_screen_center():
         QPoint: A QPoint object with X and Y coordinates for the center of the screen.
     """
     screen_number = get_main_window_screen_number()
-    screen = QApplication.screens()[screen_number]
+    screen = ui_qt.QtWidgets.QApplication.screens()[screen_number]
     center_x = screen.geometry().center().x()
     center_y = screen.geometry().center().y()
-    center = QPoint(center_x, center_y)
+    center = ui_qt.QtCore.QPoint(center_x, center_y)
     return center
 
 
@@ -209,23 +211,22 @@ def load_custom_font(font_path, point_size=-1, weight=-1, italic=False):
     Returns:
         QFont: A QFont object for the provided custom font or a default one if the operation failed
     """
-    custom_font = QtGui.QFont()  # default font
-    if QApplication.instance():
+    custom_font = ui_qt.QtGui.QFont()  # default font
+    if ui_qt.QtWidgets.QApplication.instance():
         # Open the font file using QFile
-        file = QtCore.QFile(font_path)
-        if file.open(QtCore.QIODevice.ReadOnly):
+        file = ui_qt.QtCore.QFile(font_path)
+        if file.open(ui_qt.QtLib.OpenModeFlag.ReadOnly):
             data = file.readAll()
             file.close()
 
             # Load the font from the memory data
-            font_id = QtGui.QFontDatabase.addApplicationFontFromData(data)
+            font_id = ui_qt.QtGui.QFontDatabase.addApplicationFontFromData(data)
             if font_id != -1:
-                font_families = QtGui.QFontDatabase.applicationFontFamilies(font_id)
+                font_families = ui_qt.QtGui.QFontDatabase.applicationFontFamilies(font_id)
                 if len(font_families) > 0:
-                    custom_font = QtGui.QFont(font_families[0],
-                                              pointSize=point_size,
-                                              weight=weight,
-                                              italic=italic)
+                    custom_font = ui_qt.QtGui.QFont(
+                        font_families[0], pointSize=point_size, weight=weight, italic=italic
+                    )
         else:
             logger.debug(f"Failed to open the font file: {font_path}")
     return custom_font
@@ -239,8 +240,8 @@ def is_font_available(font_name):
     Returns:
         bool: True if the font is available, false if it's not.
     """
-    if QApplication.instance():
-        font_db = QFontDatabase()
+    if ui_qt.QtWidgets.QApplication.instance():
+        font_db = ui_qt.QtGui.QFontDatabase()
         available_fonts = font_db.families()
         return font_name in available_fonts
 
@@ -256,11 +257,11 @@ def get_font(font):
     Returns:
         QFont: A QFont object with the provided font or a default QFont object in case the operation failed.
     """
-    qt_font = QtGui.QFont()
+    qt_font = ui_qt.QtGui.QFont()
     if not isinstance(font, str):
         return qt_font
     if is_font_available(font):
-        qt_font = QtGui.QFont(font)
+        qt_font = ui_qt.QtGui.QFont(font)
     elif os.path.exists(font) and os.path.isfile(font):
         qt_font = load_custom_font(font)
     return qt_font
@@ -272,31 +273,37 @@ def get_maya_main_window():
     Returns:
         QWidget: The main maya widget
     """
-    from shiboken2 import wrapInstance
     from maya import OpenMayaUI as OpenMayaUI
+
     ptr = OpenMayaUI.MQtUtil.mainWindow()
-    maya_window = wrapInstance(int(ptr), QWidget)
+    maya_window = ui_qt.shiboken.wrapInstance(int(ptr), ui_qt.QtWidgets.QWidget)
     return maya_window
 
 
 def get_qt_color(color):
     if isinstance(color, str):
         if re.match(r"^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$", color):  # Hex pattern (e.g. "#FF0000"):
-            return QColor(color)
+            return ui_qt.QtGui.QColor(color)
         else:
             try:
-                return QColor(color)
+                return ui_qt.QtGui.QColor(color)
             except Exception as e:
-                logger.error(f'Unable to create QColor. Issue: {e}')
-    elif isinstance(color, QColor):
+                logger.error(f"Unable to create QColor. Issue: {e}")
+    elif isinstance(color, ui_qt.QtGui.QColor):
         return color
     elif color is not None:
         logger.error(f'Unable to create QColor. Unrecognized object type received: "{type(color)}"')
 
 
-def resize_to_screen(window, percentage=20,
-                     width_percentage=None, height_percentage=None,
-                     dpi_scale=False, dpi_percentage=20, dpi_ignore_below_one=True):
+def resize_to_screen(
+    window,
+    percentage=20,
+    width_percentage=None,
+    height_percentage=None,
+    dpi_scale=False,
+    dpi_percentage=20,
+    dpi_ignore_below_one=True,
+):
     """
     Resizes the window to match a percentage of the screen size.
 
@@ -320,9 +327,16 @@ def resize_to_screen(window, percentage=20,
     if not 0 <= percentage <= 100:
         raise ValueError("Percentage should be between 0 and 100")
 
-    screen_geometry = QDesktopWidget().availableGeometry(window)
-    width = screen_geometry.width() * percentage / 100
-    height = screen_geometry.height() * percentage / 100
+    if ui_qt.IS_PYSIDE6:
+        screen = ui_qt.QtGui.QGuiApplication.primaryScreen()
+        screen_geometry = screen.availableGeometry()
+        width = screen_geometry.width() * percentage / 100
+        height = screen_geometry.height() * percentage / 100
+    else:
+        screen = ui_qt.QtWidgets.QDesktopWidget()
+        screen_geometry = screen.availableGeometry(window)
+        width = screen_geometry.width() * percentage / 100
+        height = screen_geometry.height() * percentage / 100
     if height_percentage:
         height = screen_geometry.height() * height_percentage / 100
     if width_percentage:
@@ -332,12 +346,12 @@ def resize_to_screen(window, percentage=20,
         dpi_scale = dpi_scale * (dpi_percentage / 100)
         if dpi_ignore_below_one and dpi_scale < 1.0:
             dpi_scale = 1.0
-        scaled_height = height*dpi_scale
+        scaled_height = height * dpi_scale
         if scaled_height <= screen_geometry.height():
             height = scaled_height
         else:
             height = screen_geometry.height()
-        scaled_width = width*dpi_scale
+        scaled_width = width * dpi_scale
         if scaled_width <= screen_geometry.width():
             width = scaled_width
         else:
@@ -352,12 +366,17 @@ def get_main_window_screen_number():
     Returns:
         int: Index of the screen where the main window is located.
     """
-    app = QApplication.instance()
+    app = ui_qt.QtWidgets.QApplication.instance()
     if app is None:
         return -1  # No instance found
-    main_window = app.activeWindow() or QMainWindow()
-    screen_number = QApplication.desktop().screenNumber(main_window)
-    return screen_number
+    main_window = app.activeWindow() or ui_qt.QtWidgets.QMainWindow()
+    if ui_qt.IS_PYSIDE6:
+        screen = ui_qt.QtGui.QGuiApplication.screenAt(main_window.geometry().center())
+        screen_number = ui_qt.QtGui.QGuiApplication.screens().index(screen)
+        return screen_number
+    else:
+        screen_number = ui_qt.QtWidgets.QApplication.desktop().screenNumber(main_window)
+        return screen_number
 
 
 def get_window_screen_number(window):
@@ -368,9 +387,25 @@ def get_window_screen_number(window):
     Returns:
         int: Screen number where the window is located.
     """
-    desktop = QDesktopWidget()
-    screen_number = desktop.screenNumber(window)
-    return screen_number
+    if ui_qt.IS_PYSIDE6:
+        # Get the QGuiApplication instance
+        app = ui_qt.QtGui.QGuiApplication.instance()
+        if not app:
+            raise RuntimeError("QGuiApplication instance is not created.")
+
+        # Get the widget's global position
+        widget_global_pos = window.mapToGlobal(window.rect().topLeft())
+
+        screens = app.screens()
+
+        for i, screen in enumerate(screens):
+            if screen.geometry().contains(widget_global_pos):
+                return i  # Return the screen number (index)
+        return -1  # Return -1 if no screen is found
+    else:  # Pyside2
+        desktop = ui_qt.QtWidgets.QDesktopWidget()
+        screen_number = desktop.screenNumber(window)
+        return screen_number
 
 
 def center_window(window):
@@ -386,18 +421,20 @@ def center_window(window):
     window.move(rect.topLeft())
 
 
-def update_formatted_label(target_label,
-                           text,
-                           text_size=None,
-                           text_color=None,
-                           text_bg_color=None,
-                           text_is_bold=False,
-                           output_text="",
-                           output_size=None,
-                           output_color=None,
-                           output_bg_color=None,
-                           text_output_is_bold=False,
-                           overall_alignment="center"):
+def update_formatted_label(
+    target_label,
+    text,
+    text_size=None,
+    text_color=None,
+    text_bg_color=None,
+    text_is_bold=False,
+    output_text="",
+    output_size=None,
+    output_color=None,
+    output_bg_color=None,
+    text_output_is_bold=False,
+    overall_alignment="center",
+):
     """
     Updates the target QLabel with formatted text containing a text and text output.
     e.g. "Text: TextOutput" or "Status: OK"
@@ -464,7 +501,7 @@ def load_and_scale_pixmap(image_path, scale_percentage=100, exact_height=None, e
     Returns:
         QPixmap: Scaled QPixmap object with loaded image (Using SmoothTransformation mode)
     """
-    pixmap = QPixmap(image_path)
+    pixmap = ui_qt.QtGui.QPixmap(image_path)
     pixmap_height = pixmap.height()
     pixmap_width = pixmap.width()
 
@@ -476,13 +513,13 @@ def load_and_scale_pixmap(image_path, scale_percentage=100, exact_height=None, e
     if exact_width and isinstance(exact_width, int):
         scaled_width = exact_width
 
-    scaled_pixmap = pixmap.scaled(scaled_width, scaled_height, mode=QtCore.Qt.SmoothTransformation)
+    scaled_pixmap = pixmap.scaled(scaled_width, scaled_height, mode=ui_qt.QtLib.TransformationMode.SmoothTransformation)
     return scaled_pixmap
 
 
 class QtApplicationContext:
     """
-    A context manager for managing a PySide2 QtWidgets.QApplication.
+    A context manager for managing a QtWidgets.QApplication.
 
     Usage:
     with QtContext() as context:
@@ -491,12 +528,13 @@ class QtApplicationContext:
     When the context is exited, the Qt application will be properly closed.
 
     Attributes:
-        app (QtWidgets.QApplication): The PySide2 QApplication instance.
+        app (QtWidgets.QApplication): The QApplication instance.
     """
+
     def __init__(self):
-        """ Initializes QtApplicationContext """
+        """Initializes QtApplicationContext"""
         self.app = None
-        self.is_script_in_interactive_maya = is_script_in_interactive_maya()
+        self.is_script_in_interactive_maya = core_session.is_script_in_interactive_maya()
         self.parent = None
 
     def is_in_interactive_maya(self):
@@ -525,10 +563,10 @@ class QtApplicationContext:
         if self.is_script_in_interactive_maya:
             self.parent = get_maya_main_window()
         else:
-            logger.debug('Running Qt outside Maya. Initializing QApplication.')
-            _app_instance = QApplication.instance()
+            logger.debug("Running Qt outside Maya. Initializing QApplication.")
+            _app_instance = ui_qt.QtWidgets.QApplication.instance()
             if not _app_instance:
-                self.app = QApplication(sys.argv)
+                self.app = ui_qt.QtWidgets.QApplication(sys.argv)
             else:
                 self.app = _app_instance
         return self
@@ -564,11 +602,11 @@ def create_color_pixmap(color, width=24, height=24):
     Returns:
         The created QPixmap with the specified color, or None if color is invalid.
     """
-    if not isinstance(color, QColor):
+    if not isinstance(color, ui_qt.QtGui.QColor):
         logger.debug("Invalid color provided. Please provide a valid QColor object.")
         return None
 
-    pixmap = QPixmap(width, height)
+    pixmap = ui_qt.QtGui.QPixmap(width, height)
     pixmap.fill(color)
     return pixmap
 
@@ -594,12 +632,12 @@ def create_color_icon(color, width=24, height=24):
         blue_color = QColor(0, 0, 255)
         blue_icon = create_color_icon(blue_color, icon_size=32)
     """
-    if not isinstance(color, QColor):
+    if not isinstance(color, ui_qt.QtGui.QColor):
         logger.debug("Invalid color provided. Please provide a valid QColor object.")
         return None
 
     pixmap = create_color_pixmap(color=color, width=width, height=height)
-    icon = QIcon(pixmap)
+    icon = ui_qt.QtGui.QIcon(pixmap)
     return icon
 
 
@@ -616,7 +654,7 @@ def get_screen_dpi_scale(screen_number):
     Raises:
         ValueError: If the screen number is out of range.
     """
-    app = QApplication.instance()
+    app = ui_qt.QtWidgets.QApplication.instance()
     screen_list = app.screens()
 
     if 0 <= screen_number < len(screen_list):
@@ -649,7 +687,7 @@ def expand_tree_item_recursively(item):
             expand_tree_item_recursively(item.child(i))
 
 
-class QHeaderWithWidgets(QHeaderView):
+class QHeaderWithWidgets(ui_qt.QtWidgets.QHeaderView):
     """
     Subclass of QHeaderView with the ability to set custom widgets for individual sections.
 
@@ -664,7 +702,7 @@ class QHeaderWithWidgets(QHeaderView):
         Args:
             parent (QWidget): The parent widget. Defaults to None.
         """
-        super().__init__(Qt.Horizontal, parent)
+        super().__init__(ui_qt.QtLib.Orientation.Horizontal, parent)
         self.widget_index_dict = {}
 
     def add_widget(self, index, widget):
@@ -699,20 +737,251 @@ class QHeaderWithWidgets(QHeaderView):
                 widget.setGeometry(rect)
 
 
-class ConfirmableQLineEdit(QLineEdit):
+class ConfirmableQLineEdit(ui_qt.QtWidgets.QLineEdit):
     """
     Custom QLineEdit that prevents the pressing of the Enter key to trigger other undesired behaviours.
     """
-    def keyPressEvent(self, event: QKeyEvent):
-        if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
+
+    def keyPressEvent(self, event: ui_qt.QtGui.QKeyEvent):
+        if event.key() == ui_qt.QtLib.Key.Key_Enter or event.key() == ui_qt.QtLib.Key.Key_Return:
             event.accept()  # Prevent the default behavior of the Enter key
             self.editingFinished.emit()
         else:
             super().keyPressEvent(event)  # Continue with the default behavior for other keys
 
 
+class QIntSlider(ui_qt.QtWidgets.QSlider):
+    """A QSlider subclass that emits integer values.
+
+    This class provides a slider that operates over a range of integer values.
+    It emits a signal with an integer value when the slider is moved.
+
+    Attributes:
+        intValueChanged (QtCore.Signal): Custom signal that emits an integer value when the slider changes.
+    """
+
+    intValueChanged = ui_qt.QtCore.Signal(int)
+
+    def __init__(self, orientation=ui_qt.QtLib.Orientation.Horizontal, parent=None):
+        """
+        Initializes the QIntSlider.
+
+        Args:
+            orientation (Qt.Orientation): The orientation of the slider. Defaults to Qt.Horizontal.
+            parent (QtWidgets.QWidget): The parent widget of the slider. Defaults to None.
+        """
+        super().__init__(orientation, parent)
+
+        # Default range for integers
+        self._min_int = 0
+        self._max_int = 100
+        self.setRange(self._min_int, self._max_int)
+        self.linked_spin_box = None
+
+        # Connect the QSlider's valueChanged signal to emit integer values
+        self.valueChanged.connect(self.emit_int_value)
+
+    def emit_int_value(self, value):
+        """
+        Emits the intValueChanged signal with the slider's integer value.
+
+        This method emits the custom signal with the current slider value.
+
+        Args:
+            value (int): The integer value of the slider.
+        """
+        self.intValueChanged.emit(value)
+
+    def set_int_value(self, int_value):
+        """
+        Sets the slider position based on an integer value.
+
+        Args:
+            int_value (int): The integer value to set on the slider.
+        """
+        self.setValue(int_value)
+
+    def set_int_range(self, min_int, max_int):
+        """
+        Sets the range of the slider to represent the given integer range.
+
+        Args:
+            min_int (int): The minimum integer value of the slider.
+            max_int (int): The maximum integer value of the slider.
+        """
+        self._min_int = min_int
+        self._max_int = max_int
+        self.setRange(self._min_int, self._max_int)
+        self.set_int_value(self._min_int)  # Reset the slider to min value
+
+        # Update the linked spin box range if linked
+        if self.linked_spin_box:
+            self.linked_spin_box.setRange(self._min_int, self._max_int)
+
+    def int_value(self):
+        """
+        Returns the current slider value as an integer.
+
+        Returns:
+            int: The current slider value.
+        """
+        return self.value()
+
+    def link_spin_box(self, spin_box):
+        """
+        Links a QSpinBox to the slider for synchronized updates.
+
+        Args:
+            spin_box (QSpinBox): The QSpinBox to link with the slider.
+        """
+        self.linked_spin_box = spin_box
+        # Update the spin box to reflect the current slider value
+        spin_box.setValue(self.int_value())
+        spin_box.setRange(self._min_int, self._max_int)  # Set initial range
+        spin_box.valueChanged.connect(self.set_int_value_from_spin_box)
+        self.intValueChanged.connect(self.set_spin_box_int_value)
+
+    def set_int_value_from_spin_box(self, value):
+        """
+        Updates the slider position based on the integer value from the linked spin box.
+
+        Args:
+            value (int): The integer value from the spin box.
+        """
+        self.set_int_value(value)
+
+    def set_spin_box_int_value(self, value):
+        """
+        Updates the spin box value based on the slider position.
+
+        Args:
+            value (int): The integer value to set in the spin box.
+        """
+        if self.linked_spin_box:
+            self.linked_spin_box.setValue(self.int_value())
+
+
+class QDoubleSlider(ui_qt.QtWidgets.QSlider):
+    """A QSlider subclass that emits double values.
+
+    This class provides a slider that operates over a range of double values with a specified precision.
+    It emits a signal with a double value when the slider is moved.
+
+    Attributes:
+        doubleValueChanged (QtCore.Signal): Custom signal that emits a double value when the slider changes.
+    """
+
+    doubleValueChanged = ui_qt.QtCore.Signal(float)
+
+    def __init__(self, orientation=ui_qt.QtLib.Orientation.Horizontal, parent=None):
+        """
+        Initializes the QDoubleSlider.
+
+        Args:
+            orientation (Qt.Orientation): The orientation of the slider. Defaults to Qt.Horizontal.
+            parent (QtWidgets.QWidget): The parent widget of the slider. Defaults to None.
+        """
+        super().__init__(orientation, parent)
+
+        # Default range to handle doubles with desired precision
+        self._scale = 1000.0
+        self._min_double = 0.0
+        self._max_double = 1.0
+        self.setRange(0, int(self._scale * (self._max_double - self._min_double)))
+        self.linked_spin_box = None
+
+        # Connect the QSlider's valueChanged signal to emit double values
+        self.valueChanged.connect(self.emit_double_value)
+
+    def emit_double_value(self, value):
+        """
+        Emits the doubleValueChanged signal with the slider's double value.
+
+        This method converts the slider's integer value to a double and emits the custom signal.
+
+        Args:
+            value (int): The integer value of the slider.
+        """
+        double_value = self._min_double + (value / self._scale)
+        self.doubleValueChanged.emit(double_value)
+
+    def set_double_value(self, double_value):
+        """
+        Sets the slider position based on a double value.
+
+        Args:
+            double_value (float): The double value to set on the slider.
+        """
+        int_value = int((double_value - self._min_double) * self._scale)
+        self.setValue(int_value)
+
+    def set_double_range(self, min_double, max_double):
+        """
+        Sets the range of the slider to represent the given double range.
+
+        Args:
+            min_double (float): The minimum double value of the slider.
+            max_double (float): The maximum double value of the slider.
+        """
+        self._min_double = min_double
+        self._max_double = max_double
+        self._scale = 1000.0  # Or another value depending on desired precision
+        self.setRange(0, int(self._scale * (self._max_double - self._min_double)))
+        self.set_double_value(self._min_double)  # Reset the slider to min value
+
+        # Update the linked spin box range if linked
+        if self.linked_spin_box:
+            self.linked_spin_box.setRange(self._min_double, self._max_double)
+
+    def double_value(self):
+        """
+        Returns the current slider value as a double.
+
+        Returns:
+            float: The current slider value represented as a double.
+        """
+        return self._min_double + (self.value() / self._scale)
+
+    def link_spin_box(self, spin_box):
+        """
+        Links a QDoubleSpinBox to the slider for synchronized updates.
+
+        Args:
+            spin_box (QDoubleSpinBox): The QDoubleSpinBox to link with the slider.
+        """
+        self.linked_spin_box = spin_box
+        # Update the spin box to reflect the current slider value
+        spin_box.setValue(self.double_value())
+        spin_box.setRange(self._min_double, self._max_double)  # Set initial range
+        spin_box.valueChanged.connect(self.set_double_value_from_spin_box)
+        self.doubleValueChanged.connect(self.set_spin_box_double_value)
+
+    def set_double_value_from_spin_box(self, value):
+        """
+        Updates the slider position based on the double value from the linked spin box.
+
+        Args:
+            value (float): The double value from the spin box.
+        """
+        self.set_double_value(value)
+
+    def set_spin_box_double_value(self, value):
+        """
+        Updates the spin box value based on the slider position.
+
+        Args:
+            value (float): The double value to set in the spin box.
+        """
+        if self.linked_spin_box:
+            self.linked_spin_box.setValue(self.double_value())
+
+
 if __name__ == "__main__":
-    with QtApplicationContext() as context:
-        print(context)
-    out = None
-    print(out)
+    with QtApplicationContext():
+        a_window = ui_qt.QtWidgets.QMainWindow()
+        resize_to_screen(a_window, percentage=40)
+        center_window(a_window)
+        print(get_main_window_screen_number())
+        print(get_screen_center())
+        a_window.show()
+        # close_ui_elements([a_window])  # Working, as it closes

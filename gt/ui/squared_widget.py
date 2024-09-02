@@ -1,9 +1,11 @@
-from PySide2.QtCore import QRect, QSize
-from PySide2.QtGui import QPixmap, QPainter
-from PySide2.QtWidgets import QWidget
+"""
+Square Widget
+"""
+
+import gt.ui.qt_import as ui_qt
 
 
-class SquaredWidget(QWidget):
+class SquaredWidget(ui_qt.QtWidgets.QWidget):
     def __init__(self, parent=None, center_x=True, center_y=True):
         """
         A custom QWidget that displays a square image.
@@ -12,7 +14,7 @@ class SquaredWidget(QWidget):
             parent (QWidget, optional): The parent widget. Defaults to None.
         """
         super().__init__(parent=parent)
-        self.pixmap = QPixmap()
+        self.pixmap = ui_qt.QtGui.QPixmap()
         self.center_x = center_x
         self.center_y = center_y
 
@@ -54,8 +56,8 @@ class SquaredWidget(QWidget):
             event (QPaintEvent): The paint event.
         """
         if not self.pixmap.isNull():
-            painter = QPainter(self)
-            painter.setRenderHint(QPainter.SmoothPixmapTransform)
+            painter = ui_qt.QtGui.QPainter(self)
+            painter.setRenderHint(ui_qt.QtLib.RenderHint.SmoothPixmapTransform)
             painter.drawPixmap(self.get_image_rect(), self.pixmap)
             self.center(center_x=self.center_x, center_y=self.center_y)
 
@@ -80,7 +82,7 @@ class SquaredWidget(QWidget):
             if new_width <= _width:
                 _width = new_width
 
-        square_rect = QRect(0, 0, _width, _height)
+        square_rect = ui_qt.QtCore.QRect(0, 0, _width, _height)
         square_rect.moveCenter(widget_rect.center())
         return square_rect
 
@@ -91,24 +93,23 @@ class SquaredWidget(QWidget):
         Args:
             event (QResizeEvent): The resize event.
         """
-        new_size = QSize(event.size().width(), event.size().height())
+        new_size = ui_qt.QtCore.QSize(event.size().width(), event.size().height())
         square_size = min(new_size.width(), new_size.height())
         self.resize(square_size, square_size)
         super().resizeEvent(event)
 
 
 if __name__ == "__main__":
-    from PySide2.QtWidgets import QMainWindow, QVBoxLayout
-    from gt.ui.resource_library import Icon
-    from gt.ui import qt_utils
+    import gt.ui.resource_library as ui_res_lib
+    import gt.ui.qt_utils as ui_t_utils
 
-    with qt_utils.QtApplicationContext():
-        main_window = QMainWindow()
+    with ui_t_utils.QtApplicationContext():
+        main_window = ui_qt.QtWidgets.QMainWindow()
         central_widget = SquaredWidget(center_y=False)
-        pixmap = QPixmap(Icon.library_missing_file)
-        central_widget.set_pixmap(pixmap)
+        a_pixmap = ui_qt.QtGui.QPixmap(ui_res_lib.Icon.library_missing_file)
+        central_widget.set_pixmap(a_pixmap)
         main_window.setCentralWidget(central_widget)
-        layout = QVBoxLayout(central_widget)
-        center_widget = QWidget()
+        layout = ui_qt.QtWidgets.QVBoxLayout(central_widget)
+        center_widget = ui_qt.QtWidgets.QWidget()
         layout.addWidget(center_widget)
         main_window.show()

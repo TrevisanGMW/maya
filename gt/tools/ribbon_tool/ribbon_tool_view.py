@@ -1,16 +1,13 @@
 """
 Ribbon Tool View/Window/UI
 """
-from PySide2.QtWidgets import QPushButton, QLabel, QVBoxLayout, QFrame, QSpinBox, QHBoxLayout, QCheckBox, QLineEdit
-from PySide2.QtWidgets import QComboBox, QDoubleSpinBox
-import gt.ui.resource_library as resource_library
-from gt.ui.qt_utils import MayaWindowMeta
-from PySide2 import QtWidgets, QtCore
-import gt.ui.qt_utils as qt_utils
-from PySide2.QtGui import QIcon
+
+import gt.ui.resource_library as ui_res_lib
+import gt.ui.qt_utils as ui_qt_utils
+import gt.ui.qt_import as ui_qt
 
 
-class RibbonToolView(metaclass=MayaWindowMeta):
+class RibbonToolView(metaclass=ui_qt_utils.MayaWindowMeta):
     def __init__(self, parent=None, controller=None, version=None):
         """
         Initialize the RibbonToolView.
@@ -27,205 +24,212 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
 
         # Window Title
-        self.window_title = "GT Ribbon Tool"
+        self.window_title = "Ribbon Tool"
         _window_title = self.window_title
         if version:
-            _window_title += f' - (v{str(version)})'
+            _window_title += f" - (v{str(version)})"
         self.setWindowTitle(_window_title)
 
         # Title
-        self.title_label = QtWidgets.QLabel(self.window_title)
-        self.title_label.setStyleSheet('background-color: rgb(93, 93, 93); border: 0px solid rgb(93, 93, 93); \
-                                                color: rgb(255, 255, 255); padding: 10px; margin-bottom: 0; text-align: left;')
-        self.title_label.setFont(qt_utils.get_font(resource_library.Font.roboto))
-        self.help_btn = QPushButton('Help')
+        self.title_label = ui_qt.QtWidgets.QLabel(self.window_title)
+        self.title_label.setStyleSheet(
+            "background-color: rgb(93, 93, 93); border: 0px solid rgb(93, 93, 93); \
+                                                color: rgb(255, 255, 255); padding: 10px; margin-bottom: 0; text-align: left;"
+        )
+        self.title_label.setFont(ui_qt_utils.get_font(ui_res_lib.Font.roboto))
+        self.help_btn = ui_qt.QtWidgets.QPushButton("Help")
         self.help_btn.setToolTip("Open Help Dialog.")
-        self.help_btn.setStyleSheet('color: rgb(255, 255, 255); padding: 10px; '
-                                    'padding-right: 15px; padding-left: 15px; margin: 0;')
-        self.help_btn.setFont(qt_utils.get_font(resource_library.Font.roboto))
+        self.help_btn.setStyleSheet(
+            "color: rgb(255, 255, 255); padding: 10px; " "padding-right: 15px; padding-left: 15px; margin: 0;"
+        )
+        self.help_btn.setFont(ui_qt_utils.get_font(ui_res_lib.Font.roboto))
 
         # Prefix
-        self.prefix_label = QLabel("Prefix:")
+        self.prefix_label = ui_qt.QtWidgets.QLabel("Prefix:")
         self.prefix_label.setMinimumWidth(90)
-        self.prefix_content = QLineEdit()
+        self.prefix_content = ui_qt.QtWidgets.QLineEdit()
         self.prefix_content.setPlaceholderText("Enter prefix here...")
-        self.prefix_clear_btn = QPushButton("Clear")
+        self.prefix_clear_btn = ui_qt.QtWidgets.QPushButton("Clear")
         self.prefix_clear_btn.setStyleSheet("padding: 7; border-radius: 5px;")
         self.prefix_clear_btn.clicked.connect(self.clear_prefix_content)
 
         # Num Controls
-        self.num_controls_label = QLabel("Number of Controls:")
+        self.num_controls_label = ui_qt.QtWidgets.QLabel("Number of Controls:")
         self.num_controls_label.setMinimumWidth(170)
-        self.num_controls_content = QSpinBox()
+        self.num_controls_content = ui_qt.QtWidgets.QSpinBox()
         self.num_controls_content.setMinimum(1)
         self.num_controls_content.setSingleStep(1)
         self.num_controls_content.setValue(6)
 
         # Num Joints
-        self.num_joints_label = QLabel("Number of Joints:")
+        self.num_joints_label = ui_qt.QtWidgets.QLabel("Number of Joints:")
         self.num_joints_label.setMinimumWidth(170)
-        self.num_joints_content = QSpinBox()
+        self.num_joints_content = ui_qt.QtWidgets.QSpinBox()
         self.num_joints_content.setMinimum(0)
         self.num_joints_content.setSingleStep(1)
         self.num_joints_content.setValue(8)
 
         # Num Joints
-        self.num_joints_label = QLabel("Number of Joints:")
+        self.num_joints_label = ui_qt.QtWidgets.QLabel("Number of Joints:")
         self.num_joints_label.setMinimumWidth(170)
-        self.num_joints_content = QSpinBox()
+        self.num_joints_content = ui_qt.QtWidgets.QSpinBox()
         self.num_joints_content.setMinimum(0)
         self.num_joints_content.setSingleStep(1)
         self.num_joints_content.setValue(8)
 
         # Drop Off Rate
-        self.dropoff_label = QLabel("Dropoff Rate:")
+        self.dropoff_label = ui_qt.QtWidgets.QLabel("Dropoff Rate:")
         self.dropoff_label.setMinimumWidth(170)
-        self.dropoff_content = QDoubleSpinBox()
+        self.dropoff_content = ui_qt.QtWidgets.QDoubleSpinBox()
         self.dropoff_content.setMinimum(0)
         self.dropoff_content.setMaximum(10)
         self.dropoff_content.setSingleStep(0.1)
         self.dropoff_content.setValue(2)
 
         # Span Multiplier
-        self.span_multiplier_label = QLabel("Span Multiplier:")
+        self.span_multiplier_label = ui_qt.QtWidgets.QLabel("Span Multiplier:")
         self.span_multiplier_label.setMinimumWidth(170)
-        self.span_multiplier_content = QSpinBox()
+        self.span_multiplier_content = ui_qt.QtWidgets.QSpinBox()
         self.span_multiplier_content.setMinimum(0)
         self.span_multiplier_content.setSingleStep(1)
         self.span_multiplier_content.setValue(0)
 
         # Checkboxes
-        self.equidistant_label = QLabel("Equidistant:")
+        self.equidistant_label = ui_qt.QtWidgets.QLabel("Equidistant:")
         self.equidistant_label.setToolTip("Ensures equidistant calculation between the distance of every follicle.")
         self.equidistant_label.setMinimumWidth(100)
-        self.equidistant_checkbox = QCheckBox()
+        self.equidistant_checkbox = ui_qt.QtWidgets.QCheckBox()
         self.equidistant_checkbox.setChecked(True)
-        self.add_fk_label = QLabel("Add FK:")
+        self.add_fk_label = ui_qt.QtWidgets.QLabel("Add FK:")
         self.add_fk_label.setToolTip("Creates extra forward-kinematics controls to drive ribbon controls.")
         self.add_fk_label.setMinimumWidth(100)
-        self.add_fk_checkbox = QCheckBox()
+        self.add_fk_checkbox = ui_qt.QtWidgets.QCheckBox()
         self.add_fk_checkbox.setChecked(True)
-        self.constraint_source_label = QLabel("Constraint Source:")
-        self.constraint_source_label.setToolTip("Constraint source transforms to follow the ribbon. "
-                                                "(This skips joint creation)")
+        self.constraint_source_label = ui_qt.QtWidgets.QLabel("Constraint Source:")
+        self.constraint_source_label.setToolTip(
+            "Constraint source transforms to follow the ribbon. " "(This skips joint creation)"
+        )
         self.constraint_source_label.setMinimumWidth(100)
-        self.constraint_source_checkbox = QCheckBox()
+        self.constraint_source_checkbox = ui_qt.QtWidgets.QCheckBox()
         self.constraint_source_checkbox.setChecked(True)
-        self.parent_jnt_label = QLabel("Parent Skin Joints:")
+        self.parent_jnt_label = ui_qt.QtWidgets.QLabel("Parent Skin Joints:")
         self.parent_jnt_label.setToolTip("Creates a hierarchy with the generated driven joints.")
         self.parent_jnt_label.setMinimumWidth(100)
-        self.parent_jnt_checkbox = QCheckBox()
+        self.parent_jnt_checkbox = ui_qt.QtWidgets.QCheckBox()
         self.parent_jnt_checkbox.setChecked(True)
 
         # Surface Data / Mode
-        self.mode_label = QLabel("Source Mode:")
-        self.mode_label.setToolTip("No Source: Creates a simple ribbon.\n"
-                                         "Surface: Uses provided surface as input.\n"
-                                         "Transform List: Creates ribbon using a provided transform list.")
-        self.mode_combo_box = QComboBox()
+        self.mode_label = ui_qt.QtWidgets.QLabel("Source Mode:")
+        self.mode_label.setToolTip(
+            "No Source: Creates a simple ribbon.\n"
+            "Surface: Uses provided surface as input.\n"
+            "Transform List: Creates ribbon using a provided transform list."
+        )
+        self.mode_combo_box = ui_qt.QtWidgets.QComboBox()
         self.mode_combo_box.addItems(["No Source", "Surface", "Transform List"])
         self.mode_combo_box.setStyleSheet("padding: 5;")
 
-        self.surface_data_set_btn = QPushButton('Set')
+        self.surface_data_set_btn = ui_qt.QtWidgets.QPushButton("Set")
         self.surface_data_set_btn.setToolTip("Uses selection to determine source data.")
-        self.surface_data_clear_btn = QPushButton('Clear')
+        self.surface_data_clear_btn = ui_qt.QtWidgets.QPushButton("Clear")
         self.surface_data_clear_btn.setToolTip("Clears source data.")
         self.surface_data_set_btn.setStyleSheet("padding: 5;")
-        self.surface_data_content_btn = QPushButton("No Data")
-        self.surface_data_content_btn.setToolTip('Current Surface Data (Click to Select It)')
+        self.surface_data_content_btn = ui_qt.QtWidgets.QPushButton("No Data")
+        self.surface_data_content_btn.setToolTip("Current Surface Data (Click to Select It)")
 
         # Create Button
-        self.create_ribbon_btn = QPushButton("Create Ribbon")
+        self.create_ribbon_btn = ui_qt.QtWidgets.QPushButton("Create Ribbon")
         self.create_ribbon_btn.setStyleSheet("padding: 10;")
-        self.create_ribbon_btn.setSizePolicy(self.create_ribbon_btn.sizePolicy().Expanding,
-                                             self.create_ribbon_btn.sizePolicy().Expanding)
+        self.create_ribbon_btn.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Expanding)
 
         # Window Setup ------------------------------------------------------------------------------------
         self.create_layout()
         self.mode_combo_box.currentIndexChanged.connect(self.update_ui_from_mode)
 
-        self.setWindowFlags(self.windowFlags() |
-                            QtCore.Qt.WindowMaximizeButtonHint |
-                            QtCore.Qt.WindowMinimizeButtonHint)
-        self.setWindowIcon(QIcon(resource_library.Icon.tool_ribbon))
+        self.setWindowFlags(
+            self.windowFlags()
+            | ui_qt.QtLib.WindowFlag.WindowMaximizeButtonHint
+            | ui_qt.QtLib.WindowFlag.WindowMinimizeButtonHint
+        )
+        self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.tool_ribbon))
 
-        stylesheet = resource_library.Stylesheet.scroll_bar_base
-        stylesheet += resource_library.Stylesheet.maya_dialog_base
-        stylesheet += resource_library.Stylesheet.list_widget_base
-        stylesheet += resource_library.Stylesheet.spin_box_base
-        stylesheet += resource_library.Stylesheet.checkbox_base
-        stylesheet += resource_library.Stylesheet.line_edit_base
-        stylesheet += resource_library.Stylesheet.combobox_rounded
+        stylesheet = ui_res_lib.Stylesheet.scroll_bar_base
+        stylesheet += ui_res_lib.Stylesheet.maya_dialog_base
+        stylesheet += ui_res_lib.Stylesheet.list_widget_base
+        stylesheet += ui_res_lib.Stylesheet.spin_box_base
+        stylesheet += ui_res_lib.Stylesheet.checkbox_base
+        stylesheet += ui_res_lib.Stylesheet.line_edit_base
+        stylesheet += ui_res_lib.Stylesheet.combobox_rounded
         self.setStyleSheet(stylesheet)
-        self.create_ribbon_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
-        qt_utils.center_window(self)
-        self.update_ui_from_mode(0) # No Source
+        self.create_ribbon_btn.setStyleSheet(ui_res_lib.Stylesheet.btn_push_bright)
+        ui_qt_utils.center_window(self)
+        self.update_ui_from_mode(0)  # No Source
         width = 400  # Initial width
         self.resize(width, self.height())
 
     def create_layout(self):
         """Create the layout for the window."""
         # Top Layout -------------------------------------------------------------------------
-        title_layout = QtWidgets.QHBoxLayout()
+        title_layout = ui_qt.QtWidgets.QHBoxLayout()
         title_layout.setSpacing(0)
         title_layout.addWidget(self.title_label, 5)
         title_layout.addWidget(self.help_btn)
 
         # Body Layout -------------------------------------------------------------------------
-        body_layout = QVBoxLayout()
+        body_layout = ui_qt.QtWidgets.QVBoxLayout()
         body_layout.setContentsMargins(15, 0, 15, 5)  # L-T-R-B
 
-        prefix_layout = QHBoxLayout()
+        prefix_layout = ui_qt.QtWidgets.QHBoxLayout()
         prefix_layout.addWidget(self.prefix_label)
         prefix_layout.addWidget(self.prefix_content)
         prefix_layout.addWidget(self.prefix_clear_btn)
         prefix_layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
         body_layout.addLayout(prefix_layout)
 
-        mode_layout = QHBoxLayout()
+        mode_layout = ui_qt.QtWidgets.QHBoxLayout()
         mode_layout.addWidget(self.mode_label)
         mode_layout.addWidget(self.mode_combo_box)
         mode_layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
         body_layout.addLayout(mode_layout)
 
-        num_controls_layout = QHBoxLayout()
+        num_controls_layout = ui_qt.QtWidgets.QHBoxLayout()
         num_controls_layout.addWidget(self.num_controls_label)
         num_controls_layout.addWidget(self.num_controls_content)
         body_layout.addLayout(num_controls_layout)
 
-        num_joints_layout = QHBoxLayout()
+        num_joints_layout = ui_qt.QtWidgets.QHBoxLayout()
         num_joints_layout.addWidget(self.num_joints_label)
         num_joints_layout.addWidget(self.num_joints_content)
         body_layout.addLayout(num_joints_layout)
 
-        drop_off_layout = QHBoxLayout()
+        drop_off_layout = ui_qt.QtWidgets.QHBoxLayout()
         drop_off_layout.addWidget(self.dropoff_label)
         drop_off_layout.addWidget(self.dropoff_content)
         body_layout.addLayout(drop_off_layout)
 
-        span_multiplier_layout = QHBoxLayout()
+        span_multiplier_layout = ui_qt.QtWidgets.QHBoxLayout()
         span_multiplier_layout.addWidget(self.span_multiplier_label)
         span_multiplier_layout.addWidget(self.span_multiplier_content)
         body_layout.addLayout(span_multiplier_layout)
 
-        checkboxes_one_layout = QHBoxLayout()
+        checkboxes_one_layout = ui_qt.QtWidgets.QHBoxLayout()
         checkboxes_one_layout.addWidget(self.equidistant_label)
         checkboxes_one_layout.addWidget(self.equidistant_checkbox)
         checkboxes_one_layout.addWidget(self.parent_jnt_label)
         checkboxes_one_layout.addWidget(self.parent_jnt_checkbox)
         body_layout.addLayout(checkboxes_one_layout)
 
-        checkboxes_two_layout = QHBoxLayout()
+        checkboxes_two_layout = ui_qt.QtWidgets.QHBoxLayout()
         checkboxes_two_layout.addWidget(self.add_fk_label)
         checkboxes_two_layout.addWidget(self.add_fk_checkbox)
         checkboxes_two_layout.addWidget(self.constraint_source_label)
         checkboxes_two_layout.addWidget(self.constraint_source_checkbox)
         body_layout.addLayout(checkboxes_two_layout)
 
-        surface_data_layout = QtWidgets.QVBoxLayout()
-        sur_data_label_content_layout = QtWidgets.QHBoxLayout()
-        set_clear_layout = QtWidgets.QHBoxLayout()
-        content_layout = QtWidgets.QHBoxLayout()
+        surface_data_layout = ui_qt.QtWidgets.QVBoxLayout()
+        sur_data_label_content_layout = ui_qt.QtWidgets.QHBoxLayout()
+        set_clear_layout = ui_qt.QtWidgets.QHBoxLayout()
+        content_layout = ui_qt.QtWidgets.QHBoxLayout()
         set_clear_layout.addWidget(self.surface_data_set_btn)
         set_clear_layout.addWidget(self.surface_data_clear_btn)
         content_layout.addWidget(self.surface_data_content_btn)
@@ -233,35 +237,36 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         sur_data_label_content_layout.addLayout(content_layout)
         set_clear_layout.setSpacing(2)
         content_layout.setSpacing(0)
-        source_data_label = QLabel("Source Surface/Transform List:")
-        source_data_label.setStyleSheet(f"font-weight: bold; font-size: 8; margin-top: 0; "
-                                        f"color: {resource_library.Color.RGB.gray_lighter};")
-        source_data_label.setAlignment(QtCore.Qt.AlignCenter)
-        source_data_font = qt_utils.get_font(resource_library.Font.roboto)
+        source_data_label = ui_qt.QtWidgets.QLabel("Source Surface/Transform List:")
+        source_data_label.setStyleSheet(
+            f"font-weight: bold; font-size: 8; margin-top: 0; " f"color: {ui_res_lib.Color.RGB.gray_lighter};"
+        )
+        source_data_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        source_data_font = ui_qt_utils.get_font(ui_res_lib.Font.roboto)
         source_data_font.setPointSize(6)
         source_data_label.setFont(source_data_font)
         surface_data_layout.addWidget(source_data_label)
         surface_data_layout.addLayout(sur_data_label_content_layout)
 
-        source_layout = QVBoxLayout()
+        source_layout = ui_qt.QtWidgets.QVBoxLayout()
         source_layout.setContentsMargins(15, 0, 15, 5)  # L-T-R-B
         source_layout.addLayout(surface_data_layout)
 
-        bottom_main_button_layout = QVBoxLayout()
+        bottom_main_button_layout = ui_qt.QtWidgets.QVBoxLayout()
         bottom_main_button_layout.addWidget(self.create_ribbon_btn)
 
-        separator = QFrame()
-        separator.setFrameShape(QFrame.HLine)
-        separator.setFrameShadow(QFrame.Sunken)
+        separator = ui_qt.QtWidgets.QFrame()
+        separator.setFrameShape(ui_qt.QtLib.FrameStyle.HLine)
+        separator.setFrameShadow(ui_qt.QtLib.FrameStyle.Sunken)
 
-        separator_two = QFrame()
-        separator_two.setFrameShape(QFrame.HLine)
-        separator_two.setFrameShadow(QFrame.Sunken)
+        separator_two = ui_qt.QtWidgets.QFrame()
+        separator_two.setFrameShape(ui_qt.QtLib.FrameStyle.HLine)
+        separator_two.setFrameShadow(ui_qt.QtLib.FrameStyle.Sunken)
 
-        main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout = ui_qt.QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
-        top_layout = QtWidgets.QVBoxLayout()
-        bottom_layout = QtWidgets.QVBoxLayout()
+        top_layout = ui_qt.QtWidgets.QVBoxLayout()
+        bottom_layout = ui_qt.QtWidgets.QVBoxLayout()
         top_layout.addLayout(title_layout)
         top_layout.setContentsMargins(15, 15, 15, 10)  # L-T-R-B
         main_layout.addLayout(top_layout)
@@ -302,19 +307,21 @@ class RibbonToolView(metaclass=MayaWindowMeta):
             self.clear_source_data_button()
 
     def close_window(self):
-        """ Closes this window """
+        """Closes this window"""
         self.close()
 
     # Setters --------------------------------------------------------------------------------------------------
     def clear_source_data_button(self):
-        """ Clears the source data content button by changing its colors and text. """
-        self.set_source_data_button_values(text="No Data",
-                                           color_text=resource_library.Color.RGB.gray_light,
-                                           color_text_disabled=resource_library.Color.RGB.gray_mid_light,
-                                           color_btn=resource_library.Color.RGB.gray_darker,
-                                           color_btn_hover=resource_library.Color.RGB.gray_mid_light,
-                                           color_btn_pressed=resource_library.Color.RGB.gray_mid_lighter,
-                                           color_btn_disabled=resource_library.Color.RGB.gray_darker)
+        """Clears the source data content button by changing its colors and text."""
+        self.set_source_data_button_values(
+            text="No Data",
+            color_text=ui_res_lib.Color.RGB.gray_light,
+            color_text_disabled=ui_res_lib.Color.RGB.gray_mid_light,
+            color_btn=ui_res_lib.Color.RGB.gray_darker,
+            color_btn_hover=ui_res_lib.Color.RGB.gray_mid_light,
+            color_btn_pressed=ui_res_lib.Color.RGB.gray_mid_lighter,
+            color_btn_disabled=ui_res_lib.Color.RGB.gray_darker,
+        )
 
     def clear_prefix_content(self):
         """
@@ -322,8 +329,16 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         """
         self.prefix_content.setText("")
 
-    def set_source_data_button_values(self, text=None, color_text=None, color_text_disabled=None, color_btn=None,
-                                      color_btn_hover=None, color_btn_pressed=None, color_btn_disabled=None):
+    def set_source_data_button_values(
+        self,
+        text=None,
+        color_text=None,
+        color_text_disabled=None,
+        color_btn=None,
+        color_btn_hover=None,
+        color_btn_pressed=None,
+        color_btn_disabled=None,
+    ):
         """
         Updates the source data button color, text and button color (background color)
         Args:
@@ -447,7 +462,7 @@ class RibbonToolView(metaclass=MayaWindowMeta):
 
 
 if __name__ == "__main__":
-    with qt_utils.QtApplicationContext():
+    with ui_qt_utils.QtApplicationContext():
         window = RibbonToolView(version="1.2.3")  # View
         window.set_source_data_button_values(text="Some Data", color_btn="#333333", color_text="#FFFFFF")
         window.show()
