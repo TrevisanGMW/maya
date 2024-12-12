@@ -435,11 +435,11 @@ class PackageUpdaterModel:
         sys.path.insert(0, extracted_module_path)
 
         # Import and run installer -----------------------------------------------
-        import gt.core.setup as setup_utils
+        import gt.core.setup as core_setup
 
         is_installed = False
         try:
-            is_installed = setup_utils.install_package(
+            is_installed = core_setup.install_package(
                 callbacks=[self.progress_win.add_text_to_output_box, self.progress_win.increase_progress_bar_value]
             )
         except Exception as e:
