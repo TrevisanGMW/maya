@@ -535,7 +535,7 @@ def replace_keys_with_values(input_string, replacements_dict, case_sensitive=Tru
             if key in lower_input_string:
                 # This replacement needs to handle multiple occurrences
                 start = 0
-                while (start := lower_input_string.find(key, start)) != -1:
+                while lower_input_string.find(key, start) != -1:
                     end = start + len(key)
                     input_string = input_string[:start] + value + input_string[end:]
                     lower_input_string = lower_input_string[:start] + value.lower() + lower_input_string[end:]
