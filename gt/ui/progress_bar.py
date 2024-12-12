@@ -280,10 +280,6 @@ if __name__ == "__main__":
     window.first_button.clicked.connect(window.close_window)
 
     window.set_progress_bar_max_value(8)
-    # window.set_progress_bar_done()
-    # import core.setup_utils as setup_utils
-    # setup_utils.install_package(passthrough_functions=[window.append_text_to_output_box,
-    #                                                    window.increase_progress_bar_value])
 
     index = 0
     import time
