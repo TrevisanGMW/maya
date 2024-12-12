@@ -531,15 +531,18 @@ def replace_keys_with_values(input_string, replacements_dict, case_sensitive=Tru
         # Create a case-insensitive version of the replacements dictionary
         replacements_dict = {key.lower(): value for key, value in replacements_dict.items()}
         lower_input_string = input_string.lower()
+        output_string = input_string
+
         for key, value in replacements_dict.items():
-            if key in lower_input_string:
-                # This replacement needs to handle multiple occurrences
-                start = 0
-                while (start := lower_input_string.find(key, start)) != -1:
+            start = 0
+            while start != -1:
+                start = lower_input_string.find(key, start)
+                if start != -1:
                     end = start + len(key)
-                    input_string = input_string[:start] + value + input_string[end:]
+                    output_string = output_string[:start] + value + output_string[end:]
                     lower_input_string = lower_input_string[:start] + value.lower() + lower_input_string[end:]
-                    start = end
+                    start += len(value)
+        return output_string
     else:
         for key, value in replacements_dict.items():
             input_string = input_string.replace(key, value)
