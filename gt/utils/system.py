@@ -3,6 +3,7 @@ System Utilities - Utilities related to system activities, such as paths, open e
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
 github.com/TrevisanGMW/gt-tools
 """
+
 from datetime import datetime
 import gt.core.io as core_io
 from functools import wraps
@@ -18,9 +19,9 @@ import sys
 import os
 import re
 
-OS_MAC = 'darwin'
-OS_LINUX = 'linux'
-OS_WINDOWS = 'win32'
+OS_MAC = "darwin"
+OS_LINUX = "linux"
+OS_WINDOWS = "win32"
 known_systems = [OS_WINDOWS, OS_MAC, OS_LINUX]
 
 # Logging Setup
@@ -38,7 +39,7 @@ def get_system():
     """
     system = sys.platform
     if system not in known_systems:
-        logger.debug(f'Unexpected system returned: {system}]')
+        logger.debug(f"Unexpected system returned: {system}]")
     return system
 
 
@@ -96,7 +97,7 @@ def get_home_dir():
     """
     # Maya uses the HOME environment variable on Windows causing it to add "Documents" to the path
     if get_system() == OS_WINDOWS:
-        return os.path.expanduser(os.getenv('USERPROFILE'))
+        return os.path.expanduser(os.getenv("USERPROFILE"))
     else:
         return pathlib.Path.home()
 
@@ -107,7 +108,7 @@ def get_desktop_path():
     Returns:
         str: String (path) to the desktop folder
     """
-    return os.path.join(get_home_dir(), 'Desktop')
+    return os.path.join(get_home_dir(), "Desktop")
 
 
 def get_maya_install_dir(system):
@@ -145,7 +146,7 @@ def get_maya_path(system, version, get_maya_python=False):
     maya_paths = {
         OS_LINUX: "/usr/bin/",
         OS_MAC: f"{install_dir}/maya{version}/Maya.app/Contents/bin/{executable_name}",
-        OS_WINDOWS: fr"{install_dir}\Maya{version}\bin\{executable_name}.exe",
+        OS_WINDOWS: rf"{install_dir}\Maya{version}\bin\{executable_name}.exe",
     }
     if system not in maya_paths.keys():
         raise KeyError(f'Unable to find the given system in listed paths. System: "{system}"')
@@ -162,16 +163,16 @@ def open_file_dir(path):
     system = get_system()
     if system == OS_WINDOWS:  # Windows
         # explorer needs forward slashes
-        filebrowser_path = os.path.join(os.getenv('WINDIR'), 'explorer.exe')
+        filebrowser_path = os.path.join(os.getenv("WINDIR"), "explorer.exe")
         if os.path.isdir(path):
             subprocess.run([filebrowser_path, path])
         elif os.path.isfile(path):
-            subprocess.run([filebrowser_path, '/select,', path])
+            subprocess.run([filebrowser_path, "/select,", path])
     elif system == OS_MAC:  # Mac-OS
         try:
             subprocess.call(["open", "-R", path])
         except Exception as exception:
-            logger.warning(f'Unable to open directory. Issue: {exception}')
+            logger.warning(f"Unable to open directory. Issue: {exception}")
     else:  # Linux/Other
         logger.warning(f'Unable to open directory. Unsupported system: "{system}".')
 
@@ -187,19 +188,20 @@ def get_maya_preferences_dir(system):
     win_maya_preferences_dir = ""
     mac_maya_preferences_dir = ""
     if system == OS_WINDOWS:
-        win_maya_preferences_dir = os.path.expanduser('~')
+        win_maya_preferences_dir = os.path.expanduser("~")
         try:
             import maya.cmds as cmds
+
             if cmds.about(batch=True):
                 raise
             else:
                 win_maya_preferences_dir = cmds.internalVar(userAppDir=True)
         except Exception as e:
             win_maya_preferences_dir = os.path.join(win_maya_preferences_dir, "Documents")
-            logger.debug(f'Got Maya preferences path from outside Maya. Reason: {str(e)}')
+            logger.debug(f"Got Maya preferences path from outside Maya. Reason: {str(e)}")
             win_maya_preferences_dir = os.path.join(win_maya_preferences_dir, "maya")
     elif system == OS_MAC:
-        mac_maya_preferences_dir = os.path.join(os.path.expanduser('~'), "Library", "Preferences", "Autodesk", "maya")
+        mac_maya_preferences_dir = os.path.join(os.path.expanduser("~"), "Library", "Preferences", "Autodesk", "maya")
 
     maya_preferences_paths = {
         OS_LINUX: "/usr/bin/",
@@ -227,10 +229,13 @@ def get_available_maya_preferences_dirs(use_maya_commands=False):
     if use_maya_commands:
         try:
             import maya.cmds as cmds
+
             maya_preferences_dir = os.path.dirname(cmds.about(preferences=True))
         except Exception as e:
-            logger.debug(f"Unable to retrieve preferences using Maya commands. Issue: {e}. \n"
-                         f"Attempting operation using system functions...")
+            logger.debug(
+                f"Unable to retrieve preferences using Maya commands. Issue: {e}. \n"
+                f"Attempting operation using system functions..."
+            )
             maya_preferences_dir = get_maya_preferences_dir(get_system())
     else:
         maya_preferences_dir = get_maya_preferences_dir(get_system())
@@ -314,9 +319,9 @@ def launch_maya_from_path(maya_path, python_script=None, additional_args=None):
         return
     args = [maya_path]
     if python_script is not None:
-        encoded_python = base64.b64encode(python_script.encode('utf-8'))
-        script_text = '''python("import base64; exec (base64.urlsafe_b64decode({}))")'''
-        args += ['-c', script_text.format(encoded_python)]
+        encoded_python = base64.b64encode(python_script.encode("utf-8"))
+        script_text = """python("import base64; exec (base64.urlsafe_b64decode({}))")"""
+        args += ["-c", script_text.format(encoded_python)]
     # Additional Arguments
     if additional_args is not None:
         if isinstance(additional_args, list):
@@ -344,9 +349,7 @@ def launch_maya(preferred_version=None, python_script=None, additional_args=None
     """
     maya_path = get_maya_executable(preferred_version=preferred_version)
     if maya_path:
-        launch_maya_from_path(maya_path=maya_path,
-                              python_script=python_script,
-                              additional_args=additional_args)
+        launch_maya_from_path(maya_path=maya_path, python_script=python_script, additional_args=additional_args)
 
 
 def run_script_using_maya_python(script_path, preferred_version=None):
@@ -396,27 +399,32 @@ def process_launch_options(sys_args):
     # Launch Options
     if sys_args[1] == "-install":
         if "-clean" in sys_args:
-            import gt.core.setup as setup_utils
-            setup_utils.install_package(clean_install=True)
+            import gt.core.setup as core_setup
+
+            core_setup.install_package(clean_install=True)
         elif "-gui" in sys_args:
             import gt.tools.package_setup as package_setup
+
             package_setup.launcher_entry_point()
         else:
-            import gt.core.setup as setup_utils
-            setup_utils.install_package(clean_install=False)
+            import gt.core.setup as core_setup
+
+            core_setup.install_package(clean_install=False)
         return True
     elif sys_args[1] == "-uninstall":
-        import gt.core.setup as setup_utils
-        setup_utils.uninstall_package()
+        import gt.core.setup as core_setup
+
+        core_setup.uninstall_package()
         return True
     elif sys_args[1] == "-launch":
         preferred_version = None
         if len(sys_args) > 2:
             preferred_version_no_dash = str(sys_args[2]).replace("-", "")
-            if re.match(r'^\d{4}$', preferred_version_no_dash):  # Exactly 4 digits
+            if re.match(r"^\d{4}$", preferred_version_no_dash):  # Exactly 4 digits
                 preferred_version = preferred_version_no_dash
         try:
             import maya.cmds as cmds
+
             is_batch_mode = cmds.about(batch=True)
             load_package_menu(launch_maya_app=is_batch_mode, preferred_version=preferred_version)
         except Exception as e:  # Failed to import cmds, not in Maya
@@ -429,6 +437,7 @@ def process_launch_options(sys_args):
         if package_dir not in sys.path:
             sys.path.append(package_dir)  # Ensure package is available
         import tests
+
         if "-all" in sys_args:
             tests.run_all_tests_with_summary()
         else:
@@ -437,7 +446,7 @@ def process_launch_options(sys_args):
             return False
         return True
     else:
-        unrecognized_args = ', '.join(f'"{str(arg)}"' for arg in sys_args[1:])
+        unrecognized_args = ", ".join(f'"{str(arg)}"' for arg in sys_args[1:])
         sys.stdout.write(f"Unrecognized launch options: {unrecognized_args}\n")
         return False
 
@@ -454,16 +463,17 @@ def initialize_from_package(import_path, entry_point_function):
         bool: True if there were no errors, false if it failed
     """
     import importlib
+
     module = importlib.import_module(import_path)
 
     # Call Entry Function
-    entry_line = 'module.' + entry_point_function + '()'
+    entry_line = "module." + entry_point_function + "()"
     try:
         eval(entry_line)
         return True
     except Exception as exception:
         logger.warning('"' + entry_line + '" failed to run.')
-        logger.warning('Error: ' + str(exception))
+        logger.warning("Error: " + str(exception))
         return False
 
 
@@ -480,8 +490,7 @@ def initialize_tool(import_path, entry_point_function="launch_tool"):
     Returns:
         bool: True if there were no errors, false if it failed
     """
-    return initialize_from_package(import_path="gt.tools." + import_path,
-                                   entry_point_function=entry_point_function)
+    return initialize_from_package(import_path="gt.tools." + import_path, entry_point_function=entry_point_function)
 
 
 def initialize_utility(import_path, entry_point_function="launch_tool"):
@@ -497,8 +506,7 @@ def initialize_utility(import_path, entry_point_function="launch_tool"):
     Returns:
         bool: True if there were no errors, false if it failed
     """
-    return initialize_from_package(import_path="gt.core." + import_path,
-                                   entry_point_function=entry_point_function)
+    return initialize_from_package(import_path="gt.core." + import_path, entry_point_function=entry_point_function)
 
 
 def load_package_menu(launch_maya_app=False, preferred_version=None):
@@ -520,16 +528,17 @@ def load_package_menu(launch_maya_app=False, preferred_version=None):
     if os.path.exists(package_loader_script):
         with open(package_loader_script, "r") as file:
             file_content = file.read()
-    search_string = 'core.executeDeferred(load_package_menu)'
+    search_string = "core.executeDeferred(load_package_menu)"
     replace_string = f'core.executeDeferred(load_package_menu, """{str(core_io.DataDirConstants.DIR_PACKAGE)}""")'
     injection_script = file_content.replace(search_string, replace_string)
     if launch_maya_app:
         launch_maya(python_script=injection_script, preferred_version=preferred_version)
     else:
-        if core_io.DataDirConstants.DIR_PACKAGE not in sys.path:
-            sys.path.append(core_io.DataDirConstants.DIR_PACKAGE)
+        #if core_io.DataDirConstants.DIR_PACKAGE not in sys.path:
+        #    sys.path.append(core_io.DataDirConstants.DIR_PACKAGE)
         try:
             from gt.tools.package_setup import gt_tools_maya_menu
+
             gt_tools_maya_menu.load_menu()
         except Exception as e:
             logger.warning(f"Unable to load GT Tools. Issue: {str(e)}")
@@ -555,6 +564,7 @@ def time_profiler(func):
     Output:
         Function "my_function(10,) {'arg2': 'test'}" took 0.1234 seconds to run.
     """
+
     @wraps(func)
     def time_profiler_wrapper(*args, **kwargs):
         """
@@ -577,8 +587,9 @@ def time_profiler(func):
         result = func(*args, **kwargs)
         end_time = time.perf_counter()
         total_time = end_time - start_time
-        print(f'Execution Time: {total_time:.4f} - Function: {func.__name__}{args} {kwargs}')
+        print(f"Execution Time: {total_time:.4f} - Function: {func.__name__}{args} {kwargs}")
         return result
+
     return time_profiler_wrapper
 
 
@@ -653,6 +664,7 @@ def execute_deferred(func, *args, **kwargs):
     try:
         import maya.utils
         import maya.OpenMaya
+
         if maya.OpenMaya.MGlobal.mayaState() == maya.OpenMaya.MGlobal.kInteractive:
             maya.utils.executeDeferred(func, *args, **kwargs)
             return
@@ -675,7 +687,7 @@ def import_from_path(path):
         type: The imported module or object if successful, otherwise None.
     """
     try:
-        module_path, object_name = path.rsplit('.', 1)
+        module_path, object_name = path.rsplit(".", 1)
         module = importlib.import_module(module_path)
 
         if object_name:
@@ -743,11 +755,11 @@ def get_docstring(func, strip=False, strip_new_lines=False):
 
     if strip:
         # Remove leading empty spaces from each line of the docstring
-        docstring = '\n'.join(line.lstrip() for line in docstring.split('\n'))
+        docstring = "\n".join(line.lstrip() for line in docstring.split("\n"))
     if strip_new_lines:
-        docstring = docstring.lstrip('\n')
+        docstring = docstring.lstrip("\n")
         if docstring.endswith(docstring):
-            docstring = docstring[:-len('\n')]
+            docstring = docstring[: -len("\n")]
 
     return docstring
 
@@ -767,8 +779,16 @@ def get_formatted_time(format_str="%Y-%m-%d %H:%M:%S"):
     return formatted_time
 
 
-def execute_python_code(code, import_cmds=False, use_maya_warning=False, verbose=True, exec_globals=None,
-                        custom_logger=None, log_level=logging.WARNING, raise_errors=False):
+def execute_python_code(
+    code,
+    import_cmds=False,
+    use_maya_warning=False,
+    verbose=True,
+    exec_globals=None,
+    custom_logger=None,
+    log_level=logging.WARNING,
+    raise_errors=False,
+):
     """
     Executes the given Python code string in the Maya environment.
 
@@ -788,15 +808,18 @@ def execute_python_code(code, import_cmds=False, use_maya_warning=False, verbose
     try:
         if import_cmds:
             import maya.cmds as cmds
-            _exec_globals['cmds'] = cmds
+
+            _exec_globals["cmds"] = cmds
         exec(code, _exec_globals)
     except Exception as e:
         from gt.core.feedback import log_when_true
+
         traceback_str = traceback.format_exc()
         if raise_errors:
             raise e
         if use_maya_warning:
             import maya.cmds as cmds
+
             cmds.warning(traceback_str)
             cmds.warning(e)
             return
@@ -855,8 +878,10 @@ def create_object(class_name, raise_errors=True, class_path=None, *args, **kwarg
     elif class_path and isinstance(class_path, dict) and class_name in class_path:
         class_obj = class_path[class_name]
     else:
-        message = (f'Unable to create object. A path  for "{class_name}" was not provided and it was not found in the '
-                   f'global namespace.')
+        message = (
+            f'Unable to create object. A path  for "{class_name}" was not provided and it was not found in the '
+            f"global namespace."
+        )
         if raise_errors:
             raise NameError(message)
         else:
